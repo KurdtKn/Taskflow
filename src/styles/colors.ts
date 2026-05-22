@@ -1,5 +1,5 @@
 export const colors = {
-    gray: {
+    grays: {
         100:"#F4F4F5",
         200:"#E4E4E7",
         300:"#D4D4D8",
@@ -11,6 +11,12 @@ export const colors = {
         900:"#09090B",
     },
 
+    white: "#FFFFFF",
+    black: "#111111",
+    gray: "#6B7280",
+    lightGray: "#F3F4F6",
+    border: "#E5E7EB",
+
     blue: {
         100:"#2a65ca",
         200:"#116dbd",
@@ -20,6 +26,13 @@ export const colors = {
         600:"#092870",
         700:"#061A4A",
         800:"#05163D",
+    },
 
-    }
-}
+    primary: "#0B57D0",
+    primaryDark: "#163E9F",
+    primaryLight: "#4FA3FF",
+
+    success: "#00B050",
+    danger: "#DC2626",
+    warning: "#F59E0B",
+} as const;
