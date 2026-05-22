@@ -58,7 +58,7 @@ export const styles = StyleSheet.create({
   },
 
   buttonPressed: {
-    opacity: 0.85,
+    opacity: 0.98,
     transform: [{ scale: 0.98 }],
   },
 

@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Image, Pressable, SafeAreaView, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 
-import ArrowBack from "../../assets/icons/arrow_back.svg"
-import { styles } from "@/app/styles/accountType";
+import ArrowBack from "../../assets/icons/arrow_back.svg";
+import { styles } from "./styles/accountType";
 
 type AccountType = "freelancer" | "empresa";
+
+const gradientColors = ["#1f53cc", "#0f5bd6", "#2468f0"] as const;
 
 export default function AccountTypeScreen() {
   const [selectedType, setSelectedType] = useState<AccountType>("freelancer");
@@ -16,7 +19,7 @@ export default function AccountTypeScreen() {
       <StatusBar style="dark" />
 
       <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <ArrowBack width={28} height={28} color="#52525B"/>
+        <ArrowBack width={28} height={28} />
       </Pressable>
 
       <Text style={styles.title}>
@@ -29,67 +32,73 @@ export default function AccountTypeScreen() {
 
       <View style={styles.cardsArea}>
         <Pressable
-          style={[
-            styles.card,
-            selectedType === "freelancer" && styles.cardActive,
-          ]}
+          style={styles.cardWrapper}
           onPress={() => setSelectedType("freelancer")}
         >
-          <Image
-            source={require("../../assets/images/icon.png")}
-            style={styles.cardIcon}
-            resizeMode="contain"
-          />
+          {selectedType === "freelancer" ? (
+            <LinearGradient colors={gradientColors} style={styles.card}>
+              <Image
+                source={require("../../assets/icons/freelance.png")}
+                style={styles.cardIcon}
+                resizeMode="contain"
+              />
 
-          <Text
-            style={[
-              styles.cardTitle,
-              selectedType === "freelancer" && styles.cardTitleActive,
-            ]}
-          >
-            Sou Freelancer
-          </Text>
+              <Text style={styles.cardTitleActive}>Sou Freelancer</Text>
 
-          <Text
-            style={[
-              styles.cardText,
-              selectedType === "freelancer" && styles.cardTextActive,
-            ]}
-          >
-            Quero encontrar serviços para ganhar dinheiro.
-          </Text>
+              <Text style={styles.cardTextActive}>
+                Quero encontrar serviços para ganhar dinheiro.
+              </Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.card}>
+              <Image
+                source={require("../../assets/icons/freelance.png")}
+                style={styles.cardIcon}
+                resizeMode="contain"
+              />
+
+              <Text style={styles.cardTitle}>Sou Freelancer</Text>
+
+              <Text style={styles.cardText}>
+                Quero encontrar serviços para ganhar dinheiro.
+              </Text>
+            </View>
+          )}
         </Pressable>
 
         <Pressable
-          style={[
-            styles.card,
-            selectedType === "empresa" && styles.cardActive,
-          ]}
+          style={styles.cardWrapper}
           onPress={() => setSelectedType("empresa")}
         >
-          <Image
-            source={require("../../assets/images/adaptive-icon.png")}
-            style={styles.cardIcon}
-            resizeMode="contain"
-          />
+          {selectedType === "empresa" ? (
+            <LinearGradient colors={gradientColors} style={styles.card}>
+              <Image
+                source={require("../../assets/icons/companhia.png")}
+                style={styles.cardIcon}
+                resizeMode="contain"
+              />
 
-          <Text
-            style={[
-              styles.cardTitle,
-              selectedType === "empresa" && styles.cardTitleActive,
-            ]}
-          >
-            Sou Empresa
-          </Text>
+              <Text style={styles.cardTitleActive}>Sou Empresa</Text>
 
-          <Text
-            style={[
-              styles.cardText,
-              selectedType === "empresa" && styles.cardTextActive,
-            ]}
-          >
-            Quero contratar profissionais para serviços pontuais.
-          </Text>
+              <Text style={styles.cardTextActive}>
+                Quero contratar profissionais para serviços pontuais.
+              </Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.card}>
+              <Image
+                source={require("../../assets/icons/companhia.png")}
+                style={styles.cardIcon}
+                resizeMode="contain"
+              />
+
+              <Text style={styles.cardTitle}>Sou Empresa</Text>
+
+              <Text style={styles.cardText}>
+                Quero contratar profissionais para serviços pontuais.
+              </Text>
+            </View>
+          )}
         </Pressable>
       </View>
 
@@ -98,9 +107,7 @@ export default function AccountTypeScreen() {
           styles.button,
           pressed && styles.buttonPressed,
         ]}
-        onPress={() => {
-          console.log("Tipo selecionado:", selectedType);
-        }}
+        onPress={() => router.push("/create-account")}
       >
         <Text style={styles.buttonText}>Continuar</Text>
       </Pressable>
