@@ -31,8 +31,15 @@ export default function JobDetailsScreen() {
   function handleRequestService() {
     console.log("Solicitar atendimento:", title);
 
-    // Próxima etapa: criar tela de confirmação da solicitação
-    // router.push("/request-confirmation");
+    router.push({
+      pathname: "/request-confirmation",
+      params: {
+        title,
+        price,
+        location,
+        time,
+      },
+    });
   }
 
   return (
