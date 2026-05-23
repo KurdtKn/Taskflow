@@ -36,8 +36,7 @@ export default function CreateAccountScreen() {
       acceptedTerms,
     });
 
-    // Depois ligamos isso na API
-    // router.replace("/home");
+    router.replace("/home");;
   }
 
   return (

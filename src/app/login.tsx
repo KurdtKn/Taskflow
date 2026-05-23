@@ -29,8 +29,7 @@ export default function LoginScreen() {
       password,
     });
 
-    // Depois ligamos isso na API
-    // router.replace("/home");
+    router.replace("/home");
   }
 
   return (
