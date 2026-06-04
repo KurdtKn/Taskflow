@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import Visibility from "../../assets/icons/visibility.svg";
@@ -22,6 +22,11 @@ export default function CreateAccountScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const params = useLocalSearchParams<{
+    accountType?: "freelancer" | "empresa";
+  }>();
+
+const accountType = params.accountType ?? "freelancer";
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -34,10 +39,16 @@ export default function CreateAccountScreen() {
       password,
       confirmPassword,
       acceptedTerms,
+      accountType,
     });
 
-    router.replace("/home");;
+  if (accountType === "empresa") {
+    router.replace("/company-dashboard");
+    return;
   }
+
+  router.replace("/home");
+}
 
   return (
     <SafeAreaView style={styles.container}>

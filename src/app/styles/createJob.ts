@@ -1,0 +1,191 @@
+import { StyleSheet } from "react-native";
+import { colors } from "@/styles/colors";
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+
+  keyboardArea: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 46,
+  },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+
+  backButton: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: -8,
+  },
+
+  headerTitle: {
+    color: colors.black,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  headerPlaceholder: {
+    width: 42,
+    height: 42,
+  },
+
+  scrollContent: {
+    paddingBottom: 34,
+  },
+
+  introCard: {
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    padding: 18,
+    marginBottom: 24,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
+  },
+
+  introTitle: {
+    color: colors.white,
+    fontSize: 20,
+    fontWeight: "900",
+    marginBottom: 6,
+  },
+
+  introText: {
+    color: colors.white,
+    fontSize: 13,
+    lineHeight: 19,
+    opacity: 0.92,
+  },
+
+  form: {
+    width: "100%",
+  },
+
+  label: {
+    color: colors.gray,
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 7,
+  },
+
+  input: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: colors.black,
+    backgroundColor: colors.white,
+    marginBottom: 16,
+  },
+
+  textArea: {
+    minHeight: 116,
+    lineHeight: 21,
+  },
+
+  categoriesArea: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 18,
+  },
+
+  categoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: colors.lightGray,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  categoryChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+
+  categoryText: {
+    color: colors.gray,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  categoryTextActive: {
+    color: colors.white,
+  },
+
+  doubleInputArea: {
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  doubleInputBox: {
+    flex: 1,
+  },
+
+  infoBox: {
+    backgroundColor: "rgba(11,87,208,0.08)",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 22,
+  },
+
+  infoTitle: {
+    color: colors.primaryDark,
+    fontSize: 14,
+    fontWeight: "900",
+    marginBottom: 5,
+  },
+
+  infoText: {
+    color: colors.primaryDark,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "600",
+  },
+
+  publishButton: {
+    height: 52,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.primary,
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
+  },
+
+  publishButtonDisabled: {
+    backgroundColor: "#9CA3AF",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+
+  publishButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+
+  publishButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+});

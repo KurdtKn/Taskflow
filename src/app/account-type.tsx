@@ -107,7 +107,14 @@ export default function AccountTypeScreen() {
           styles.button,
           pressed && styles.buttonPressed,
         ]}
-        onPress={() => router.push("/create-account")}
+          onPress={() =>
+            router.push({
+              pathname: "/create-account",
+              params: {
+                accountType: selectedType,
+              },
+            })
+          }
       >
         <Text style={styles.buttonText}>Continuar</Text>
       </Pressable>
