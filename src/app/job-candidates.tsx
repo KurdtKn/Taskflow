@@ -26,7 +26,7 @@ type Candidate = {
   skills: string[];
 };
 
-const candidatesData: Candidate[] = [
+const initialCandidates: Candidate[] = [
   {
     id: "1",
     name: "Usuário TaskFlow",
@@ -78,8 +78,9 @@ export default function JobCandidatesScreen() {
     candidates?: string;
   }>();
 
+  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>(
-    candidatesData[0].id
+    initialCandidates[0]?.id ?? ""
   );
 
   const jobTitle = params.title ?? "Garçom para Evento";
@@ -88,7 +89,7 @@ export default function JobCandidatesScreen() {
   const jobLocation = params.location ?? "Centro";
   const jobTime = params.time ?? "Hoje, 18:00";
 
-  const selectedCandidate = candidatesData.find(
+  const selectedCandidate = candidates.find(
     (candidate) => candidate.id === selectedCandidateId
   );
 
@@ -121,6 +122,22 @@ export default function JobCandidatesScreen() {
         candidateRating: String(candidate.rating),
         candidatePrice: candidate.price,
       },
+    });
+  }
+
+  function handleRejectCandidate(candidate: Candidate) {
+    console.log("Candidato recusado:", candidate.name);
+
+    setCandidates((currentCandidates) => {
+      const updatedCandidates = currentCandidates.filter(
+        (item) => item.id !== candidate.id
+      );
+
+      if (selectedCandidateId === candidate.id) {
+        setSelectedCandidateId(updatedCandidates[0]?.id ?? "");
+      }
+
+      return updatedCandidates;
     });
   }
 
@@ -168,110 +185,138 @@ export default function JobCandidatesScreen() {
           <View>
             <Text style={styles.sectionTitle}>Freelancers interessados</Text>
             <Text style={styles.sectionSubtitle}>
-              {candidatesData.length} candidatos encontrados
+              {candidates.length} candidatos encontrados
             </Text>
           </View>
         </View>
 
         <View style={styles.candidatesList}>
-          {candidatesData.map((candidate) => {
-            const isSelected = selectedCandidateId === candidate.id;
+          {candidates.length === 0 ? (
+            <View style={styles.infoBox}>
+              <Text style={styles.infoTitle}>Nenhum candidato disponível</Text>
+              <Text style={styles.infoText}>
+                Todos os candidatos foram recusados ou ainda não há novas
+                candidaturas para esse chamado.
+              </Text>
+            </View>
+          ) : (
+            candidates.map((candidate) => {
+              const isSelected = selectedCandidateId === candidate.id;
 
-            return (
-              <Pressable
-                key={candidate.id}
-                style={({ pressed }) => [
-                  styles.candidateCard,
-                  isSelected && styles.candidateCardSelected,
-                  pressed && styles.candidateCardPressed,
-                ]}
-                onPress={() => setSelectedCandidateId(candidate.id)}
-              >
-                <View style={styles.candidateHeader}>
-                  <Image
-                    source={require("../../assets/images/icon.png")}
-                    style={styles.avatar}
-                    resizeMode="contain"
-                  />
-
-                  <View style={styles.candidateInfo}>
-                    <Text style={styles.candidateName}>{candidate.name}</Text>
-                    <Text style={styles.candidateRole}>{candidate.role}</Text>
-
-                    <View style={styles.ratingArea}>
-                      <Text style={styles.ratingIcon}>⭐</Text>
-                      <Text style={styles.ratingText}>
-                        {candidate.rating} • {candidate.reviews} avaliações
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={styles.candidatePrice}>{candidate.price}</Text>
-                </View>
-
-                <Text style={styles.description}>{candidate.description}</Text>
-
-                <View style={styles.skillsArea}>
-                  {candidate.skills.map((skill) => (
-                    <View key={skill} style={styles.skillChip}>
-                      <Text style={styles.skillText}>{skill}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                <View style={styles.statsArea}>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {candidate.completedJobs}
-                    </Text>
-                    <Text style={styles.statLabel}>serviços</Text>
-                  </View>
-
-                  <View style={styles.statDivider} />
-
-                  <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {candidate.distance}
-                    </Text>
-                    <Text style={styles.statLabel}>distância</Text>
-                  </View>
-
-                  <View style={styles.statDivider} />
-
-                  <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {candidate.rating}
-                    </Text>
-                    <Text style={styles.statLabel}>nota</Text>
-                  </View>
-                </View>
-
+              return (
                 <Pressable
+                  key={candidate.id}
                   style={({ pressed }) => [
-                    styles.profileButton,
-                    pressed && styles.profileButtonPressed,
+                    styles.candidateCard,
+                    isSelected && styles.candidateCardSelected,
+                    pressed && styles.candidateCardPressed,
                   ]}
-                  onPress={() => handleViewFreelancerProfile(candidate)}
+                  onPress={() => setSelectedCandidateId(candidate.id)}
                 >
-                  <Text style={styles.profileButtonText}>Ver perfil completo</Text>
-                </Pressable>
+                  <View style={styles.candidateHeader}>
+                    <Image
+                      source={require("../../assets/images/icon.png")}
+                      style={styles.avatar}
+                      resizeMode="contain"
+                    />
 
-                {isSelected && (
+                    <View style={styles.candidateInfo}>
+                      <Text style={styles.candidateName}>
+                        {candidate.name}
+                      </Text>
+                      <Text style={styles.candidateRole}>
+                        {candidate.role}
+                      </Text>
+
+                      <View style={styles.ratingArea}>
+                        <Text style={styles.ratingIcon}>⭐</Text>
+                        <Text style={styles.ratingText}>
+                          {candidate.rating} • {candidate.reviews} avaliações
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.candidatePrice}>
+                      {candidate.price}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.description}>
+                    {candidate.description}
+                  </Text>
+
+                  <View style={styles.skillsArea}>
+                    {candidate.skills.map((skill) => (
+                      <View key={skill} style={styles.skillChip}>
+                        <Text style={styles.skillText}>{skill}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.statsArea}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statNumber}>
+                        {candidate.completedJobs}
+                      </Text>
+                      <Text style={styles.statLabel}>serviços</Text>
+                    </View>
+
+                    <View style={styles.statDivider} />
+
+                    <View style={styles.statItem}>
+                      <Text style={styles.statNumber}>
+                        {candidate.distance}
+                      </Text>
+                      <Text style={styles.statLabel}>distância</Text>
+                    </View>
+
+                    <View style={styles.statDivider} />
+
+                    <View style={styles.statItem}>
+                      <Text style={styles.statNumber}>
+                        {candidate.rating}
+                      </Text>
+                      <Text style={styles.statLabel}>nota</Text>
+                    </View>
+                  </View>
+
                   <Pressable
                     style={({ pressed }) => [
-                      styles.acceptButton,
-                      pressed && styles.acceptButtonPressed,
+                      styles.profileButton,
+                      pressed && styles.profileButtonPressed,
                     ]}
-                    onPress={() => handleAcceptCandidate(candidate)}
+                    onPress={() => handleViewFreelancerProfile(candidate)}
                   >
-                    <Text style={styles.acceptButtonText}>
-                      Aceitar candidato
+                    <Text style={styles.profileButtonText}>
+                      Ver perfil completo
                     </Text>
                   </Pressable>
-                )}
-              </Pressable>
-            );
-          })}
+
+                  <View style={styles.actionButtonsRow}>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.rejectButton,
+                        pressed && styles.rejectButtonPressed,
+                      ]}
+                      onPress={() => handleRejectCandidate(candidate)}
+                    >
+                      <Text style={styles.rejectButtonText}>Recusar</Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.acceptButton,
+                        pressed && styles.acceptButtonPressed,
+                      ]}
+                      onPress={() => handleAcceptCandidate(candidate)}
+                    >
+                      <Text style={styles.acceptButtonText}>Aceitar</Text>
+                    </Pressable>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
         </View>
 
         <View style={styles.infoBox}>

@@ -246,8 +246,56 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
 
+  profileButton: {
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: "rgba(11,87,208,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  profileButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+
+  profileButtonText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+
+  actionButtonsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+  },
+
+  rejectButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "rgba(220,38,38,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  rejectButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+
+  rejectButtonText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+
   acceptButton: {
-    height: 48,
+    flex: 1,
+    height: 44,
     borderRadius: 10,
     backgroundColor: colors.primary,
     alignItems: "center",
@@ -297,26 +345,4 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
   },
-
-  profileButton: {
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: "rgba(11,87,208,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 12,
-  },
-
-  profileButtonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
-  },
-
-  profileButtonText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: "900",
-  },
-  
 });
-
