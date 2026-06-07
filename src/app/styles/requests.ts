@@ -236,4 +236,29 @@ export const styles = StyleSheet.create({
     lineHeight: 20,
     width: "82%",
   },
+
+  rateCompanyButton: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 14,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.18,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+
+  rateCompanyButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+
+  rateCompanyButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "900",
+  },
 });

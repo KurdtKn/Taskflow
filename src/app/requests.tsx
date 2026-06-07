@@ -124,6 +124,16 @@ export default function RequestsScreen() {
     });
   }
 
+  function handleRateCompany(request: RequestItem) {
+    router.push({
+      pathname: "/rate-company",
+      params: {
+        jobTitle: request.title,
+        companyName: request.company,
+      },
+    });
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -291,6 +301,18 @@ export default function RequestsScreen() {
 
                   <Text style={styles.detailsText}>Ver detalhes ›</Text>
                 </View>
+
+                {request.status === "completed" && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.rateCompanyButton,
+                      pressed && styles.rateCompanyButtonPressed,
+                    ]}
+                    onPress={() => handleRateCompany(request)}
+                  >
+                    <Text style={styles.rateCompanyButtonText}>Avaliar empresa</Text>
+                  </Pressable>
+                )}
               </Pressable>
             );
           })
