@@ -19,10 +19,13 @@ export default function ServiceCompletedScreen() {
   const candidateName = params.candidateName ?? "Usuário TaskFlow";
 
   function handleRateFreelancer() {
-    console.log("Avaliar freelancer:", candidateName);
-
-    // Próxima tela que vamos criar:
-    // router.push("/rate-service");
+    router.push({
+      pathname: "/rate-service",
+      params: {
+        jobTitle,
+        candidateName,
+      },
+    });
   }
 
   return (
