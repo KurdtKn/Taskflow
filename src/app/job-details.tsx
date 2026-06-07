@@ -42,6 +42,18 @@ export default function JobDetailsScreen() {
     });
   }
 
+  function handleViewCompanyProfile() {
+    router.push({
+      pathname: "/company-public-profile",
+      params: {
+        companyName: "TaskFlow Eventos",
+        companyLocation: location,
+        companyRating: "4,9",
+        jobTitle: title,
+      },
+    });
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -124,6 +136,18 @@ export default function JobDetailsScreen() {
             <Text style={styles.companyRating}>⭐ 4,8 • Empresa verificada</Text>
           </View>
         </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.companyProfileButton,
+            pressed && styles.companyProfileButtonPressed,
+          ]}
+          onPress={handleViewCompanyProfile}
+        >
+          <Text style={styles.companyProfileButtonText}>
+            Ver perfil da empresa
+          </Text>
+        </Pressable>
 
         <View style={styles.warningBox}>
           <Text style={styles.warningText}>

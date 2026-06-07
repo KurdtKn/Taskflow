@@ -243,4 +243,24 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
   },
+
+  companyProfileButton: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "rgba(11,87,208,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+  },
+
+  companyProfileButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+
+  companyProfileButtonText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "900",
+  },
 });
