@@ -115,7 +115,7 @@ export default function CompanyDashboardScreen() {
 
           <Pressable
             style={styles.profileButton}
-            onPress={() => console.log("Abrir perfil da empresa")}
+            onPress={() => router.push("/company-profile")}
           >
             <Text style={styles.profileInitial}>E</Text>
           </Pressable>

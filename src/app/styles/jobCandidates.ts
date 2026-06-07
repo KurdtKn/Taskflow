@@ -297,4 +297,26 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
   },
+
+  profileButton: {
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: "rgba(11,87,208,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+  },
+
+  profileButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+
+  profileButtonText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  
 });
+

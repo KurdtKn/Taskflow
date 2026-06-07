@@ -108,6 +108,22 @@ export default function JobCandidatesScreen() {
     });
   }
 
+  function handleViewFreelancerProfile(candidate: Candidate) {
+    router.push({
+      pathname: "/freelancer-profile",
+      params: {
+        jobTitle,
+        jobCategory,
+        jobPrice,
+        jobLocation,
+        jobTime,
+        candidateName: candidate.name,
+        candidateRating: String(candidate.rating),
+        candidatePrice: candidate.price,
+      },
+    });
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -229,6 +245,16 @@ export default function JobCandidatesScreen() {
                     <Text style={styles.statLabel}>nota</Text>
                   </View>
                 </View>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.profileButton,
+                    pressed && styles.profileButtonPressed,
+                  ]}
+                  onPress={() => handleViewFreelancerProfile(candidate)}
+                >
+                  <Text style={styles.profileButtonText}>Ver perfil completo</Text>
+                </Pressable>
 
                 {isSelected && (
                   <Pressable
