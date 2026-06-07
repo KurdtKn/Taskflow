@@ -22,7 +22,6 @@ type Message = {
   time: string;
 };
 
-// Mensagens iniciais
 const initialMessages: Message[] = [
   {
     id: "1",
