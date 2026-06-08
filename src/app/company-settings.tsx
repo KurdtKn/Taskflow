@@ -50,7 +50,7 @@ export default function CompanySettingsScreen() {
       title: "Termos e políticas",
       subtitle: "Veja regras de uso, privacidade e condições da plataforma",
       icon: "📄",
-      action: () => console.log("Abrir termos e políticas"),
+      action: () => router.push("/terms"),
     },
   ];
 

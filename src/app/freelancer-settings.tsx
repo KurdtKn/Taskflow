@@ -59,11 +59,7 @@ export default function FreelancerSettingsScreen() {
       title: "Termos e políticas",
       subtitle: "Veja os termos de uso e política de privacidade",
       icon: "📄",
-      action: () =>
-        Alert.alert(
-          "Termos e políticas",
-          "No protótipo, essa opção apenas representa os termos de uso e política de privacidade."
-        ),
+      action: () => router.push("/terms"),
     },
   ];
 
