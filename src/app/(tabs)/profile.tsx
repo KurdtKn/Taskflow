@@ -61,7 +61,7 @@ export default function ProfileScreen() {
       title: "Ajuda e suporte",
       subtitle: "Central de dúvidas e atendimento",
       icon: "❔",
-      action: () => console.log("Abrir ajuda"),
+      action: () => router.push("/freelancer-support"),
     },
   ];
 
