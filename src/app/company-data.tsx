@@ -44,6 +44,41 @@ export default function CompanyDataScreen() {
     "Serviços gerais",
   ]);
 
+  function formatCnpj(value: string) {
+    const numbersOnly = value.replace(/\D/g, "").slice(0, 14);
+
+    return numbersOnly
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
+  }
+
+  function formatPhone(value: string) {
+    const numbersOnly = value.replace(/\D/g, "").slice(0, 11);
+
+    if (numbersOnly.length <= 2) {
+      return numbersOnly;
+    }
+
+    if (numbersOnly.length <= 7) {
+      return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(2)}`;
+    }
+
+    return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(
+      2,
+      7
+    )}-${numbersOnly.slice(7)}`;
+  }
+
+  function handleChangeCnpj(value: string) {
+    setCnpj(formatCnpj(value));
+  }
+
+  function handleChangePhone(value: string) {
+    setPhone(formatPhone(value));
+  }
+
   function toggleArea(area: string) {
     setSelectedAreas((currentAreas) => {
       if (currentAreas.includes(area)) {
@@ -124,8 +159,9 @@ export default function CompanyDataScreen() {
               placeholder="00.000.000/0000-00"
               placeholderTextColor="#9CA3AF"
               value={cnpj}
-              onChangeText={setCnpj}
+              onChangeText={handleChangeCnpj}
               keyboardType="numeric"
+              maxLength={18}
             />
 
             <Text style={styles.label}>E-mail comercial</Text>
@@ -145,8 +181,9 @@ export default function CompanyDataScreen() {
               placeholder="(00) 00000-0000"
               placeholderTextColor="#9CA3AF"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={handleChangePhone}
               keyboardType="phone-pad"
+              maxLength={15}
             />
 
             <Text style={styles.label}>Cidade / Estado</Text>
