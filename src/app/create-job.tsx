@@ -34,12 +34,43 @@ export default function CreateJobScreen() {
   const [price, setPrice] = useState("");
   const [professionals, setProfessionals] = useState("1");
 
+    function formatDate(value: string) {
+    const numbersOnly = value.replace(/\D/g, "").slice(0, 4);
+
+    if (numbersOnly.length <= 2) {
+      return numbersOnly;
+    }
+
+    return `${numbersOnly.slice(0, 2)}/${numbersOnly.slice(2)}`;
+  }
+
+  function formatHour(value: string) {
+    const numbersOnly = value.replace(/\D/g, "").slice(0, 4);
+
+    if (numbersOnly.length <= 2) {
+      return numbersOnly;
+    }
+
+    return `${numbersOnly.slice(0, 2)}:${numbersOnly.slice(2)}`;
+  }
+
+  function handleChangeDate(value: string) {
+    setDate(formatDate(value));
+  }
+
+  function handleChangeHour(value: string) {
+    setHour(formatHour(value));
+  }
+
+  const isDateValid = /^\d{2}\/\d{2}$/.test(date);
+  const isHourValid = /^\d{2}:\d{2}$/.test(hour);
+
   const isFormValid =
     title.trim().length > 0 &&
     description.trim().length > 0 &&
     location.trim().length > 0 &&
-    date.trim().length > 0 &&
-    hour.trim().length > 0 &&
+    isDateValid &&
+    isHourValid &&
     price.trim().length > 0;
 
   function handlePublishJob() {
@@ -100,7 +131,8 @@ export default function CreateJobScreen() {
               placeholder="Ex: Garçom para evento"
               placeholderTextColor="#9CA3AF"
               value={title}
-              onChangeText={setTitle}
+              onChangeText={(value) => setTitle(value.slice(0, 100))}
+              maxLength={100}
             />
 
             <Text style={styles.label}>Categoria</Text>
@@ -137,7 +169,8 @@ export default function CreateJobScreen() {
               placeholder="Descreva o que precisa ser feito, requisitos e observações importantes."
               placeholderTextColor="#9CA3AF"
               value={description}
-              onChangeText={setDescription}
+              onChangeText={(value) => setDescription(value.slice(0, 500))}
+              maxLength={500}
               multiline
               textAlignVertical="top"
             />
@@ -148,30 +181,35 @@ export default function CreateJobScreen() {
               placeholder="Ex: Centro, Sorocaba - SP"
               placeholderTextColor="#9CA3AF"
               value={location}
-              onChangeText={setLocation}
+              onChangeText={(value) => setLocation(value.slice(0, 60))}
+              maxLength={60}
             />
 
             <View style={styles.doubleInputArea}>
               <View style={styles.doubleInputBox}>
                 <Text style={styles.label}>Data</Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 15/06"
-                  placeholderTextColor="#9CA3AF"
-                  value={date}
-                  onChangeText={setDate}
-                />
+                style={styles.input}
+                placeholder="Ex: 15/06"
+                placeholderTextColor="#9CA3AF"
+                value={date}
+                onChangeText={handleChangeDate}
+                keyboardType="numeric"
+                maxLength={5}
+              />
               </View>
 
               <View style={styles.doubleInputBox}>
                 <Text style={styles.label}>Horário</Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 18:00"
-                  placeholderTextColor="#9CA3AF"
-                  value={hour}
-                  onChangeText={setHour}
-                />
+                style={styles.input}
+                placeholder="Ex: 18:00"
+                placeholderTextColor="#9CA3AF"
+                value={hour}
+                onChangeText={handleChangeHour}
+                keyboardType="numeric"
+                maxLength={5}
+              />
               </View>
             </View>
 
@@ -179,25 +217,29 @@ export default function CreateJobScreen() {
               <View style={styles.doubleInputBox}>
                 <Text style={styles.label}>Valor estimado</Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="Ex: R$200,00"
-                  placeholderTextColor="#9CA3AF"
-                  value={price}
-                  onChangeText={setPrice}
-                  keyboardType="numeric"
-                />
+                style={styles.input}
+                placeholder="Ex: R$200,00"
+                placeholderTextColor="#9CA3AF"
+                value={price}
+                onChangeText={(value) => setPrice(value.replace(/\D/g, "").slice(0, 8))}
+                keyboardType="numeric"
+                maxLength={8}
+              />
               </View>
 
               <View style={styles.doubleInputBox}>
                 <Text style={styles.label}>Profissionais</Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 1"
-                  placeholderTextColor="#9CA3AF"
-                  value={professionals}
-                  onChangeText={setProfessionals}
-                  keyboardType="numeric"
-                />
+                style={styles.input}
+                placeholder="Ex: 1"
+                placeholderTextColor="#9CA3AF"
+                value={professionals}
+                onChangeText={(value) =>
+                  setProfessionals(value.replace(/\D/g, "").slice(0, 2))
+                }
+                keyboardType="numeric"
+                maxLength={2}
+              />
               </View>
             </View>
 

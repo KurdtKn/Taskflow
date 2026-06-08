@@ -51,6 +51,27 @@ export default function EditProfileScreen() {
     "Serviços gerais",
   ]);
 
+  function formatPhone(value: string) {
+    const numbersOnly = value.replace(/\D/g, "").slice(0, 11);
+
+    if (numbersOnly.length <= 2) {
+      return numbersOnly;
+    }
+
+    if (numbersOnly.length <= 7) {
+      return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(2)}`;
+    }
+
+    return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(
+      2,
+      7
+    )}-${numbersOnly.slice(7)}`;
+  }
+
+  function handleChangePhone(value: string) {
+    setPhone(formatPhone(value));
+  }
+
   function toggleSkill(skillName: string) {
     setSelectedSkills((currentSkills) => {
       if (currentSkills.includes(skillName)) {
@@ -126,11 +147,12 @@ export default function EditProfileScreen() {
             <Text style={styles.label}>Telefone</Text>
             <TextInput
               style={styles.input}
-              placeholder="Digite seu telefone"
+              placeholder="(00) 00000-0000"
               placeholderTextColor="#9CA3AF"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={handleChangePhone}
               keyboardType="phone-pad"
+              maxLength={15}
             />
 
             <Text style={styles.label}>Biografia</Text>
