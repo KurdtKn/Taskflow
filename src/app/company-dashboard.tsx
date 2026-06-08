@@ -4,9 +4,11 @@ import {
   ScrollView,
   Text,
   View,
+  Image,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
+
 
 import { styles } from "@/app/styles/companyDashboard";
 
@@ -109,7 +111,7 @@ export default function CompanyDashboardScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Olá, Empresa 👋</Text>
+            <Text style={styles.greeting}>Olá, Empresa </Text>
             <Text style={styles.title}>Gerencie seus chamados</Text>
           </View>
 
@@ -117,7 +119,11 @@ export default function CompanyDashboardScreen() {
             style={styles.profileButton}
             onPress={() => router.push("/company-profile")}
           >
-            <Text style={styles.profileInitial}>E</Text>
+            <Image
+  source={require("../../assets/images/icon.png")}
+  style={styles.profileImage}
+  resizeMode="cover"
+/>
           </Pressable>
         </View>
 
