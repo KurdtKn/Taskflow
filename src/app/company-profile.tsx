@@ -48,7 +48,7 @@ export default function CompanyProfileScreen() {
       title: "Avaliações da empresa",
       subtitle: "Veja a reputação da sua empresa",
       icon: "⭐",
-      action: () => console.log("Abrir avaliações da empresa"),
+      action: () => router.push("/company-reviews"),
     },
     {
       id: "5",

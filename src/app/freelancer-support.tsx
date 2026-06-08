@@ -58,46 +58,30 @@ export default function FreelancerSupportScreen() {
     {
       id: "1",
       title: "Falar com suporte",
-      subtitle: "Abrir atendimento com a equipe TaskFlow",
+      subtitle: "Entre em contato com nossa equipe",
       icon: "💬",
-      action: () =>
-        Alert.alert(
-          "Suporte",
-          "No protótipo, essa opção apenas simula a abertura de um atendimento."
-        ),
+      action: () => router.push("/support-contact"),
     },
     {
       id: "2",
       title: "Problema com chamado",
-      subtitle: "Informar erro ou dúvida sobre uma solicitação",
+      subtitle: "Relate erros, cancelamentos ou problemas no serviço",
       icon: "📋",
-      action: () =>
-        Alert.alert(
-          "Chamado",
-          "Na versão final, você poderá informar problemas relacionados a um serviço."
-        ),
+      action: () => router.push("/support-job-issue"),
     },
     {
       id: "3",
       title: "Problema com pagamento",
-      subtitle: "Dúvidas sobre taxa, recebimento ou confirmação",
+      subtitle: "Dúvidas sobre taxas, cobranças ou reembolsos",
       icon: "💳",
-      action: () =>
-        Alert.alert(
-          "Pagamento",
-          "Na versão final, essa área terá histórico e suporte financeiro."
-        ),
+      action: () => router.push("/support-payment-issue"),
     },
     {
       id: "4",
       title: "Segurança da conta",
-      subtitle: "Ajuda com acesso, senha e privacidade",
-      icon: "🛡️",
-      action: () =>
-        Alert.alert(
-          "Segurança",
-          "Na versão final, essa área terá recuperação de conta e orientações de segurança."
-        ),
+      subtitle: "Ajuda com acesso, login e proteção da conta",
+      icon: "🔒",
+      action: () => router.push("/support-account-security"),
     },
   ];
 

@@ -34,16 +34,16 @@ export default function CompanySettingsScreen() {
     {
       id: "1",
       title: "Alterar senha",
-      subtitle: "Atualize a senha de acesso da empresa",
-      icon: "🔐",
-      action: () => console.log("Alterar senha"),
+      subtitle: "Atualize sua senha de acesso",
+      icon: "🔒",
+      action: () => router.push("/change-password"),
     },
     {
       id: "2",
       title: "Privacidade e segurança",
-      subtitle: "Gerencie dados, permissões e segurança da conta",
+      subtitle: "Gerencie permissões e segurança da conta",
       icon: "🛡️",
-      action: () => console.log("Abrir privacidade e segurança"),
+      action: () => router.push("/privacy-security"),
     },
     {
       id: "3",
