@@ -7,7 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { styles } from "@/app/styles/jobFilters";
 
@@ -23,10 +23,23 @@ const categories = [
 ];
 
 export default function JobFilters() {
-  const [selectedCategory, setSelectedCategory] = useState("Todos");
-  const [city, setCity] = useState("");
-  const [minValue, setMinValue] = useState("");
-  const [maxValue, setMaxValue] = useState("");
+  const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
+
+  const [selectedCategory, setSelectedCategory] = useState(
+    String(categoria || "Todos")
+  );
+
+  const [city, setCity] = useState(
+    String(cidade || "")
+  );
+
+  const [minValue, setMinValue] = useState(
+    String(valorMin || "")
+  );
+
+  const [maxValue, setMaxValue] = useState(
+    String(valorMax || "")
+  );
 
   function applyFilters() {
   router.push({

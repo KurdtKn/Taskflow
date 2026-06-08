@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Image,
   Pressable,
@@ -57,9 +58,18 @@ const services = [
 
 export default function HomeScreen() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
+  const [search, setSearch] = useState("");
 
   function handleOpenFilters() {
-    router.push("/job_filters");
+    router.push({
+      pathname: "/job_filters",
+      params: {
+        categoria,
+        cidade,
+        valorMin,
+        valorMax,
+      },
+    });
   }
 
   const filteredServices = services.filter((service) => {
@@ -67,6 +77,7 @@ export default function HomeScreen() {
     const filtroCidade = String(cidade || "");
     const filtroValorMin = String(valorMin || "");
     const filtroValorMax = String(valorMax || "");
+    const filtroBusca = search.toLowerCase().trim();
 
     const valorServico = Number(service.price.replace(/\D/g, "")) / 100;
 
@@ -86,7 +97,16 @@ export default function HomeScreen() {
     const bateValorMax =
       filtroValorMax === "" || valorServico <= Number(filtroValorMax);
 
-    return bateCategoria && bateCidade && bateValorMin && bateValorMax;
+    const bateBusca =
+  filtroBusca === "" ||
+  service.title.toLowerCase().includes(filtroBusca) ||
+  service.category.toLowerCase().includes(filtroBusca) ||
+  service.location.toLowerCase().includes(filtroBusca) ||
+  service.distance.toLowerCase().includes(filtroBusca);
+
+    return (
+      bateCategoria && bateCidade && bateValorMin && bateValorMax && bateBusca
+    );
   });
 
   return (
@@ -122,17 +142,19 @@ export default function HomeScreen() {
               style={styles.searchInput}
               placeholder="Buscar serviços..."
               placeholderTextColor="#9CA3AF"
+              value={search}
+              onChangeText={setSearch}
             />
           </View>
 
           <Pressable
-             style={({ pressed }) => [
-                styles.filterButton,
-                  pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
-                   ]}
-                   onPress={handleOpenFilters}
-                    >
-                <FilterIcon width={28} height={28} />
+            style={({ pressed }) => [
+              styles.filterButton,
+              pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+            ]}
+            onPress={handleOpenFilters}
+          >
+            <FilterIcon width={28} height={28} />
           </Pressable>
         </View>
 
@@ -146,25 +168,25 @@ export default function HomeScreen() {
 
         <View style={styles.servicesList}>
          {filteredServices.map((service) => (
-    <Pressable
-      key={service.id}
-      style={({ pressed }) => [
-        styles.serviceCard,
-        pressed && styles.serviceCardPressed,
-      ]}
-      onPress={() => {
-        router.push({
-          pathname: "/job-details",
-          params: {
-            title: service.title,
-            category: service.category,
-            price: service.price,
-            distance: service.distance,
-            location: service.location,
-            time: service.time,
-          },
-        });
-      }}
+            <Pressable
+              key={service.id}
+              style={({ pressed }) => [
+                styles.serviceCard,
+                pressed && styles.serviceCardPressed,
+              ]}
+              onPress={() => {
+                router.push({
+                  pathname: "/job-details",
+                  params: {
+                    title: service.title,
+                    category: service.category,
+                    price: service.price,
+                    distance: service.distance,
+                    location: service.location,
+                    time: service.time,
+                  },
+                });
+              }}
             >
               <View style={styles.serviceContent}>
                 <Text style={styles.serviceTitle}>{service.title}</Text>
