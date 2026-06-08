@@ -167,4 +167,20 @@ export const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 12,
   },
+
+  clearFiltersHome: {
+  alignSelf: "flex-start",
+  marginTop: 10,
+  marginBottom: 8,
+  paddingHorizontal: 14,
+  paddingVertical: 8,
+  borderRadius: 999,
+  backgroundColor: "#EEF2FF",
+},
+
+clearFiltersHomeText: {
+  color: "#092870",
+  fontSize: 13,
+  fontWeight: "700",
+},
 });
