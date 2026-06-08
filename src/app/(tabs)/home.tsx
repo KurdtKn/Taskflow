@@ -54,7 +54,13 @@ export default function HomeScreen() {
             <Text style={styles.subtitle}>Oportunidades perto de você</Text>
           </View>
 
-          <Pressable style={styles.notificationButton}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.notificationButton,
+              pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+            ]}
+            onPress={() => router.push("/notifications")}
+          >
             <Text style={styles.notificationIcon}>🔔</Text>
           </Pressable>
         </View>
