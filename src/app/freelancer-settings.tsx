@@ -36,23 +36,15 @@ export default function FreelancerSettingsScreen() {
       id: "1",
       title: "Alterar senha",
       subtitle: "Atualize sua senha de acesso",
-      icon: "🔐",
-      action: () =>
-        Alert.alert(
-          "Alterar senha",
-          "No protótipo, essa opção apenas simula a alteração de senha."
-        ),
+      icon: "🔒",
+      action: () => router.push("/change-password"),
     },
     {
       id: "2",
       title: "Privacidade e segurança",
-      subtitle: "Controle dados, permissões e segurança da conta",
+      subtitle: "Gerencie permissões e segurança da conta",
       icon: "🛡️",
-      action: () =>
-        Alert.alert(
-          "Privacidade e segurança",
-          "Na versão final, essa área terá controle de dados, permissões e regras da LGPD."
-        ),
+      action: () => router.push("/privacy-security"),
     },
     {
       id: "3",

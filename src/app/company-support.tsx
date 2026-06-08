@@ -65,23 +65,23 @@ export default function CompanySupportScreen() {
     {
       id: "1",
       title: "Falar com suporte",
-      subtitle: "Atendimento para dúvidas sobre chamados e pagamentos",
+      subtitle: "Entre em contato com nossa equipe",
       icon: "💬",
-      action: () => console.log("Abrir atendimento do suporte"),
+      action: () => router.push("/support-contact"),
     },
     {
       id: "2",
       title: "Reportar problema",
       subtitle: "Informe erros, bugs ou dificuldades no aplicativo",
       icon: "⚠️",
-      action: () => console.log("Reportar problema"),
+      action: () => router.push("/company-report-problem"),
     },
     {
       id: "3",
       title: "Central de segurança",
       subtitle: "Orientações sobre confiança, chat e avaliações",
       icon: "🛡️",
-      action: () => console.log("Abrir central de segurança"),
+      action: () => router.push("/company-security-center"),
     },
   ];
 
