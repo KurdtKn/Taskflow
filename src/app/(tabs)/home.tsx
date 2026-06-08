@@ -8,13 +8,13 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { styles } from "../styles/home";
 
 import BellIcon from "../../../assets/icons/notifications.svg";
 import SearchIcon from "../../../assets/icons/search.svg";
-import FilterIcon from "../../../assets/icons/settings.svg";
+import FilterIcon from "../../../assets/icons/filter.svg";
 import LocationIcon from "../../../assets/icons/Location-check.svg";
 import CalendarIcon from "../../../assets/icons/calendar.svg";
 
@@ -56,12 +56,38 @@ const services = [
 ];
 
 export default function HomeScreen() {
-  function handleOpenFilters() {
-    console.log("Abrir filtros");
+  const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
 
-    // Quando criarmos a tela job-filters.tsx, troca por:
-    // router.push("/job-filters");
+  function handleOpenFilters() {
+    router.push("/job_filters");
   }
+
+  const filteredServices = services.filter((service) => {
+    const filtroCategoria = String(categoria || "Todos");
+    const filtroCidade = String(cidade || "");
+    const filtroValorMin = String(valorMin || "");
+    const filtroValorMax = String(valorMax || "");
+
+    const valorServico = Number(service.price.replace(/\D/g, "")) / 100;
+
+    const bateCategoria =
+      filtroCategoria === "Todos" ||
+      service.category.toLowerCase().includes(filtroCategoria.toLowerCase()) ||
+      service.title.toLowerCase().includes(filtroCategoria.toLowerCase());
+
+    const bateCidade =
+      filtroCidade === "" ||
+      service.location.toLowerCase().includes(filtroCidade.toLowerCase()) ||
+      service.distance.toLowerCase().includes(filtroCidade.toLowerCase());
+
+    const bateValorMin =
+      filtroValorMin === "" || valorServico >= Number(filtroValorMin);
+
+    const bateValorMax =
+      filtroValorMax === "" || valorServico <= Number(filtroValorMax);
+
+    return bateCategoria && bateCidade && bateValorMin && bateValorMax;
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,13 +126,13 @@ export default function HomeScreen() {
           </View>
 
           <Pressable
-            style={({ pressed }) => [
-              styles.filterButton,
-              pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
-            ]}
-            onPress={handleOpenFilters}
-          >
-            <FilterIcon width={22} height={22} />
+             style={({ pressed }) => [
+                styles.filterButton,
+                  pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+                   ]}
+                   onPress={handleOpenFilters}
+                    >
+                <FilterIcon width={28} height={28} />
           </Pressable>
         </View>
 
@@ -119,26 +145,26 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.servicesList}>
-          {services.map((service) => (
-            <Pressable
-              key={service.id}
-              style={({ pressed }) => [
-                styles.serviceCard,
-                pressed && styles.serviceCardPressed,
-              ]}
-              onPress={() => {
-                router.push({
-                  pathname: "/job-details",
-                  params: {
-                    title: service.title,
-                    category: service.category,
-                    price: service.price,
-                    distance: service.distance,
-                    location: service.location,
-                    time: service.time,
-                  },
-                });
-              }}
+         {filteredServices.map((service) => (
+    <Pressable
+      key={service.id}
+      style={({ pressed }) => [
+        styles.serviceCard,
+        pressed && styles.serviceCardPressed,
+      ]}
+      onPress={() => {
+        router.push({
+          pathname: "/job-details",
+          params: {
+            title: service.title,
+            category: service.category,
+            price: service.price,
+            distance: service.distance,
+            location: service.location,
+            time: service.time,
+          },
+        });
+      }}
             >
               <View style={styles.serviceContent}>
                 <Text style={styles.serviceTitle}>{service.title}</Text>
