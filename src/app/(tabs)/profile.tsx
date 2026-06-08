@@ -54,7 +54,7 @@ export default function ProfileScreen() {
       title: "Configurações",
       subtitle: "Preferências, segurança e privacidade",
       icon: "⚙️",
-      action: () => console.log("Abrir configurações"),
+      action: () => router.push("/freelancer-settings"),
     },
     {
       id: "6",
@@ -69,6 +69,10 @@ export default function ProfileScreen() {
     router.replace("/welcome");
   }
 
+  function handleOpenSettings() {
+    router.push("/freelancer-settings");
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -80,7 +84,13 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Meu perfil</Text>
 
-          <Pressable style={styles.settingsButton}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.settingsButton,
+              pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+            ]}
+            onPress={handleOpenSettings}
+          >
             <Text style={styles.settingsIcon}>⚙️</Text>
           </Pressable>
         </View>
