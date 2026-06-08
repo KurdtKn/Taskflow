@@ -1,5 +1,5 @@
-import { StyleSheet } from "react-native";
 import { colors } from "@/styles/colors";
+import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
@@ -263,14 +263,24 @@ export const styles = StyleSheet.create({
   },
 
   logoutButton: {
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: "rgba(220,38,38,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(220,38,38,0.18)",
+  height: 54,
+  borderRadius: 14,
+  backgroundColor: "#d83f3f",
+  alignItems: "center",
+  justifyContent: "center",
+  borderWidth: 1,
+  borderColor: "#c03333",
+
+  shadowColor: "#000000",
+  shadowOffset: {
+    width: 0,
+    height: 4,
   },
+  shadowOpacity: 0.30,
+  shadowRadius: 8,
+  elevation: 4,
+},
+
 
   logoutButtonPressed: {
     opacity: 0.85,
@@ -278,7 +288,7 @@ export const styles = StyleSheet.create({
   },
 
   logoutText: {
-    color: colors.danger,
+    color: colors.white,
     fontSize: 15,
     fontWeight: "900",
   },

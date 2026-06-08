@@ -318,13 +318,22 @@ export const styles = StyleSheet.create({
   },
 
   logoutButton: {
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: "rgba(220,38,38,0.08)",
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: "#EF4444",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(220,38,38,0.18)",
+    borderColor: "#EF4444",
+
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   logoutButtonPressed: {
@@ -333,7 +342,7 @@ export const styles = StyleSheet.create({
   },
 
   logoutText: {
-    color: colors.danger,
+    color: colors.white,
     fontSize: 15,
     fontWeight: "900",
   },
