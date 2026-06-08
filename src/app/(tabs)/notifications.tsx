@@ -13,76 +13,99 @@ import { styles } from "@/app/styles/notifications";
 
 type NotificationFilter = "all" | "unread" | "jobs";
 
+type NotificationDetailType =
+  | "new_job"
+  | "request_accepted"
+  | "payment_confirmed"
+  | "chat_released"
+  | "review_received"
+  | "message"
+  | "default";
+
 type NotificationItem = {
   id: string;
-  type: "new_job" | "status" | "chat" | "payment" | "rating";
+  type: NotificationDetailType;
+  icon: string;
   title: string;
   description: string;
   time: string;
   unread: boolean;
-  icon: string;
+  jobTitle: string;
+  companyName: string;
 };
 
 const notificationsData: NotificationItem[] = [
   {
     id: "1",
     type: "new_job",
+    icon: "📍",
     title: "Novo chamado próximo",
     description:
       "Garçom para Evento foi publicado a 1,5 km de você. Confira os detalhes.",
     time: "Agora",
     unread: true,
-    icon: "📍",
+    jobTitle: "Garçom para Evento",
+    companyName: "TaskFlow Eventos",
   },
   {
     id: "2",
-    type: "status",
+    type: "default",
+    icon: "📋",
     title: "Solicitação enviada",
     description:
       "Sua candidatura para Fotógrafo Profissional foi enviada para análise.",
     time: "10 min",
     unread: true,
-    icon: "✅",
+    jobTitle: "Fotógrafo Profissional",
+    companyName: "TaskFlow Eventos",
   },
   {
     id: "3",
-    type: "status",
+    type: "request_accepted",
+    icon: "✅",
     title: "Solicitação aceita",
     description:
       "A empresa aceitou sua solicitação. Aguarde a confirmação do fluxo.",
     time: "35 min",
     unread: false,
-    icon: "🎉",
+    jobTitle: "Garçom para Evento",
+    companyName: "TaskFlow Eventos",
   },
   {
     id: "4",
-    type: "chat",
+    type: "chat_released",
+    icon: "💬",
     title: "Chat liberado",
     description:
       "O chat com TaskFlow Eventos já está disponível para combinar os detalhes.",
     time: "1 h",
     unread: false,
-    icon: "💬",
+    jobTitle: "Garçom para Evento",
+    companyName: "TaskFlow Eventos",
   },
   {
     id: "5",
-    type: "payment",
+    type: "payment_confirmed",
+    icon: "💳",
     title: "Taxa confirmada",
     description:
       "O pagamento da taxa foi confirmado e o serviço está em andamento.",
     time: "2 h",
     unread: false,
-    icon: "💳",
+    jobTitle: "Garçom para Evento",
+    companyName: "TaskFlow Eventos",
   },
   {
     id: "6",
-    type: "rating",
+    type: "review_received",
+    icon: "⭐",
     title: "Avaliação disponível",
     description:
       "O serviço foi concluído. Avalie sua experiência com a empresa.",
     time: "Ontem",
     unread: false,
-    icon: "⭐",
+    jobTitle: "Garçom para Evento",
+    companyName: "TaskFlow Eventos",
   },
 ];
 
@@ -118,19 +141,18 @@ export default function NotificationsScreen() {
       )
     );
 
-    if (notification.type === "new_job") {
-      router.push({
-        pathname: "/job-details",
-        params: {
-          title: "Garçom para Evento",
-          category: "Evento",
-          price: "R$200,00",
-          distance: "1,5 km",
-          location: "Centro",
-          time: "Hoje, 18:00",
-        },
-      });
-    }
+    router.push({
+      pathname: "/notification-details",
+      params: {
+        type: notification.type,
+        title: notification.title,
+        message: notification.description,
+        time: notification.time,
+        jobTitle: notification.jobTitle,
+        companyName: notification.companyName,
+        userType: "freelancer",
+      },
+    });
   }
 
   function handleMarkAllAsRead() {
@@ -220,8 +242,10 @@ export default function NotificationsScreen() {
       >
         {filteredNotifications.length === 0 ? (
           <View style={styles.emptyArea}>
-            <Text style={styles.emptyIcon}>🔕</Text>
+            <Text style={{ fontSize: 38 }}>🔔</Text>
+
             <Text style={styles.emptyTitle}>Nenhuma notificação</Text>
+
             <Text style={styles.emptyText}>
               Quando houver novidades, elas aparecerão aqui.
             </Text>
@@ -238,9 +262,7 @@ export default function NotificationsScreen() {
               onPress={() => handleNotificationPress(notification)}
             >
               <View style={styles.iconBox}>
-                <Text style={styles.notificationIcon}>
-                  {notification.icon}
-                </Text>
+                <Text style={{ fontSize: 22 }}>{notification.icon}</Text>
               </View>
 
               <View style={styles.notificationContent}>

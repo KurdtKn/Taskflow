@@ -284,7 +284,7 @@ export default function CompanyNotificationsScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Atividades recentes</Text>
           <Text style={styles.sectionSubtitle}>
-            Toque em uma notificação para abrir os detalhes.
+            Toque em uma notificação para acompanhar a atividade.
           </Text>
         </View>
 

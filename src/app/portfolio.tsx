@@ -123,7 +123,13 @@ export default function PortfolioScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Trabalhos realizados</Text>
 
-          <Pressable style={styles.addButton}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.addButton,
+              pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+            ]}
+            onPress={() => router.push("/add-portfolio-item")}
+          >
             <Text style={styles.addButtonText}>+ Adicionar</Text>
           </Pressable>
         </View>
