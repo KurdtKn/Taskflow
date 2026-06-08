@@ -36,12 +36,9 @@ export const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
+    backgroundColor: colors.lightGray,
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  notificationIcon: {
-    fontSize: 22,
   },
 
   searchArea: {
@@ -59,11 +56,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-  },
-
-  searchIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    gap: 10,
   },
 
   searchInput: {
@@ -80,12 +73,6 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.lightGray,
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  filterIcon: {
-    color: colors.primary,
-    fontSize: 24,
-    fontWeight: "800",
   },
 
   sectionHeader: {
@@ -156,16 +143,13 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 3,
-  },
-
-  infoIcon: {
-    fontSize: 12,
-    marginRight: 5,
+    gap: 6,
   },
 
   infoText: {
     color: colors.gray,
     fontSize: 12,
+    flexShrink: 1,
   },
 
   serviceImageBox: {
@@ -173,11 +157,14 @@ export const styles = StyleSheet.create({
     height: 78,
     borderRadius: 12,
     backgroundColor: colors.lightGray,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  serviceEmoji: {
-    fontSize: 38,
+  serviceImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
   },
 });

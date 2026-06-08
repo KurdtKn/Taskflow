@@ -1,26 +1,31 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
 
-import { colors } from "../../styles/colors";
+import HomeIcon from "../../../assets/icons/Home-solid-full.svg";
+import MapIcon from "../../../assets/icons/Location-check.svg";
+import NotificationsIcon from "../../../assets/icons/notifications.svg";
+import ProfileIcon from "../../../assets/icons/Perfil.svg";
+
+import { colors } from "@/styles/colors";
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarShowLabel: true,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.black,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "700",
-        },
+        tabBarInactiveTintColor: colors.gray,
         tabBarStyle: {
-          height: 68,
+          height: 70,
           paddingTop: 8,
           paddingBottom: 10,
-          borderTopWidth: 1,
-          borderTopColor: "#E5E7EB",
           backgroundColor: colors.white,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "700",
         },
       }}
     >
@@ -28,8 +33,12 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: "Início",
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 22 }}>⌂</Text>
+          tabBarIcon: ({ focused }) => (
+            <HomeIcon
+              width={24}
+              height={24}
+              opacity={focused ? 1 : 0.70}
+            />
           ),
         }}
       />
@@ -38,8 +47,12 @@ export default function TabsLayout() {
         name="map"
         options={{
           title: "Mapa",
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 22 }}>●</Text>
+          tabBarIcon: ({ focused }) => (
+            <MapIcon
+              width={24}
+              height={24}
+              opacity={focused ? 1 : 0.70}
+            />
           ),
         }}
       />
@@ -48,8 +61,12 @@ export default function TabsLayout() {
         name="notifications"
         options={{
           title: "Notificações",
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 22 }}>🔔</Text>
+          tabBarIcon: ({ focused }) => (
+            <NotificationsIcon
+              width={24}
+              height={24}
+              opacity={focused ? 1 : 0.70}
+            />
           ),
         }}
       />
@@ -58,8 +75,12 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Perfil",
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 22 }}>👤</Text>
+          tabBarIcon: ({ focused }) => (
+            <ProfileIcon
+              width={24}
+              height={24}
+              opacity={focused ? 1 : 0.70}
+            />
           ),
         }}
       />

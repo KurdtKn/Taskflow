@@ -12,34 +12,57 @@ import { router } from "expo-router";
 
 import { styles } from "../styles/home";
 
+import BellIcon from "../../../assets/icons/notifications.svg";
+import SearchIcon from "../../../assets/icons/search.svg";
+import FilterIcon from "../../../assets/icons/settings.svg";
+import LocationIcon from "../../../assets/icons/Location-check.svg";
+import CalendarIcon from "../../../assets/icons/calendar.svg";
+
+const serviceImage = require("../../../assets/images/garcom.jpg");
+const serviceImage2 = require("../../../assets/images/Encanador.png");
+const serviceImage3 = require("../../../assets/images/fotografo.png");
+
 const services = [
   {
     id: "1",
     title: "Garçom para Evento",
+    category: "Eventos",
     price: "R$200,00",
     distance: "1,5 km - Centro",
+    location: "Centro",
     time: "Hoje, 18:00",
-    icon: "🍽️",
+    image: serviceImage,
   },
   {
     id: "2",
     title: "Reparo Hidráulico",
+    category: "Manutenção",
     price: "R$150,00",
     distance: "3,2 km - Jardim Paulista",
+    location: "Jardim Paulista",
     time: "Amanhã, 9:00",
-    icon: "🔧",
+    image: serviceImage2,
   },
   {
     id: "3",
     title: "Fotógrafo Profissional",
+    category: "Fotografia",
     price: "R$300,00",
     distance: "2,0 km - Moema",
+    location: "Moema",
     time: "Sábado, 14:00",
-    icon: "📸",
+    image: serviceImage3,
   },
 ];
 
 export default function HomeScreen() {
+  function handleOpenFilters() {
+    console.log("Abrir filtros");
+
+    // Quando criarmos a tela job-filters.tsx, troca por:
+    // router.push("/job-filters");
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -50,7 +73,7 @@ export default function HomeScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Olá, Usuário👋</Text>
+            <Text style={styles.greeting}>Olá, Usuário</Text>
             <Text style={styles.subtitle}>Oportunidades perto de você</Text>
           </View>
 
@@ -61,13 +84,13 @@ export default function HomeScreen() {
             ]}
             onPress={() => router.push("/notifications")}
           >
-            <Text style={styles.notificationIcon}>🔔</Text>
+            <BellIcon width={24} height={24} />
           </Pressable>
         </View>
 
         <View style={styles.searchArea}>
           <View style={styles.searchBox}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <SearchIcon width={22} height={22} />
 
             <TextInput
               style={styles.searchInput}
@@ -76,8 +99,14 @@ export default function HomeScreen() {
             />
           </View>
 
-          <Pressable style={styles.filterButton}>
-            <Text style={styles.filterIcon}>☷</Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.filterButton,
+              pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+            ]}
+            onPress={handleOpenFilters}
+          >
+            <FilterIcon width={22} height={22} />
           </Pressable>
         </View>
 
@@ -85,7 +114,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Próximos de você</Text>
 
           <Pressable onPress={() => router.push("/map")}>
-            <Text style={styles.seeMapText}>Ver No Mapa &gt;</Text>
+            <Text style={styles.seeMapText}>Ver no mapa &gt;</Text>
           </Pressable>
         </View>
 
@@ -102,10 +131,10 @@ export default function HomeScreen() {
                   pathname: "/job-details",
                   params: {
                     title: service.title,
-                    category: "Serviço",
+                    category: service.category,
                     price: service.price,
                     distance: service.distance,
-                    location: "Região próxima",
+                    location: service.location,
                     time: service.time,
                   },
                 });
@@ -116,18 +145,22 @@ export default function HomeScreen() {
                 <Text style={styles.servicePrice}>{service.price}</Text>
 
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoIcon}>📍</Text>
+                  <LocationIcon width={15} height={15} />
                   <Text style={styles.infoText}>{service.distance}</Text>
                 </View>
 
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoIcon}>🕒</Text>
+                  <CalendarIcon width={15} height={15} />
                   <Text style={styles.infoText}>{service.time}</Text>
                 </View>
               </View>
 
               <View style={styles.serviceImageBox}>
-                <Text style={styles.serviceEmoji}>{service.icon}</Text>
+                <Image
+                  source={service.image}
+                  style={styles.serviceImage}
+                  resizeMode="cover"
+                />
               </View>
             </Pressable>
           ))}
