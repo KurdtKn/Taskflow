@@ -59,6 +59,8 @@ const services = [
 export default function HomeScreen() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
   const [search, setSearch] = useState("");
+  const hasActiveFilters =
+    categoria || cidade || valorMin || valorMax || search;
 
   function handleOpenFilters() {
     router.push({
@@ -70,6 +72,10 @@ export default function HomeScreen() {
         valorMax,
       },
     });
+  }
+  function handleClearFilters() {
+    setSearch("");
+    router.push("/(tabs)/home");
   }
 
   const filteredServices = services.filter((service) => {
@@ -98,11 +104,11 @@ export default function HomeScreen() {
       filtroValorMax === "" || valorServico <= Number(filtroValorMax);
 
     const bateBusca =
-  filtroBusca === "" ||
-  service.title.toLowerCase().includes(filtroBusca) ||
-  service.category.toLowerCase().includes(filtroBusca) ||
-  service.location.toLowerCase().includes(filtroBusca) ||
-  service.distance.toLowerCase().includes(filtroBusca);
+      filtroBusca === "" ||
+      service.title.toLowerCase().includes(filtroBusca) ||
+      service.category.toLowerCase().includes(filtroBusca) ||
+      service.location.toLowerCase().includes(filtroBusca) ||
+      service.distance.toLowerCase().includes(filtroBusca);
 
     return (
       bateCategoria && bateCidade && bateValorMin && bateValorMax && bateBusca
@@ -158,6 +164,18 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
+        {hasActiveFilters && (
+  <Pressable
+    style={({ pressed }) => [
+      styles.clearFiltersHome,
+      pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] },
+    ]}
+    onPress={handleClearFilters}
+  >
+    <Text style={styles.clearFiltersHomeText}>Limpar filtros</Text>
+  </Pressable>
+)}
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Próximos de você</Text>
 
@@ -167,7 +185,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.servicesList}>
-         {filteredServices.map((service) => (
+          {filteredServices.map((service) => (
             <Pressable
               key={service.id}
               style={({ pressed }) => [

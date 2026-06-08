@@ -1,8 +1,9 @@
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, SafeAreaView, Text, TextInput, View } from "react-native";
 
+import FilterIcon from "../../../assets/icons/filter.svg";
 import { styles } from "@/app/styles/map";
 
 type PercentValue = `${number}%`;
@@ -64,9 +65,72 @@ const mapServices: MapService[] = [
 ];
 
 export default function MapScreen() {
+  const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
+
   const [selectedService, setSelectedService] = useState<MapService>(
-    mapServices[0],
+    mapServices[0]
   );
+
+  const [search, setSearch] = useState("");
+
+  function handleOpenFilters() {
+    router.push({
+      pathname: "/job_filters",
+      params: {
+        categoria,
+        cidade,
+        valorMin,
+        valorMax,
+      },
+    });
+  }
+
+  const filteredServices = mapServices.filter((service) => {
+    const filtroCategoria = String(categoria || "Todos");
+    const filtroCidade = String(cidade || "");
+    const filtroValorMin = String(valorMin || "");
+    const filtroValorMax = String(valorMax || "");
+    const filtroBusca = search.toLowerCase().trim();
+
+    const valorServico = Number(service.price.replace(/\D/g, "")) / 100;
+
+    const bateCategoria =
+      filtroCategoria === "Todos" ||
+      service.category.toLowerCase().includes(filtroCategoria.toLowerCase()) ||
+      service.title.toLowerCase().includes(filtroCategoria.toLowerCase());
+
+    const bateCidade =
+      filtroCidade === "" ||
+      service.location.toLowerCase().includes(filtroCidade.toLowerCase()) ||
+      service.distance.toLowerCase().includes(filtroCidade.toLowerCase());
+
+    const bateValorMin =
+      filtroValorMin === "" || valorServico >= Number(filtroValorMin);
+
+    const bateValorMax =
+      filtroValorMax === "" || valorServico <= Number(filtroValorMax);
+
+    const bateBusca =
+      filtroBusca === "" ||
+      service.title.toLowerCase().includes(filtroBusca) ||
+      service.category.toLowerCase().includes(filtroBusca) ||
+      service.location.toLowerCase().includes(filtroBusca) ||
+      service.distance.toLowerCase().includes(filtroBusca);
+
+    return (
+      bateCategoria &&
+      bateCidade &&
+      bateValorMin &&
+      bateValorMax &&
+      bateBusca
+    );
+  });
+
+  useEffect(() => {
+    if (filteredServices.length > 0) {
+      setSelectedService(filteredServices[0]);
+    }
+  }, [categoria, cidade, valorMin, valorMax, search]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -83,13 +147,21 @@ export default function MapScreen() {
 
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar por serviço ou região"
+            placeholder="Buscar no mapa..."
             placeholderTextColor="#9CA3AF"
+            value={search}
+            onChangeText={setSearch}
           />
         </View>
 
-        <Pressable style={styles.filterButton}>
-          <Text style={styles.filterIcon}>☷</Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.filterButton,
+            pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+          ]}
+          onPress={handleOpenFilters}
+        >
+          <FilterIcon width={28} height={28} />
         </Pressable>
       </View>
 
@@ -104,7 +176,7 @@ export default function MapScreen() {
           <Text style={[styles.mapLabel, styles.mapLabelTwo]}>Jardim</Text>
           <Text style={[styles.mapLabel, styles.mapLabelThree]}>Moema</Text>
 
-          {mapServices.map((service) => {
+          {filteredServices.map((service) => {
             const isSelected = selectedService.id === service.id;
 
             return (
@@ -130,50 +202,59 @@ export default function MapScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.serviceCard}>
-        <View style={styles.cardHeader}>
-          <View>
-            <Text style={styles.cardTitle}>{selectedService.title}</Text>
-            <Text style={styles.cardCategory}>{selectedService.category}</Text>
-          </View>
-
-          <Text style={styles.cardPrice}>{selectedService.price}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>📍</Text>
-          <Text style={styles.infoText}>
-            {selectedService.distance} - {selectedService.location}
+      {filteredServices.length === 0 ? (
+        <View style={styles.serviceCard}>
+          <Text style={styles.cardTitle}>Nenhum chamado encontrado</Text>
+          <Text style={styles.cardCategory}>
+            Tente alterar a busca ou os filtros aplicados.
           </Text>
         </View>
+      ) : (
+        <View style={styles.serviceCard}>
+          <View style={styles.cardHeader}>
+            <View>
+              <Text style={styles.cardTitle}>{selectedService.title}</Text>
+              <Text style={styles.cardCategory}>{selectedService.category}</Text>
+            </View>
 
-        <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>🕒</Text>
-          <Text style={styles.infoText}>{selectedService.time}</Text>
+            <Text style={styles.cardPrice}>{selectedService.price}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>📍</Text>
+            <Text style={styles.infoText}>
+              {selectedService.distance} - {selectedService.location}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>🕒</Text>
+            <Text style={styles.infoText}>{selectedService.time}</Text>
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.detailsButton,
+              pressed && styles.detailsButtonPressed,
+            ]}
+            onPress={() => {
+              router.push({
+                pathname: "/job-details",
+                params: {
+                  title: selectedService.title,
+                  category: selectedService.category,
+                  price: selectedService.price,
+                  distance: selectedService.distance,
+                  location: selectedService.location,
+                  time: selectedService.time,
+                },
+              });
+            }}
+          >
+            <Text style={styles.detailsButtonText}>Ver detalhes</Text>
+          </Pressable>
         </View>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.detailsButton,
-            pressed && styles.detailsButtonPressed,
-          ]}
-          onPress={() => {
-            router.push({
-              pathname: "/job-details",
-              params: {
-                title: selectedService.title,
-                category: selectedService.category,
-                price: selectedService.price,
-                distance: selectedService.distance,
-                location: selectedService.location,
-                time: selectedService.time,
-              },
-            });
-          }}
-        >
-          <Text style={styles.detailsButtonText}>Ver detalhes</Text>
-        </Pressable>
-      </View>
+      )}
     </SafeAreaView>
   );
 }
