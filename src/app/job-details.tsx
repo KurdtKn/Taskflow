@@ -93,7 +93,7 @@ export default function JobDetailsScreen() {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <LocationIcon width={22} height={22} />
+              <LocationIcon width={22} height={22} color="#e62727"/>
             </View>
 
             <View style={styles.infoTextArea}>

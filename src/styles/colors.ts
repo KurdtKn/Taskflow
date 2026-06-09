@@ -1,6 +1,7 @@
 export const colors = {
     grays: {
         100:"#F4F4F5",
+        150:"#f0f0f0",
         200:"#E4E4E7",
         300:"#D4D4D8",
         400:"#A1A1AA",
@@ -11,11 +12,6 @@ export const colors = {
         900:"#09090B",
     },
 
-    white: "#FFFFFF",
-    black: "#111111",
-    gray: "#6B7280",
-    lightGray: "#F3F4F6",
-    border: "#E5E7EB",
 
     blue: {
         100:"#2a65ca",
@@ -33,6 +29,13 @@ export const colors = {
     primaryLight: "#4FA3FF",
 
     success: "#00B050",
-    danger: "#DC2626",
+    danger: "#d42323",
+    location:"#e62727", //Cor de todos os icones de localização - Location-check.svg
     warning: "#F59E0B",
+
+    white: "#FFFFFF", //full white
+    black: "#111111", //full black
+    gray: "#6B7280", //comun gray
+    lightGray: "#F3F4F6",
+    border: "#E5E7EB",
 } as const;

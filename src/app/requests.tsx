@@ -293,7 +293,7 @@ export default function RequestsScreen() {
                   </View>
 
                   <View style={styles.infoRow}>
-                    <LocationIcon width={16} height={16} />
+                    <LocationIcon width={16} height={16} color={colors.location}/>
                     <Text style={styles.infoText}>{request.location}</Text>
                   </View>
 

@@ -24,6 +24,7 @@ import EditIcon from "../../assets/icons/edit.svg";
 import NotificationIcon from "../../assets/icons/notifications.svg";
 
 import { styles } from "@/app/styles/supportJobIssue";
+import { colors } from "@/styles/colors";
 
 type IssueType = "cancelamento" | "candidato" | "informacoes" | "andamento";
 type PriorityType = "baixa" | "media" | "alta";
@@ -221,7 +222,7 @@ export default function SupportJobIssueScreen() {
               <Text style={styles.label}>Local</Text>
 
               <View style={styles.smallInputWithIcon}>
-                <LocationIcon width={18} height={18} />
+                <LocationIcon width={18} height={18} color={colors.location}/>
 
                 <TextInput
                   style={styles.smallInput}

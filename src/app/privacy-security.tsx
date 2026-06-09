@@ -91,7 +91,7 @@ export default function PrivacySecurityScreen() {
 
           <View style={styles.switchCard}>
             <View style={styles.optionIconBox}>
-              <LocationIcon width={22} height={22} />
+              <LocationIcon width={22} height={22} color={colors.location}/>
             </View>
 
             <View style={styles.optionTextArea}>

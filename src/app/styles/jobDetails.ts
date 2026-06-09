@@ -247,10 +247,11 @@ export const styles = StyleSheet.create({
   companyProfileButton: {
     height: 44,
     borderRadius: 10,
-    backgroundColor: "rgba(11,87,208,0.08)",
+    backgroundColor: "rgba(10, 33, 238, 0.08)",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 12,
+    top: -13,
   },
 
   companyProfileButtonPressed: {
@@ -259,7 +260,7 @@ export const styles = StyleSheet.create({
   },
 
   companyProfileButtonText: {
-    color: colors.primary,
+    color: colors.blue[500],
     fontSize: 14,
     fontWeight: "900",
   },

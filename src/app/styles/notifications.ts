@@ -79,12 +79,12 @@ export const styles = StyleSheet.create({
 
   notificationCard: {
     minHeight: 92,
-    borderRadius: 18,
+    borderRadius: 14,
     backgroundColor: colors.white,
     padding: 14,
     flexDirection: "row",
     alignItems: "flex-start",
-    borderWidth: 1,
+    borderWidth: 3,
     borderColor: "#F1F1F1",
     shadowColor: "#000",
     shadowOpacity: 0.07,
@@ -95,8 +95,8 @@ export const styles = StyleSheet.create({
   },
 
   notificationCardUnread: {
-    borderColor: "rgba(11,87,208,0.25)",
-    backgroundColor: "rgba(11,87,208,0.035)",
+    borderColor: "rgba(72, 250, 1, 0.25)",
+    backgroundColor: colors.grays[150]
   },
 
   notificationCardPressed: {

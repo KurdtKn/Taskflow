@@ -16,6 +16,7 @@ import BadgeIcon from "../../assets/icons/badge.svg";
 import ChatIcon from "../../assets/icons/chat.svg";
 
 import { styles } from "@/app/styles/companyPublicProfile";
+import { colors } from "@/styles/colors";
 
 const companyTags = [
   "Empresa verificada",
@@ -159,7 +160,7 @@ export default function CompanyPublicProfileScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <LocationIcon width={22} height={22} />
+              <LocationIcon width={22} height={22} color={colors.location}/>
             </View>
 
             <View style={styles.infoTextArea}>
