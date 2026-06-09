@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import {
   Alert,
   Pressable,
@@ -10,13 +11,19 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import HelpIcon from "../../assets/icons/help_outline.svg";
+import SupportIcon from "../../assets/icons/support_agent.svg";
+import AssignmentIcon from "../../assets/icons/assignment.svg";
+import CreditCardIcon from "../../assets/icons/credit_card.svg";
+import LockIcon from "../../assets/icons/lock-icon.svg";
+
 import { styles } from "@/app/styles/freelancerSupport";
 
 type HelpOption = {
   id: string;
   title: string;
   subtitle: string;
-  icon: string;
+  Icon: ComponentType<any>;
   action: () => void;
 };
 
@@ -59,28 +66,28 @@ export default function FreelancerSupportScreen() {
       id: "1",
       title: "Falar com suporte",
       subtitle: "Entre em contato com nossa equipe",
-      icon: "💬",
+      Icon: SupportIcon,
       action: () => router.push("/support-contact"),
     },
     {
       id: "2",
       title: "Problema com chamado",
       subtitle: "Relate erros, cancelamentos ou problemas no serviço",
-      icon: "📋",
+      Icon: AssignmentIcon,
       action: () => router.push("/support-job-issue"),
     },
     {
       id: "3",
       title: "Problema com pagamento",
       subtitle: "Dúvidas sobre taxas, cobranças ou reembolsos",
-      icon: "💳",
+      Icon: CreditCardIcon,
       action: () => router.push("/support-payment-issue"),
     },
     {
       id: "4",
       title: "Segurança da conta",
       subtitle: "Ajuda com acesso, login e proteção da conta",
-      icon: "🔒",
+      Icon: LockIcon,
       action: () => router.push("/support-account-security"),
     },
   ];
@@ -121,7 +128,7 @@ export default function FreelancerSupportScreen() {
           </View>
 
           <View style={styles.heroIconBox}>
-            <Text style={styles.heroIcon}>❔</Text>
+            <HelpIcon width={34} height={34} />
           </View>
         </View>
 
@@ -129,27 +136,31 @@ export default function FreelancerSupportScreen() {
           <Text style={styles.sectionTitle}>Atendimento rápido</Text>
 
           <View style={styles.optionsArea}>
-            {helpOptions.map((option) => (
-              <Pressable
-                key={option.id}
-                style={({ pressed }) => [
-                  styles.optionCard,
-                  pressed && styles.optionCardPressed,
-                ]}
-                onPress={option.action}
-              >
-                <View style={styles.optionIconBox}>
-                  <Text style={styles.optionIcon}>{option.icon}</Text>
-                </View>
+            {helpOptions.map((option) => {
+              const Icon = option.Icon;
 
-                <View style={styles.optionTextArea}>
-                  <Text style={styles.optionTitle}>{option.title}</Text>
-                  <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
-                </View>
+              return (
+                <Pressable
+                  key={option.id}
+                  style={({ pressed }) => [
+                    styles.optionCard,
+                    pressed && styles.optionCardPressed,
+                  ]}
+                  onPress={option.action}
+                >
+                  <View style={styles.optionIconBox}>
+                    <Icon width={24} height={24} />
+                  </View>
 
-                <Text style={styles.optionArrow}>›</Text>
-              </Pressable>
-            ))}
+                  <View style={styles.optionTextArea}>
+                    <Text style={styles.optionTitle}>{option.title}</Text>
+                    <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
+                  </View>
+
+                  <Text style={styles.optionArrow}>›</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -187,7 +198,9 @@ export default function FreelancerSupportScreen() {
           ]}
           onPress={handleCreateTicket}
         >
-          <Text style={styles.primaryButtonText}>Abrir solicitação de suporte</Text>
+          <Text style={styles.primaryButtonText}>
+            Abrir solicitação de suporte
+          </Text>
         </Pressable>
 
         <Pressable

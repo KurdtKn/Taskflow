@@ -15,6 +15,7 @@ import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import PlusIcon from "../../assets/icons/Plus-icon.svg";
+import BadgeIcon from "../../assets/icons/badge.svg";
 
 import { styles } from "@/app/styles/addPortfolioItem";
 
@@ -188,7 +189,7 @@ export default function AddPortfolioItemScreen() {
 
             <View style={styles.previewBox}>
               <View style={styles.previewImage}>
-                <Text style={styles.previewImageText}>📁</Text>
+                <BadgeIcon width={30} height={30} />
               </View>
 
               <View style={styles.previewContent}>

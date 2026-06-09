@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { useState } from "react";
 import {
   Alert,
@@ -12,6 +13,10 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import LockIcon from "../../assets/icons/lock-icon.svg";
+import SettingsIcon from "../../assets/icons/settings.svg";
+import AssignmentIcon from "../../assets/icons/assignment.svg";
+
 import { styles } from "@/app/styles/companySettings";
 import { colors } from "@/styles/colors";
 
@@ -19,7 +24,7 @@ type SettingOption = {
   id: string;
   title: string;
   subtitle: string;
-  icon: string;
+  Icon: ComponentType<any>;
   action: () => void;
 };
 
@@ -35,21 +40,21 @@ export default function CompanySettingsScreen() {
       id: "1",
       title: "Alterar senha",
       subtitle: "Atualize sua senha de acesso",
-      icon: "🔒",
+      Icon: LockIcon,
       action: () => router.push("/change-password"),
     },
     {
       id: "2",
       title: "Privacidade e segurança",
       subtitle: "Gerencie permissões e segurança da conta",
-      icon: "🛡️",
+      Icon: SettingsIcon,
       action: () => router.push("/privacy-security"),
     },
     {
       id: "3",
       title: "Termos e políticas",
       subtitle: "Veja regras de uso, privacidade e condições da plataforma",
-      icon: "📄",
+      Icon: AssignmentIcon,
       action: () => router.push("/terms"),
     },
   ];
@@ -115,7 +120,7 @@ export default function CompanySettingsScreen() {
           </View>
 
           <View style={styles.heroIconBox}>
-            <Text style={styles.heroIcon}>⚙️</Text>
+            <SettingsIcon width={34} height={34} />
           </View>
         </View>
 
@@ -149,7 +154,8 @@ export default function CompanySettingsScreen() {
             <View style={styles.switchTextArea}>
               <Text style={styles.switchTitle}>Notificações por e-mail</Text>
               <Text style={styles.switchSubtitle}>
-                Receber resumo de chamados, pagamentos e candidaturas por e-mail.
+                Receber resumo de chamados, pagamentos e candidaturas por
+                e-mail.
               </Text>
             </View>
 
@@ -210,7 +216,8 @@ export default function CompanySettingsScreen() {
             <View style={styles.switchTextArea}>
               <Text style={styles.switchTitle}>Perfil visível</Text>
               <Text style={styles.switchSubtitle}>
-                Permitir que freelancers visualizem informações básicas da empresa.
+                Permitir que freelancers visualizem informações básicas da
+                empresa.
               </Text>
             </View>
 
@@ -230,27 +237,31 @@ export default function CompanySettingsScreen() {
           <Text style={styles.sectionTitle}>Segurança e conta</Text>
 
           <View style={styles.optionsArea}>
-            {settingOptions.map((option) => (
-              <Pressable
-                key={option.id}
-                style={({ pressed }) => [
-                  styles.optionCard,
-                  pressed && styles.optionCardPressed,
-                ]}
-                onPress={option.action}
-              >
-                <View style={styles.optionIconBox}>
-                  <Text style={styles.optionIcon}>{option.icon}</Text>
-                </View>
+            {settingOptions.map((option) => {
+              const Icon = option.Icon;
 
-                <View style={styles.optionTextArea}>
-                  <Text style={styles.optionTitle}>{option.title}</Text>
-                  <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
-                </View>
+              return (
+                <Pressable
+                  key={option.id}
+                  style={({ pressed }) => [
+                    styles.optionCard,
+                    pressed && styles.optionCardPressed,
+                  ]}
+                  onPress={option.action}
+                >
+                  <View style={styles.optionIconBox}>
+                    <Icon width={24} height={24} />
+                  </View>
 
-                <Text style={styles.optionArrow}>›</Text>
-              </Pressable>
-            ))}
+                  <View style={styles.optionTextArea}>
+                    <Text style={styles.optionTitle}>{option.title}</Text>
+                    <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
+                  </View>
+
+                  <Text style={styles.optionArrow}>›</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 

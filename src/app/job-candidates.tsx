@@ -11,6 +11,10 @@ import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import WalletIcon from "../../assets/icons/wallet.svg";
+import LocationIcon from "../../assets/icons/Location-check.svg";
+import TimeIcon from "../../assets/icons/access_time.svg";
+
 import { styles } from "@/app/styles/jobCandidates";
 
 type Candidate = {
@@ -79,6 +83,7 @@ export default function JobCandidatesScreen() {
   }>();
 
   const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
+
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>(
     initialCandidates[0]?.id ?? ""
   );
@@ -165,17 +170,26 @@ export default function JobCandidatesScreen() {
 
           <View style={styles.jobInfoArea}>
             <View style={styles.jobInfoRow}>
-              <Text style={styles.jobInfoIcon}>💰</Text>
+              <View style={styles.jobInfoIconBox}>
+                <WalletIcon width={18} height={18} />
+              </View>
+
               <Text style={styles.jobInfoText}>{jobPrice}</Text>
             </View>
 
             <View style={styles.jobInfoRow}>
-              <Text style={styles.jobInfoIcon}>📍</Text>
+              <View style={styles.jobInfoIconBox}>
+                <LocationIcon width={18} height={18} />
+              </View>
+
               <Text style={styles.jobInfoText}>{jobLocation}</Text>
             </View>
 
             <View style={styles.jobInfoRow}>
-              <Text style={styles.jobInfoIcon}>🕒</Text>
+              <View style={styles.jobInfoIconBox}>
+                <TimeIcon width={18} height={18} />
+              </View>
+
               <Text style={styles.jobInfoText}>{jobTime}</Text>
             </View>
           </View>
@@ -224,6 +238,7 @@ export default function JobCandidatesScreen() {
                       <Text style={styles.candidateName}>
                         {candidate.name}
                       </Text>
+
                       <Text style={styles.candidateRole}>
                         {candidate.role}
                       </Text>

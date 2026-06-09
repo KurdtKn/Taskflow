@@ -1,14 +1,18 @@
 import {
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
   Text,
   View,
-  Image,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
+import PlusIcon from "../../assets/icons/Plus-icon.svg";
+import WalletIcon from "../../assets/icons/wallet.svg";
+import LocationIcon from "../../assets/icons/Location-check.svg";
+import TimeIcon from "../../assets/icons/access_time.svg";
 
 import { styles } from "@/app/styles/companyDashboard";
 
@@ -78,6 +82,7 @@ const statusConfig = {
 
 export default function CompanyDashboardScreen() {
   const activeJobs = companyJobs.filter((job) => job.status === "active").length;
+
   const totalCandidates = companyJobs.reduce(
     (total, job) => total + job.candidates,
     0
@@ -85,21 +90,21 @@ export default function CompanyDashboardScreen() {
 
   function handleCreateJob() {
     router.push("/create-job");
-}
+  }
 
   function handleViewCandidates(job: CompanyJob) {
-  router.push({
-    pathname: "/job-candidates",
-    params: {
-      title: job.title,
-      category: job.category,
-      price: job.price,
-      location: job.location,
-      time: job.time,
-      candidates: String(job.candidates),
-    },
-  });
-}
+    router.push({
+      pathname: "/job-candidates",
+      params: {
+        title: job.title,
+        category: job.category,
+        price: job.price,
+        location: job.location,
+        time: job.time,
+        candidates: String(job.candidates),
+      },
+    });
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,7 +116,7 @@ export default function CompanyDashboardScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Olá, Empresa </Text>
+            <Text style={styles.greeting}>Olá, Empresa</Text>
             <Text style={styles.title}>Gerencie seus chamados</Text>
           </View>
 
@@ -120,10 +125,10 @@ export default function CompanyDashboardScreen() {
             onPress={() => router.push("/company-profile")}
           >
             <Image
-  source={require("../../assets/images/icon.png")}
-  style={styles.profileImage}
-  resizeMode="cover"
-/>
+              source={require("../../assets/images/icon.png")}
+              style={styles.profileImage}
+              resizeMode="cover"
+            />
           </Pressable>
         </View>
 
@@ -151,7 +156,7 @@ export default function CompanyDashboardScreen() {
           ]}
           onPress={handleCreateJob}
         >
-          <Text style={styles.createJobIcon}>+</Text>
+          <PlusIcon width={18} height={18} />
           <Text style={styles.createJobText}>Criar novo chamado</Text>
         </Pressable>
 
@@ -198,17 +203,26 @@ export default function CompanyDashboardScreen() {
 
                 <View style={styles.infoArea}>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoIcon}>💰</Text>
+                    <View style={styles.infoIconBox}>
+                      <WalletIcon width={18} height={18} />
+                    </View>
+
                     <Text style={styles.infoText}>{job.price}</Text>
                   </View>
 
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoIcon}>📍</Text>
+                    <View style={styles.infoIconBox}>
+                      <LocationIcon width={18} height={18} />
+                    </View>
+
                     <Text style={styles.infoText}>{job.location}</Text>
                   </View>
 
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoIcon}>🕒</Text>
+                    <View style={styles.infoIconBox}>
+                      <TimeIcon width={18} height={18} />
+                    </View>
+
                     <Text style={styles.infoText}>{job.time}</Text>
                   </View>
                 </View>
@@ -218,6 +232,7 @@ export default function CompanyDashboardScreen() {
                     <Text style={styles.candidatesNumber}>
                       {job.candidates}
                     </Text>
+
                     <Text style={styles.candidatesText}>candidatos</Text>
                   </View>
 
@@ -229,11 +244,12 @@ export default function CompanyDashboardScreen() {
         </View>
 
         <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Dica para empresas</Text>
-            <Text style={styles.tipText}>
-                Chamados com descrição clara, valor definido e horário informado
-                costumam receber mais candidatos qualificados.
-            </Text>
+          <Text style={styles.infoTitle}>Dica para empresas</Text>
+
+          <Text style={styles.tipText}>
+            Chamados com descrição clara, valor definido e horário informado
+            costumam receber mais candidatos qualificados.
+          </Text>
         </View>
 
         <Pressable

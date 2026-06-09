@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -13,6 +14,11 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import HelpIcon from "../../assets/icons/help_outline.svg";
+import SupportIcon from "../../assets/icons/support_agent.svg";
+import NotificationIcon from "../../assets/icons/notifications.svg";
+import LockIcon from "../../assets/icons/lock-icon.svg";
+
 import { styles } from "@/app/styles/companySupport";
 
 type FaqItem = {
@@ -25,7 +31,7 @@ type SupportOption = {
   id: string;
   title: string;
   subtitle: string;
-  icon: string;
+  Icon: ComponentType<any>;
   action: () => void;
 };
 
@@ -66,21 +72,21 @@ export default function CompanySupportScreen() {
       id: "1",
       title: "Falar com suporte",
       subtitle: "Entre em contato com nossa equipe",
-      icon: "💬",
+      Icon: SupportIcon,
       action: () => router.push("/support-contact"),
     },
     {
       id: "2",
       title: "Reportar problema",
       subtitle: "Informe erros, bugs ou dificuldades no aplicativo",
-      icon: "⚠️",
+      Icon: NotificationIcon,
       action: () => router.push("/company-report-problem"),
     },
     {
       id: "3",
       title: "Central de segurança",
       subtitle: "Orientações sobre confiança, chat e avaliações",
-      icon: "🛡️",
+      Icon: LockIcon,
       action: () => router.push("/company-security-center"),
     },
   ];
@@ -138,32 +144,36 @@ export default function CompanySupportScreen() {
             </View>
 
             <View style={styles.heroIconBox}>
-              <Text style={styles.heroIcon}>❔</Text>
+              <HelpIcon width={34} height={34} />
             </View>
           </View>
 
           <View style={styles.optionsArea}>
-            {supportOptions.map((option) => (
-              <Pressable
-                key={option.id}
-                style={({ pressed }) => [
-                  styles.optionCard,
-                  pressed && styles.optionCardPressed,
-                ]}
-                onPress={option.action}
-              >
-                <View style={styles.optionIconBox}>
-                  <Text style={styles.optionIcon}>{option.icon}</Text>
-                </View>
+            {supportOptions.map((option) => {
+              const Icon = option.Icon;
 
-                <View style={styles.optionTextArea}>
-                  <Text style={styles.optionTitle}>{option.title}</Text>
-                  <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
-                </View>
+              return (
+                <Pressable
+                  key={option.id}
+                  style={({ pressed }) => [
+                    styles.optionCard,
+                    pressed && styles.optionCardPressed,
+                  ]}
+                  onPress={option.action}
+                >
+                  <View style={styles.optionIconBox}>
+                    <Icon width={24} height={24} />
+                  </View>
 
-                <Text style={styles.optionArrow}>›</Text>
-              </Pressable>
-            ))}
+                  <View style={styles.optionTextArea}>
+                    <Text style={styles.optionTitle}>{option.title}</Text>
+                    <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
+                  </View>
+
+                  <Text style={styles.optionArrow}>›</Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <View style={styles.section}>
@@ -188,7 +198,9 @@ export default function CompanySupportScreen() {
                       <Text style={styles.faqIcon}>{isOpen ? "−" : "+"}</Text>
                     </View>
 
-                    {isOpen && <Text style={styles.faqAnswer}>{faq.answer}</Text>}
+                    {isOpen && (
+                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                    )}
                   </Pressable>
                 );
               })}

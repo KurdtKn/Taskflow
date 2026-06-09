@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import {
   Image,
   Pressable,
@@ -10,13 +11,25 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import BadgeIcon from "../../assets/icons/badge.svg";
+import AssignmentIcon from "../../assets/icons/assignment.svg";
+import CreditCardIcon from "../../assets/icons/credit_card.svg";
+import StarIcon from "../../assets/icons/star_border.svg";
+import NotificationIcon from "../../assets/icons/notifications.svg";
+import SettingsIcon from "../../assets/icons/settings.svg";
+import HelpIcon from "../../assets/icons/help_outline.svg";
+import LocationIcon from "../../assets/icons/Location-check.svg";
+import SupportIcon from "../../assets/icons/support_agent.svg";
+import SendIcon from "../../assets/icons/send.svg";
+import CheckIcon from "../../assets/icons/check.svg";
+
 import { styles } from "@/app/styles/companyProfile";
 
 type MenuOption = {
   id: string;
   title: string;
   subtitle: string;
-  icon: string;
+  Icon: ComponentType<any>;
   action: () => void;
 };
 
@@ -26,49 +39,49 @@ export default function CompanyProfileScreen() {
       id: "1",
       title: "Dados da empresa",
       subtitle: "Nome, CNPJ, telefone e endereço",
-      icon: "🏢",
+      Icon: BadgeIcon,
       action: () => router.push("/company-data"),
     },
     {
       id: "2",
       title: "Chamados publicados",
       subtitle: "Gerencie suas demandas abertas",
-      icon: "📋",
+      Icon: AssignmentIcon,
       action: () => router.replace("/company-dashboard"),
     },
     {
       id: "3",
       title: "Pagamentos",
       subtitle: "Taxas, histórico e transações",
-      icon: "💳",
-      action: () => router.push("/company-reviews"),
+      Icon: CreditCardIcon,
+      action: () => router.push("/company-payments"),
     },
     {
       id: "4",
       title: "Avaliações da empresa",
       subtitle: "Veja a reputação da sua empresa",
-      icon: "⭐",
+      Icon: StarIcon,
       action: () => router.push("/company-reviews"),
     },
     {
       id: "5",
       title: "Notificações",
       subtitle: "Candidaturas, pagamentos e mensagens",
-      icon: "🔔",
+      Icon: NotificationIcon,
       action: () => router.push("/company-notifications"),
     },
     {
-       id: "6",
-       title: "Configurações",
-       subtitle: "Notificações, privacidade e segurança",
-       icon: "⚙️",
-       action: () => router.push("/company-settings"),
+      id: "6",
+      title: "Configurações",
+      subtitle: "Notificações, privacidade e segurança",
+      Icon: SettingsIcon,
+      action: () => router.push("/company-settings"),
     },
     {
       id: "7",
       title: "Ajuda e suporte",
       subtitle: "Central de dúvidas e atendimento",
-      icon: "❔",
+      Icon: HelpIcon,
       action: () => router.push("/company-support"),
     },
   ];
@@ -104,7 +117,7 @@ export default function CompanyProfileScreen() {
             />
 
             <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedIcon}>✓</Text>
+              <CheckIcon width={13} height={13} />
             </View>
           </View>
 
@@ -113,7 +126,7 @@ export default function CompanyProfileScreen() {
           <Text style={styles.companyType}>Empresa contratante</Text>
 
           <View style={styles.ratingArea}>
-            <Text style={styles.ratingIcon}>⭐</Text>
+            <Text style={{ fontSize: 15, marginRight: 5 }}>⭐</Text>
             <Text style={styles.ratingText}>4,9</Text>
             <Text style={styles.ratingSubtext}>• 32 avaliações</Text>
           </View>
@@ -168,7 +181,9 @@ export default function CompanyProfileScreen() {
           <Text style={styles.sectionTitle}>Informações principais</Text>
 
           <View style={styles.contactRow}>
-            <Text style={styles.contactIcon}>📍</Text>
+            <View style={styles.contactIconBox}>
+              <LocationIcon width={22} height={22} />
+            </View>
 
             <View style={styles.contactTextArea}>
               <Text style={styles.contactLabel}>Localização</Text>
@@ -179,7 +194,9 @@ export default function CompanyProfileScreen() {
           <View style={styles.divider} />
 
           <View style={styles.contactRow}>
-            <Text style={styles.contactIcon}>📞</Text>
+            <View style={styles.contactIconBox}>
+              <SupportIcon width={22} height={22} />
+            </View>
 
             <View style={styles.contactTextArea}>
               <Text style={styles.contactLabel}>Telefone</Text>
@@ -190,7 +207,9 @@ export default function CompanyProfileScreen() {
           <View style={styles.divider} />
 
           <View style={styles.contactRow}>
-            <Text style={styles.contactIcon}>✉️</Text>
+            <View style={styles.contactIconBox}>
+              <SendIcon width={22} height={22} />
+            </View>
 
             <View style={styles.contactTextArea}>
               <Text style={styles.contactLabel}>E-mail</Text>
@@ -212,7 +231,7 @@ export default function CompanyProfileScreen() {
               onPress={option.action}
             >
               <View style={styles.menuIconBox}>
-                <Text style={styles.menuIcon}>{option.icon}</Text>
+                <option.Icon width={24} height={24} />
               </View>
 
               <View style={styles.menuTextArea}>

@@ -8,6 +8,11 @@ import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import CheckIcon from "../../assets/icons/check.svg";
+import WalletIcon from "../../assets/icons/wallet.svg";
+import LocationIcon from "../../assets/icons/Location-check.svg";
+import TimeIcon from "../../assets/icons/access_time.svg";
+
 import { styles } from "@/app/styles/requestConfirmation";
 
 export default function RequestConfirmationScreen() {
@@ -33,7 +38,7 @@ export default function RequestConfirmationScreen() {
 
       <View style={styles.content}>
         <View style={styles.successCircle}>
-          <Text style={styles.successIcon}>✓</Text>
+          <CheckIcon width={34} height={34} />
         </View>
 
         <Text style={styles.title}>Solicitação enviada!</Text>
@@ -48,17 +53,26 @@ export default function RequestConfirmationScreen() {
           <Text style={styles.cardTitle}>{title}</Text>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>💰</Text>
+            <View style={styles.infoIconBox}>
+              <WalletIcon width={18} height={18} />
+            </View>
+
             <Text style={styles.infoText}>{price}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📍</Text>
+            <View style={styles.infoIconBox}>
+              <LocationIcon width={18} height={18} />
+            </View>
+
             <Text style={styles.infoText}>{location}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>🕒</Text>
+            <View style={styles.infoIconBox}>
+              <TimeIcon width={18} height={18} />
+            </View>
+
             <Text style={styles.infoText}>{time}</Text>
           </View>
         </View>

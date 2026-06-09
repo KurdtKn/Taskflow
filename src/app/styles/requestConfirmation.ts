@@ -91,8 +91,11 @@ export const styles = StyleSheet.create({
     marginTop: 7,
   },
 
-  infoIcon: {
-    fontSize: 15,
+  infoIconBox: {
+    width: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 8,
   },
 

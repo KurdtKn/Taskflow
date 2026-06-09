@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import {
   Alert,
   Pressable,
@@ -20,65 +21,79 @@ import SettingsIcon from "../../assets/icons/settings.svg";
 
 import { styles } from "@/app/styles/companySecurityCenter";
 
-const securityTips = [
+type SecurityTip = {
+  id: string;
+  title: string;
+  description: string;
+  Icon: ComponentType<any>;
+};
+
+type SecurityFeature = {
+  id: string;
+  title: string;
+  subtitle: string;
+  Icon: ComponentType<any>;
+};
+
+const securityTips: SecurityTip[] = [
   {
     id: "1",
     title: "Confirme os dados do freelancer",
     description:
       "Antes de aceitar uma candidatura, confira perfil, habilidades, avaliações e histórico do profissional.",
-    icon: "👤",
+    Icon: SupportIcon,
   },
   {
     id: "2",
     title: "Use o chat da plataforma",
     description:
       "Combine detalhes importantes pelo chat do TaskFlow para manter o histórico da conversa registrado.",
-    icon: "💬",
+    Icon: ChatIcon,
   },
   {
     id: "3",
     title: "Evite pagamentos externos",
     description:
       "Para maior segurança, utilize os fluxos oficiais de pagamento e confirmação dentro da plataforma.",
-    icon: "💳",
+    Icon: CreditCardIcon,
   },
   {
     id: "4",
     title: "Avalie após o serviço",
     description:
       "A avaliação ajuda outros usuários e fortalece a confiança entre empresas e freelancers.",
-    icon: "⭐",
+    Icon: StarIcon,
   },
 ];
 
-const securityFeatures = [
+const securityFeatures: SecurityFeature[] = [
   {
     id: "1",
     title: "Chat liberado após confirmação",
     subtitle:
       "A conversa é liberada somente após o aceite e avanço correto do chamado.",
-    icon: <ChatIcon width={22} height={22} />,
+    Icon: ChatIcon,
   },
   {
     id: "2",
     title: "Avaliações mútuas",
     subtitle:
       "Empresa e freelancer podem se avaliar após a conclusão do serviço.",
-    icon: <StarIcon width={22} height={22} />,
+    Icon: StarIcon,
   },
   {
     id: "3",
     title: "Fluxo de pagamento controlado",
     subtitle:
       "A taxa da plataforma e pagamentos ficam organizados no fluxo do chamado.",
-    icon: <CreditCardIcon width={22} height={22} />,
+    Icon: CreditCardIcon,
   },
   {
     id: "4",
     title: "Suporte para problemas",
     subtitle:
       "A empresa pode reportar erros, dúvidas ou situações de risco pelo suporte.",
-    icon: <SupportIcon width={22} height={22} />,
+    Icon: SupportIcon,
   },
 ];
 
@@ -140,16 +155,24 @@ export default function CompanySecurityCenterScreen() {
           <Text style={styles.sectionTitle}>Boas práticas</Text>
 
           <View style={styles.tipsList}>
-            {securityTips.map((tip) => (
-              <View key={tip.id} style={styles.tipCard}>
-                <Text style={styles.tipIcon}>{tip.icon}</Text>
+            {securityTips.map((tip) => {
+              const Icon = tip.Icon;
 
-                <View style={styles.tipTextArea}>
-                  <Text style={styles.tipTitle}>{tip.title}</Text>
-                  <Text style={styles.tipDescription}>{tip.description}</Text>
+              return (
+                <View key={tip.id} style={styles.tipCard}>
+                  <View style={styles.tipIconBox}>
+                    <Icon width={24} height={24} />
+                  </View>
+
+                  <View style={styles.tipTextArea}>
+                    <Text style={styles.tipTitle}>{tip.title}</Text>
+                    <Text style={styles.tipDescription}>
+                      {tip.description}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
@@ -157,18 +180,24 @@ export default function CompanySecurityCenterScreen() {
           <Text style={styles.sectionTitle}>Recursos de segurança</Text>
 
           <View style={styles.featuresList}>
-            {securityFeatures.map((feature) => (
-              <View key={feature.id} style={styles.featureCard}>
-                <View style={styles.featureIconBox}>{feature.icon}</View>
+            {securityFeatures.map((feature) => {
+              const Icon = feature.Icon;
 
-                <View style={styles.featureTextArea}>
-                  <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureSubtitle}>
-                    {feature.subtitle}
-                  </Text>
+              return (
+                <View key={feature.id} style={styles.featureCard}>
+                  <View style={styles.featureIconBox}>
+                    <Icon width={22} height={22} />
+                  </View>
+
+                  <View style={styles.featureTextArea}>
+                    <Text style={styles.featureTitle}>{feature.title}</Text>
+                    <Text style={styles.featureSubtitle}>
+                      {feature.subtitle}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
@@ -255,7 +284,9 @@ export default function CompanySecurityCenterScreen() {
           ]}
           onPress={handleReportSecurityIssue}
         >
-          <Text style={styles.primaryButtonText}>Reportar situação suspeita</Text>
+          <Text style={styles.primaryButtonText}>
+            Reportar situação suspeita
+          </Text>
         </Pressable>
 
         <Pressable

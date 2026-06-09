@@ -186,8 +186,13 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(11,87,208,0.035)",
   },
 
-  methodIcon: {
-    fontSize: 25,
+  methodIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(11,87,208,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
 

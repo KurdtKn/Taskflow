@@ -10,6 +10,8 @@ import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import CheckIcon from "../../assets/icons/check.svg";
+
 import { styles } from "@/app/styles/serviceCompletion";
 
 type ChecklistItem = {
@@ -61,23 +63,23 @@ export default function ServiceCompletionScreen() {
 
   function handleConfirmCompletion() {
     if (!allItemsChecked) {
-       console.log("Confirme todos os itens antes de concluir.");
-       return;
+      console.log("Confirme todos os itens antes de concluir.");
+      return;
     }
 
     console.log("Serviço concluído:", {
-        jobTitle,
-        candidateName,
+      jobTitle,
+      candidateName,
     });
 
     router.push({
-        pathname: "/service-completed",
-        params: {
+      pathname: "/service-completed",
+      params: {
         jobTitle,
         candidateName,
-       },
+      },
     });
-   }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -99,7 +101,7 @@ export default function ServiceCompletionScreen() {
       >
         <View style={styles.introCard}>
           <View style={styles.iconBox}>
-            <Text style={styles.iconText}>🏁</Text>
+            <CheckIcon width={34} height={34} />
           </View>
 
           <Text style={styles.introTitle}>Finalizar chamado</Text>
@@ -154,7 +156,7 @@ export default function ServiceCompletionScreen() {
                       isChecked && styles.checkboxActive,
                     ]}
                   >
-                    {isChecked && <Text style={styles.checkboxIcon}>✓</Text>}
+                    {isChecked && <CheckIcon width={16} height={16} />}
                   </View>
 
                   <View style={styles.checkTextArea}>

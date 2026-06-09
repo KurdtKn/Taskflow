@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { useState } from "react";
 import {
   Alert,
@@ -20,38 +21,47 @@ import CheckIcon from "../../assets/icons/check.svg";
 import NotificationIcon from "../../assets/icons/notifications.svg";
 import SendIcon from "../../assets/icons/send.svg";
 import SupportIcon from "../../assets/icons/support_agent.svg";
+import EditIcon from "../../assets/icons/edit.svg";
+import CrossIcon from "../../assets/icons/cross.svg";
 
 import { colors } from "@/styles/colors";
 import { styles } from "@/app/styles/supportAccountSecurity";
 
-const securityIssues = [
+type SecurityIssueType = "login" | "suspeita" | "dados" | "bloqueio";
+
+type SecurityIssue = {
+  id: SecurityIssueType;
+  title: string;
+  subtitle: string;
+  Icon: ComponentType<any>;
+};
+
+const securityIssues: SecurityIssue[] = [
   {
     id: "login",
     title: "Problema de login",
     subtitle: "Não consigo acessar minha conta",
-    icon: "🔐",
+    Icon: LockIcon,
   },
   {
     id: "suspeita",
     title: "Acesso suspeito",
     subtitle: "Acredito que alguém acessou minha conta",
-    icon: "⚠️",
+    Icon: NotificationIcon,
   },
   {
     id: "dados",
     title: "Dados alterados",
     subtitle: "Minhas informações foram modificadas",
-    icon: "📝",
+    Icon: EditIcon,
   },
   {
     id: "bloqueio",
     title: "Conta bloqueada",
     subtitle: "Minha conta foi limitada ou bloqueada",
-    icon: "🚫",
+    Icon: CrossIcon,
   },
-] as const;
-
-type SecurityIssueType = (typeof securityIssues)[number]["id"];
+];
 
 export default function SupportAccountSecurityScreen() {
   const [selectedIssue, setSelectedIssue] =
@@ -138,6 +148,7 @@ export default function SupportAccountSecurityScreen() {
             <View style={styles.issueList}>
               {securityIssues.map((issue) => {
                 const isSelected = selectedIssue === issue.id;
+                const Icon = issue.Icon;
 
                 return (
                   <Pressable
@@ -148,7 +159,9 @@ export default function SupportAccountSecurityScreen() {
                     ]}
                     onPress={() => setSelectedIssue(issue.id)}
                   >
-                    <Text style={styles.issueIcon}>{issue.icon}</Text>
+                    <View style={styles.issueIconBox}>
+                      <Icon width={24} height={24} />
+                    </View>
 
                     <View style={styles.issueTextArea}>
                       <Text

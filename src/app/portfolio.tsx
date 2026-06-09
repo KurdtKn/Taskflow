@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import {
   Image,
   Pressable,
@@ -10,6 +11,12 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import StarIcon from "../../assets/icons/star_border.svg";
+import PlusIcon from "../../assets/icons/Plus-icon.svg";
+import AssignmentIcon from "../../assets/icons/assignment.svg";
+import SettingsIcon from "../../assets/icons/settings.svg";
+import BadgeIcon from "../../assets/icons/badge.svg";
+
 import { styles } from "@/app/styles/portfolio";
 
 type PortfolioItem = {
@@ -17,7 +24,7 @@ type PortfolioItem = {
   title: string;
   category: string;
   description: string;
-  icon: string;
+  Icon: ComponentType<any>;
   date: string;
 };
 
@@ -28,7 +35,7 @@ const portfolioItems: PortfolioItem[] = [
     category: "Eventos",
     description:
       "Atuação como garçom em evento empresarial, auxiliando na recepção, organização e atendimento aos convidados.",
-    icon: "🍽️",
+    Icon: AssignmentIcon,
     date: "Março de 2026",
   },
   {
@@ -37,7 +44,7 @@ const portfolioItems: PortfolioItem[] = [
     category: "Serviços gerais",
     description:
       "Suporte em atividade pontual com foco em organização, agilidade e comunicação com o contratante.",
-    icon: "🛠️",
+    Icon: SettingsIcon,
     date: "Fevereiro de 2026",
   },
   {
@@ -46,7 +53,7 @@ const portfolioItems: PortfolioItem[] = [
     category: "Fotografia",
     description:
       "Registro de fotos para evento pequeno, com entrega organizada das imagens ao contratante.",
-    icon: "📸",
+    Icon: BadgeIcon,
     date: "Janeiro de 2026",
   },
 ];
@@ -91,7 +98,7 @@ export default function PortfolioScreen() {
             <Text style={styles.userRole}>Freelancer</Text>
 
             <View style={styles.ratingArea}>
-              <Text style={styles.ratingIcon}>⭐</Text>
+              <StarIcon width={18} height={18} />
               <Text style={styles.ratingText}>4,8 • 24 avaliações</Text>
             </View>
           </View>
@@ -130,7 +137,8 @@ export default function PortfolioScreen() {
             ]}
             onPress={() => router.push("/add-portfolio-item")}
           >
-            <Text style={styles.addButtonText}>+ Adicionar</Text>
+            <PlusIcon width={16} height={16} />
+            <Text style={styles.addButtonText}>Adicionar</Text>
           </Pressable>
         </View>
 
@@ -147,7 +155,7 @@ export default function PortfolioScreen() {
               }}
             >
               <View style={styles.itemIconBox}>
-                <Text style={styles.itemIcon}>{item.icon}</Text>
+                <item.Icon width={24} height={24} />
               </View>
 
               <View style={styles.itemContent}>
