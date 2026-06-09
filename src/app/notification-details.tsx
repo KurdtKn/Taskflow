@@ -16,6 +16,7 @@ import StarIcon from "../../assets/icons/star_border.svg";
 import AssignmentIcon from "../../assets/icons/assignment.svg";
 
 import { styles } from "@/app/styles/notificationDetail";
+import { colors } from "@/styles/colors";
 
 type NotificationType =
   | "new_job"
@@ -52,14 +53,14 @@ export default function NotificationDetailsScreen() {
       label: "Novo chamado",
       description:
         "Uma empresa publicou um novo chamado próximo da sua região.",
-      icon: <AssignmentIcon width={34} height={34} />,
+      icon: <AssignmentIcon width={34} height={34} color={colors.assignment}/>,
       buttonText: "Ver chamado",
     },
     request_accepted: {
       label: "Solicitação aceita",
       description:
         "Sua candidatura foi aceita pela empresa. Acompanhe os próximos passos.",
-      icon: <CheckIcon width={34} height={34} />,
+      icon: <CheckIcon width={34} height={34} color={colors.check}/>,
       buttonText: "Ver solicitação",
     },
     payment_confirmed: {
@@ -94,7 +95,7 @@ export default function NotificationDetailsScreen() {
       label: "Atualização",
       description:
         "Existe uma nova atualização disponível no TaskFlow.",
-      icon: <BellIcon width={34} height={34} />,
+      icon: <BellIcon width={34} height={34} color={colors.bell}/>,
       buttonText: "Entendi",
     },
   };

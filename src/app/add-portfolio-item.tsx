@@ -18,6 +18,7 @@ import PlusIcon from "../../assets/icons/Plus-icon.svg";
 import BadgeIcon from "../../assets/icons/badge.svg";
 
 import { styles } from "@/app/styles/addPortfolioItem";
+import { colors } from "@/styles/colors";
 
 const categories = [
   "Eventos",
@@ -90,7 +91,7 @@ export default function AddPortfolioItemScreen() {
             </View>
 
             <View style={styles.heroIconBox}>
-              <PlusIcon width={34} height={34} />
+              <PlusIcon width={34} height={34} color={colors.plus}/>
             </View>
           </View>
 

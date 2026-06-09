@@ -18,6 +18,7 @@ import SettingsIcon from "../../assets/icons/settings.svg";
 import BadgeIcon from "../../assets/icons/badge.svg";
 
 import { styles } from "@/app/styles/portfolio";
+import { colors } from "@/styles/colors";
 
 type PortfolioItem = {
   id: string;
@@ -137,7 +138,7 @@ export default function PortfolioScreen() {
             ]}
             onPress={() => router.push("/add-portfolio-item")}
           >
-            <PlusIcon width={16} height={16} />
+            <PlusIcon width={16} height={16} color={colors.plus}/>
             <Text style={styles.addButtonText}>Adicionar</Text>
           </Pressable>
         </View>

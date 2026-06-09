@@ -255,6 +255,7 @@ export const styles = StyleSheet.create({
   infoText: {
     color: colors.gray,
     fontSize: 13,
+    margin:5,
   },
 
   detailsButton: {

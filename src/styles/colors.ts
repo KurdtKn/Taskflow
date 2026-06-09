@@ -31,7 +31,11 @@ export const colors = {
     success: "#00B050",
     danger: "#d42323",
     location:"#e62727", //Cor de todos os icones de localização - Location-check.svg
+    plus:"#FFFFFF", //icone de mais
     warning: "#F59E0B",
+    bell:"#FFFFFF",// icone de sino
+    assignment:"#FFFFFF",// icone de prancheta
+    check:"#FFFFFF",// icone de check
 
     white: "#FFFFFF", //full white
     black: "#111111", //full black
