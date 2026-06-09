@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { API_URL } from "@/services/api";
+import { useEffect, useState } from "react";
 import {
   Image,
   Pressable,
@@ -25,45 +26,50 @@ const serviceImage = require("../../../assets/images/garcom.jpg");
 const serviceImage2 = require("../../../assets/images/Encanador.png");
 const serviceImage3 = require("../../../assets/images/fotografo.png");
 
-const services = [
-  {
-    id: "1",
-    title: "Garçom para Evento",
-    category: "Eventos",
-    price: "R$200,00",
-    distance: "1,5 km - Centro",
-    location: "Centro",
-    time: "Hoje, 18:00",
-    image: serviceImage,
-  },
-  {
-    id: "2",
-    title: "Reparo Hidráulico",
-    category: "Manutenção",
-    price: "R$150,00",
-    distance: "3,2 km - Jardim Paulista",
-    location: "Jardim Paulista",
-    time: "Amanhã, 9:00",
-    image: serviceImage2,
-  },
-  {
-    id: "3",
-    title: "Fotógrafo Profissional",
-    category: "Fotografia",
-    price: "R$300,00",
-    distance: "2,0 km - Moema",
-    location: "Moema",
-    time: "Sábado, 14:00",
-    image: serviceImage3,
-  },
-];
+type Chamado = {
+  id: number;
+  titulo: string;
+  descricao?: string;
+  categoria?: string;
+  valorEstimado?: number;
+  cidade?: string;
+  estado?: string;
+  localServico?: string;
+  dataServico?: string;
+  horaServico?: string;
+};
 
 export default function HomeScreen() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
 
   const [search, setSearch] = useState("");
+  const [chamados, setChamados] = useState<Chamado[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
   const { isDark, theme } = useTheme();
+
+  useEffect(() => {
+    async function buscarChamados() {
+      try {
+        const response = await fetch(`${API_URL}/Chamados`);
+
+        if (!response.ok) {
+          throw new Error("Erro ao buscar chamados da API");
+        }
+
+        const data = await response.json();
+
+        console.log("Chamados vindos da API:", data);
+        setChamados(data);
+      } catch (error) {
+        console.log("Erro ao buscar chamados:", error);
+      } finally {
+        setCarregando(false);
+      }
+    }
+
+    buscarChamados();
+  }, []);
 
   const hasActiveFilters =
     categoria || cidade || valorMin || valorMax || search;
@@ -85,24 +91,80 @@ export default function HomeScreen() {
     router.push("/(tabs)/home");
   }
 
-  const filteredServices = services.filter((service) => {
+  function formatarValor(valor?: number) {
+    if (valor === null || valor === undefined) {
+      return "Valor a combinar";
+    }
+
+    return valor.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+
+  function formatarDataHora(data?: string, hora?: string) {
+    if (!data && !hora) {
+      return "Data a combinar";
+    }
+
+    if (data && hora) {
+      return `${data} às ${hora}`;
+    }
+
+    if (data) {
+      return data;
+    }
+
+    return hora;
+  }
+
+  function getServiceImage(chamado: Chamado) {
+    const categoriaChamado = chamado.categoria?.toLowerCase() || "";
+    const tituloChamado = chamado.titulo?.toLowerCase() || "";
+
+    if (
+      categoriaChamado.includes("manutenção") ||
+      categoriaChamado.includes("hidráulica") ||
+      tituloChamado.includes("reparo") ||
+      tituloChamado.includes("hidráulico")
+    ) {
+      return serviceImage2;
+    }
+
+    if (
+      categoriaChamado.includes("fotografia") ||
+      tituloChamado.includes("fotógrafo") ||
+      tituloChamado.includes("fotografo")
+    ) {
+      return serviceImage3;
+    }
+
+    return serviceImage;
+  }
+
+  const filteredServices = chamados.filter((service) => {
     const filtroCategoria = String(categoria || "Todos");
     const filtroCidade = String(cidade || "");
     const filtroValorMin = String(valorMin || "");
     const filtroValorMax = String(valorMax || "");
     const filtroBusca = search.toLowerCase().trim();
 
-    const valorServico = Number(service.price.replace(/\D/g, "")) / 100;
+    const valorServico = service.valorEstimado || 0;
+
+    const titulo = service.titulo?.toLowerCase() || "";
+    const categoriaServico = service.categoria?.toLowerCase() || "";
+    const cidadeServico = service.cidade?.toLowerCase() || "";
+    const localServico = service.localServico?.toLowerCase() || "";
 
     const bateCategoria =
       filtroCategoria === "Todos" ||
-      service.category.toLowerCase().includes(filtroCategoria.toLowerCase()) ||
-      service.title.toLowerCase().includes(filtroCategoria.toLowerCase());
+      categoriaServico.includes(filtroCategoria.toLowerCase()) ||
+      titulo.includes(filtroCategoria.toLowerCase());
 
     const bateCidade =
       filtroCidade === "" ||
-      service.location.toLowerCase().includes(filtroCidade.toLowerCase()) ||
-      service.distance.toLowerCase().includes(filtroCidade.toLowerCase());
+      cidadeServico.includes(filtroCidade.toLowerCase()) ||
+      localServico.includes(filtroCidade.toLowerCase());
 
     const bateValorMin =
       filtroValorMin === "" || valorServico >= Number(filtroValorMin);
@@ -112,10 +174,10 @@ export default function HomeScreen() {
 
     const bateBusca =
       filtroBusca === "" ||
-      service.title.toLowerCase().includes(filtroBusca) ||
-      service.category.toLowerCase().includes(filtroBusca) ||
-      service.location.toLowerCase().includes(filtroBusca) ||
-      service.distance.toLowerCase().includes(filtroBusca);
+      titulo.includes(filtroBusca) ||
+      categoriaServico.includes(filtroBusca) ||
+      cidadeServico.includes(filtroBusca) ||
+      localServico.includes(filtroBusca);
 
     return (
       bateCategoria && bateCidade && bateValorMin && bateValorMax && bateBusca
@@ -227,9 +289,21 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.servicesList}>
+          {carregando && (
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              Carregando chamados...
+            </Text>
+          )}
+
+          {!carregando && filteredServices.length === 0 && (
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              Nenhum chamado encontrado.
+            </Text>
+          )}
+
           {filteredServices.map((service) => (
             <Pressable
-              key={service.id}
+              key={String(service.id)}
               style={({ pressed }) => [
                 styles.serviceCard,
                 {
@@ -242,45 +316,67 @@ export default function HomeScreen() {
                 router.push({
                   pathname: "/job-details",
                   params: {
-                    title: service.title,
-                    category: service.category,
-                    price: service.price,
-                    distance: service.distance,
-                    location: service.location,
-                    time: service.time,
+                    id: service.id,
+                    title: service.titulo,
+                    category: service.categoria || "Serviço",
+                    price: formatarValor(service.valorEstimado),
+                    distance: `${service.cidade || "Cidade não informada"} - ${
+                      service.estado || "UF"
+                    }`,
+                    location: service.localServico || "Local não informado",
+                    time: formatarDataHora(
+                      service.dataServico,
+                      service.horaServico
+                    ),
+                    description: service.descricao || "",
                   },
                 });
               }}
             >
               <View style={styles.serviceContent}>
                 <Text style={[styles.serviceTitle, { color: theme.text }]}>
-                  {service.title}
+                  {service.titulo}
                 </Text>
 
-                <Text style={styles.servicePrice}>{service.price}</Text>
+                <Text style={styles.servicePrice}>
+                  {formatarValor(service.valorEstimado)}
+                </Text>
 
                 <View style={styles.infoRow}>
-                  <LocationIcon width={15} height={15} color={colors.location}/>
-                  <Text style={styles.infoText}>{service.distance}</Text>
-                  <LocationIcon width={15} height={15} />
+                  <LocationIcon
+                    width={15}
+                    height={15}
+                    color={colors.location}
+                  />
 
-                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                    {service.distance}
+                  <Text
+                    style={[
+                      styles.infoText,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {service.cidade || "Cidade não informada"} -{" "}
+                    {service.estado || "UF"}
                   </Text>
                 </View>
 
                 <View style={styles.infoRow}>
                   <CalendarIcon width={15} height={15} />
 
-                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                    {service.time}
+                  <Text
+                    style={[
+                      styles.infoText,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {formatarDataHora(service.dataServico, service.horaServico)}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.serviceImageBox}>
                 <Image
-                  source={service.image}
+                  source={getServiceImage(service)}
                   style={styles.serviceImage}
                   resizeMode="cover"
                 />
