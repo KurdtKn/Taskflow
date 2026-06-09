@@ -15,6 +15,7 @@ import CheckIcon from "../../assets/icons/check.svg";
 import AssignmentIcon from "../../assets/icons/assignment.svg";
 
 import { styles } from "@/app/styles/terms";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type TermsTab = "terms" | "privacy" | "security";
 
@@ -45,6 +46,8 @@ const securityItems = [
 
 export default function TermsScreen() {
   const [selectedTab, setSelectedTab] = useState<TermsTab>("terms");
+
+  const { isDark, theme } = useTheme();
 
   function getCurrentContent() {
     if (selectedTab === "privacy") {
@@ -79,15 +82,22 @@ export default function TermsScreen() {
   const content = getCurrentContent();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Termos e políticas</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Termos e políticas
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -96,11 +106,25 @@ export default function TermsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.heroCard}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View>
-            <Text style={styles.heroLabel}>TaskFlow</Text>
-            <Text style={styles.heroTitle}>Uso da plataforma</Text>
-            <Text style={styles.heroText}>
+            <Text style={[styles.heroLabel, { color: theme.primary }]}>
+              TaskFlow
+            </Text>
+
+            <Text style={[styles.heroTitle, { color: theme.text }]}>
+              Uso da plataforma
+            </Text>
+
+            <Text style={[styles.heroText, { color: theme.textSecondary }]}>
               Regras, privacidade e segurança para empresas e freelancers.
             </Text>
           </View>
@@ -108,7 +132,15 @@ export default function TermsScreen() {
           <View style={styles.heroIconBox}>{content.icon}</View>
         </View>
 
-        <View style={styles.tabsArea}>
+        <View
+          style={[
+            styles.tabsArea,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <Pressable
             style={[
               styles.tabButton,
@@ -119,6 +151,7 @@ export default function TermsScreen() {
             <Text
               style={[
                 styles.tabText,
+                { color: theme.textSecondary },
                 selectedTab === "terms" && styles.tabTextActive,
               ]}
             >
@@ -136,6 +169,7 @@ export default function TermsScreen() {
             <Text
               style={[
                 styles.tabText,
+                { color: theme.textSecondary },
                 selectedTab === "privacy" && styles.tabTextActive,
               ]}
             >
@@ -153,6 +187,7 @@ export default function TermsScreen() {
             <Text
               style={[
                 styles.tabText,
+                { color: theme.textSecondary },
                 selectedTab === "security" && styles.tabTextActive,
               ]}
             >
@@ -161,10 +196,25 @@ export default function TermsScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.contentCard}>
-          <Text style={styles.contentTitle}>{content.title}</Text>
+        <View
+          style={[
+            styles.contentCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.contentTitle, { color: theme.text }]}>
+            {content.title}
+          </Text>
 
-          <Text style={styles.contentDescription}>
+          <Text
+            style={[
+              styles.contentDescription,
+              { color: theme.textSecondary },
+            ]}
+          >
             {content.description}
           </Text>
 
@@ -175,16 +225,28 @@ export default function TermsScreen() {
                   <Text style={styles.itemNumberText}>{index + 1}</Text>
                 </View>
 
-                <Text style={styles.itemText}>{item}</Text>
+                <Text style={[styles.itemText, { color: theme.text }]}>
+                  {item}
+                </Text>
               </View>
             ))}
           </View>
         </View>
 
-        <View style={styles.warningBox}>
-          <Text style={styles.warningTitle}>Observação</Text>
+        <View
+          style={[
+            styles.warningBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.warningTitle, { color: theme.text }]}>
+            Observação
+          </Text>
 
-          <Text style={styles.warningText}>
+          <Text style={[styles.warningText, { color: theme.textSecondary }]}>
             Esta tela representa uma versão resumida para o protótipo acadêmico.
             Na versão final, os textos jurídicos deverão ser revisados antes da
             publicação oficial da plataforma.

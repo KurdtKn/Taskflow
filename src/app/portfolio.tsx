@@ -19,6 +19,7 @@ import BadgeIcon from "../../assets/icons/badge.svg";
 
 import { styles } from "@/app/styles/portfolio";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type PortfolioItem = {
   id: string;
@@ -69,16 +70,25 @@ const skills = [
 ];
 
 export default function PortfolioScreen() {
+  const { isDark, theme } = useTheme();
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Portfólio</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Portfólio
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -87,7 +97,15 @@ export default function PortfolioScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.profileSummaryCard}>
+        <View
+          style={[
+            styles.profileSummaryCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <Image
             source={require("../../assets/images/icon.png")}
             style={styles.avatar}
@@ -95,20 +113,30 @@ export default function PortfolioScreen() {
           />
 
           <View style={styles.profileInfo}>
-            <Text style={styles.userName}>Usuário TaskFlow</Text>
-            <Text style={styles.userRole}>Freelancer</Text>
+            <Text style={[styles.userName, { color: theme.text }]}>
+              Usuário TaskFlow
+            </Text>
+
+            <Text style={[styles.userRole, { color: theme.textSecondary }]}>
+              Freelancer
+            </Text>
 
             <View style={styles.ratingArea}>
               <StarIcon width={18} height={18} />
-              <Text style={styles.ratingText}>4,8 • 24 avaliações</Text>
+
+              <Text style={[styles.ratingText, { color: theme.textSecondary }]}>
+                4,8 • 24 avaliações
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumo profissional</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Resumo profissional
+          </Text>
 
-          <Text style={styles.summaryText}>
+          <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
             Profissional disponível para serviços sob demanda, com experiência em
             atendimento ao público, eventos, organização e atividades rápidas.
             Busca entregar serviços com responsabilidade, pontualidade e boa
@@ -117,19 +145,34 @@ export default function PortfolioScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Habilidades</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Habilidades
+          </Text>
 
           <View style={styles.skillsArea}>
             {skills.map((skill) => (
-              <View key={skill} style={styles.skillChip}>
-                <Text style={styles.skillText}>{skill}</Text>
+              <View
+                key={skill}
+                style={[
+                  styles.skillChip,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.skillText, { color: theme.text }]}>
+                  {skill}
+                </Text>
               </View>
             ))}
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Trabalhos realizados</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Trabalhos realizados
+          </Text>
 
           <Pressable
             style={({ pressed }) => [
@@ -149,6 +192,10 @@ export default function PortfolioScreen() {
               key={item.id}
               style={({ pressed }) => [
                 styles.portfolioCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
                 pressed && styles.portfolioCardPressed,
               ]}
               onPress={() => {
@@ -161,21 +208,46 @@ export default function PortfolioScreen() {
 
               <View style={styles.itemContent}>
                 <View style={styles.itemHeader}>
-                  <Text style={styles.itemTitle}>{item.title}</Text>
-                  <Text style={styles.itemDate}>{item.date}</Text>
+                  <Text style={[styles.itemTitle, { color: theme.text }]}>
+                    {item.title}
+                  </Text>
+
+                  <Text style={[styles.itemDate, { color: theme.textSecondary }]}>
+                    {item.date}
+                  </Text>
                 </View>
 
-                <Text style={styles.itemCategory}>{item.category}</Text>
+                <Text style={[styles.itemCategory, { color: theme.primary }]}>
+                  {item.category}
+                </Text>
 
-                <Text style={styles.itemDescription}>{item.description}</Text>
+                <Text
+                  style={[
+                    styles.itemDescription,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  {item.description}
+                </Text>
               </View>
             </Pressable>
           ))}
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Dica para melhorar seu perfil</Text>
-          <Text style={styles.infoText}>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Dica para melhorar seu perfil
+          </Text>
+
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             Quanto mais completo estiver seu portfólio, maiores são as chances de
             uma empresa aceitar sua solicitação.
           </Text>

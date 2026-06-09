@@ -22,6 +22,7 @@ import AssignmentIcon from "../../assets/icons/assignment.svg";
 import NotificationIcon from "../../assets/icons/notifications.svg";
 
 import { styles } from "@/app/styles/companyReportProblem";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type ProblemType = "bug" | "chamado" | "candidato" | "outro";
 type PriorityType = "baixa" | "media" | "alta";
@@ -66,6 +67,8 @@ export default function CompanyReportProblemScreen() {
   const [screenName, setScreenName] = useState("");
   const [description, setDescription] = useState("");
 
+  const { isDark, theme } = useTheme();
+
   function handleSendReport() {
     if (!screenName.trim() || !description.trim()) {
       Alert.alert(
@@ -88,8 +91,13 @@ export default function CompanyReportProblemScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -100,7 +108,9 @@ export default function CompanyReportProblemScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Reportar problema</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Reportar problema
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -109,11 +119,25 @@ export default function CompanyReportProblemScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.heroCard}>
+          <View
+            style={[
+              styles.heroCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View>
-              <Text style={styles.heroLabel}>Suporte da empresa</Text>
-              <Text style={styles.heroTitle}>Encontrou um erro?</Text>
-              <Text style={styles.heroText}>
+              <Text style={[styles.heroLabel, { color: theme.primary }]}>
+                Suporte da empresa
+              </Text>
+
+              <Text style={[styles.heroTitle, { color: theme.text }]}>
+                Encontrou um erro?
+              </Text>
+
+              <Text style={[styles.heroText, { color: theme.textSecondary }]}>
                 Informe bugs, dificuldades ou falhas encontradas no aplicativo.
               </Text>
             </View>
@@ -124,7 +148,9 @@ export default function CompanyReportProblemScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tipo de problema</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Tipo de problema
+            </Text>
 
             <View style={styles.problemList}>
               {problemTypes.map((problem) => {
@@ -136,6 +162,10 @@ export default function CompanyReportProblemScreen() {
                     key={problem.id}
                     style={[
                       styles.problemCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
                       isSelected && styles.problemCardActive,
                     ]}
                     onPress={() => setSelectedProblem(problem.id)}
@@ -148,6 +178,7 @@ export default function CompanyReportProblemScreen() {
                       <Text
                         style={[
                           styles.problemTitle,
+                          { color: theme.text },
                           isSelected && styles.problemTitleActive,
                         ]}
                       >
@@ -157,6 +188,7 @@ export default function CompanyReportProblemScreen() {
                       <Text
                         style={[
                           styles.problemSubtitle,
+                          { color: theme.textSecondary },
                           isSelected && styles.problemSubtitleActive,
                         ]}
                       >
@@ -167,6 +199,7 @@ export default function CompanyReportProblemScreen() {
                     <View
                       style={[
                         styles.radio,
+                        { borderColor: theme.border },
                         isSelected && styles.radioActive,
                       ]}
                     >
@@ -179,24 +212,39 @@ export default function CompanyReportProblemScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Onde aconteceu?</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Onde aconteceu?
+            </Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Ex: Criar chamado, candidatos, pagamentos..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={screenName}
               onChangeText={setScreenName}
             />
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Prioridade</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Prioridade
+            </Text>
 
             <View style={styles.priorityRow}>
               <Pressable
                 style={[
                   styles.priorityChip,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   priority === "baixa" && styles.priorityChipActive,
                 ]}
                 onPress={() => setPriority("baixa")}
@@ -204,6 +252,7 @@ export default function CompanyReportProblemScreen() {
                 <Text
                   style={[
                     styles.priorityText,
+                    { color: theme.textSecondary },
                     priority === "baixa" && styles.priorityTextActive,
                   ]}
                 >
@@ -214,6 +263,10 @@ export default function CompanyReportProblemScreen() {
               <Pressable
                 style={[
                   styles.priorityChip,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   priority === "media" && styles.priorityChipActive,
                 ]}
                 onPress={() => setPriority("media")}
@@ -221,6 +274,7 @@ export default function CompanyReportProblemScreen() {
                 <Text
                   style={[
                     styles.priorityText,
+                    { color: theme.textSecondary },
                     priority === "media" && styles.priorityTextActive,
                   ]}
                 >
@@ -231,6 +285,10 @@ export default function CompanyReportProblemScreen() {
               <Pressable
                 style={[
                   styles.priorityChip,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   priority === "alta" && styles.priorityChipDanger,
                 ]}
                 onPress={() => setPriority("alta")}
@@ -238,6 +296,7 @@ export default function CompanyReportProblemScreen() {
                 <Text
                   style={[
                     styles.priorityText,
+                    { color: theme.textSecondary },
                     priority === "alta" && styles.priorityTextDanger,
                   ]}
                 >
@@ -248,12 +307,22 @@ export default function CompanyReportProblemScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Descrição do problema</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Descrição do problema
+            </Text>
 
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Explique o que aconteceu, quando ocorreu e o que você tentou fazer..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               multiline
               textAlignVertical="top"
               value={description}
@@ -261,13 +330,23 @@ export default function CompanyReportProblemScreen() {
             />
           </View>
 
-          <View style={styles.infoBox}>
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.infoHeader}>
               <SettingsIcon width={22} height={22} />
-              <Text style={styles.infoTitle}>Análise do suporte</Text>
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Análise do suporte
+              </Text>
             </View>
 
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
               Na versão final, esse relatório será enviado para a API e poderá
               ficar vinculado à conta da empresa para acompanhamento.
             </Text>
@@ -287,11 +366,17 @@ export default function CompanyReportProblemScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.cancelButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && styles.buttonPressed,
             ]}
             onPress={() => router.back()}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text style={[styles.cancelButtonText, { color: theme.text }]}>
+              Cancelar
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

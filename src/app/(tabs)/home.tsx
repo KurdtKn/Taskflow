@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { styles } from "../styles/home";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 import BellIcon from "../../../assets/icons/notifications.svg";
 import SearchIcon from "../../../assets/icons/search.svg";
@@ -59,7 +60,11 @@ const services = [
 
 export default function HomeScreen() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
+
   const [search, setSearch] = useState("");
+
+  const { isDark, theme } = useTheme();
+
   const hasActiveFilters =
     categoria || cidade || valorMin || valorMax || search;
 
@@ -74,6 +79,7 @@ export default function HomeScreen() {
       },
     });
   }
+
   function handleClearFilters() {
     setSearch("");
     router.push("/(tabs)/home");
@@ -117,8 +123,13 @@ export default function HomeScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -126,13 +137,22 @@ export default function HomeScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Olá, Usuário</Text>
-            <Text style={styles.subtitle}>Oportunidades perto de você</Text>
+            <Text style={[styles.greeting, { color: theme.text }]}>
+              Olá, Usuário
+            </Text>
+
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              Oportunidades perto de você
+            </Text>
           </View>
 
           <Pressable
             style={({ pressed }) => [
               styles.notificationButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
             ]}
             onPress={() => router.push("/notifications")}
@@ -142,13 +162,24 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.searchArea}>
-          <View style={styles.searchBox}>
+          <View
+            style={[
+              styles.searchBox,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <SearchIcon width={22} height={22} />
 
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                { color: theme.text },
+              ]}
               placeholder="Buscar serviços..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={search}
               onChangeText={setSearch}
             />
@@ -157,6 +188,10 @@ export default function HomeScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.filterButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
             ]}
             onPress={handleOpenFilters}
@@ -166,19 +201,25 @@ export default function HomeScreen() {
         </View>
 
         {hasActiveFilters && (
-  <Pressable
-    style={({ pressed }) => [
-      styles.clearFiltersHome,
-      pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] },
-    ]}
-    onPress={handleClearFilters}
-  >
-    <Text style={styles.clearFiltersHomeText}>Limpar filtros</Text>
-  </Pressable>
-)}
+          <Pressable
+            style={({ pressed }) => [
+              styles.clearFiltersHome,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+              pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={handleClearFilters}
+          >
+            <Text style={styles.clearFiltersHomeText}>Limpar filtros</Text>
+          </Pressable>
+        )}
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Próximos de você</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Próximos de você
+          </Text>
 
           <Pressable onPress={() => router.push("/map")}>
             <Text style={styles.seeMapText}>Ver no mapa &gt;</Text>
@@ -191,6 +232,10 @@ export default function HomeScreen() {
               key={service.id}
               style={({ pressed }) => [
                 styles.serviceCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
                 pressed && styles.serviceCardPressed,
               ]}
               onPress={() => {
@@ -208,17 +253,28 @@ export default function HomeScreen() {
               }}
             >
               <View style={styles.serviceContent}>
-                <Text style={styles.serviceTitle}>{service.title}</Text>
+                <Text style={[styles.serviceTitle, { color: theme.text }]}>
+                  {service.title}
+                </Text>
+
                 <Text style={styles.servicePrice}>{service.price}</Text>
 
                 <View style={styles.infoRow}>
                   <LocationIcon width={15} height={15} color={colors.location}/>
                   <Text style={styles.infoText}>{service.distance}</Text>
+                  <LocationIcon width={15} height={15} />
+
+                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                    {service.distance}
+                  </Text>
                 </View>
 
                 <View style={styles.infoRow}>
                   <CalendarIcon width={15} height={15} />
-                  <Text style={styles.infoText}>{service.time}</Text>
+
+                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                    {service.time}
+                  </Text>
                 </View>
               </View>
 

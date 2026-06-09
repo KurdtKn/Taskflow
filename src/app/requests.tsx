@@ -17,6 +17,7 @@ import TimeIcon from "../../assets/icons/access_time.svg";
 
 import { styles } from "@/app/styles/requests";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type RequestStatus = "pending" | "accepted" | "refused" | "completed";
 
@@ -107,6 +108,8 @@ const statusConfig = {
 export default function RequestsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>("all");
 
+  const { isDark, theme } = useTheme();
+
   const filteredRequests = useMemo(() => {
     if (selectedFilter === "all") {
       return requestsData;
@@ -140,23 +143,41 @@ export default function RequestsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Minhas solicitações</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Minhas solicitações
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
 
-      <View style={styles.summaryCard}>
+      <View
+        style={[
+          styles.summaryCard,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.border,
+          },
+        ]}
+      >
         <View>
-          <Text style={styles.summaryTitle}>Acompanhe seus chamados</Text>
-          <Text style={styles.summarySubtitle}>
+          <Text style={[styles.summaryTitle, { color: theme.text }]}>
+            Acompanhe seus chamados
+          </Text>
+
+          <Text style={[styles.summarySubtitle, { color: theme.textSecondary }]}>
             Veja o status das suas candidaturas.
           </Text>
         </View>
@@ -170,6 +191,10 @@ export default function RequestsScreen() {
         <Pressable
           style={[
             styles.filterChip,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             selectedFilter === "all" && styles.filterChipActive,
           ]}
           onPress={() => setSelectedFilter("all")}
@@ -177,6 +202,7 @@ export default function RequestsScreen() {
           <Text
             style={[
               styles.filterText,
+              { color: theme.textSecondary },
               selectedFilter === "all" && styles.filterTextActive,
             ]}
           >
@@ -187,6 +213,10 @@ export default function RequestsScreen() {
         <Pressable
           style={[
             styles.filterChip,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             selectedFilter === "pending" && styles.filterChipActive,
           ]}
           onPress={() => setSelectedFilter("pending")}
@@ -194,6 +224,7 @@ export default function RequestsScreen() {
           <Text
             style={[
               styles.filterText,
+              { color: theme.textSecondary },
               selectedFilter === "pending" && styles.filterTextActive,
             ]}
           >
@@ -204,6 +235,10 @@ export default function RequestsScreen() {
         <Pressable
           style={[
             styles.filterChip,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             selectedFilter === "accepted" && styles.filterChipActive,
           ]}
           onPress={() => setSelectedFilter("accepted")}
@@ -211,6 +246,7 @@ export default function RequestsScreen() {
           <Text
             style={[
               styles.filterText,
+              { color: theme.textSecondary },
               selectedFilter === "accepted" && styles.filterTextActive,
             ]}
           >
@@ -221,6 +257,10 @@ export default function RequestsScreen() {
         <Pressable
           style={[
             styles.filterChip,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             selectedFilter === "completed" && styles.filterChipActive,
           ]}
           onPress={() => setSelectedFilter("completed")}
@@ -228,6 +268,7 @@ export default function RequestsScreen() {
           <Text
             style={[
               styles.filterText,
+              { color: theme.textSecondary },
               selectedFilter === "completed" && styles.filterTextActive,
             ]}
           >
@@ -241,12 +282,22 @@ export default function RequestsScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {filteredRequests.length === 0 ? (
-          <View style={styles.emptyArea}>
+          <View
+            style={[
+              styles.emptyArea,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <AssignmentIcon width={38} height={38} />
 
-            <Text style={styles.emptyTitle}>Nenhuma solicitação</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              Nenhuma solicitação
+            </Text>
 
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
               Quando você se candidatar a um chamado, ele aparecerá aqui.
             </Text>
           </View>
@@ -259,14 +310,28 @@ export default function RequestsScreen() {
                 key={request.id}
                 style={({ pressed }) => [
                   styles.requestCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   pressed && styles.requestCardPressed,
                 ]}
                 onPress={() => handleDetails(request)}
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.cardTitleArea}>
-                    <Text style={styles.requestTitle}>{request.title}</Text>
-                    <Text style={styles.companyName}>{request.company}</Text>
+                    <Text style={[styles.requestTitle, { color: theme.text }]}>
+                      {request.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.companyName,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {request.company}
+                    </Text>
                   </View>
 
                   <View
@@ -289,22 +354,32 @@ export default function RequestsScreen() {
                 <View style={styles.infoArea}>
                   <View style={styles.infoRow}>
                     <WalletIcon width={16} height={16} />
-                    <Text style={styles.infoText}>{request.price}</Text>
+                    <Text style={[styles.infoText, { color: theme.text }]}>
+                      {request.price}
+                    </Text>
                   </View>
 
                   <View style={styles.infoRow}>
                     <LocationIcon width={16} height={16} color={colors.location}/>
                     <Text style={styles.infoText}>{request.location}</Text>
+                    <LocationIcon width={16} height={16} />
+                    <Text style={[styles.infoText, { color: theme.text }]}>
+                      {request.location}
+                    </Text>
                   </View>
 
                   <View style={styles.infoRow}>
                     <TimeIcon width={16} height={16} />
-                    <Text style={styles.infoText}>{request.time}</Text>
+                    <Text style={[styles.infoText, { color: theme.text }]}>
+                      {request.time}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.cardFooter}>
-                  <Text style={styles.createdAt}>{request.createdAt}</Text>
+                  <Text style={[styles.createdAt, { color: theme.textSecondary }]}>
+                    {request.createdAt}
+                  </Text>
 
                   <Text style={styles.detailsText}>Ver detalhes ›</Text>
                 </View>

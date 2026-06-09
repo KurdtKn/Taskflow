@@ -16,6 +16,7 @@ import TimeIcon from "../../assets/icons/access_time.svg";
 
 import { styles } from "@/app/styles/companyDashboard";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type JobStatus = "active" | "pending" | "finished";
 
@@ -82,6 +83,8 @@ const statusConfig = {
 } as const;
 
 export default function CompanyDashboardScreen() {
+  const { isDark, theme } = useTheme();
+
   const activeJobs = companyJobs.filter((job) => job.status === "active").length;
 
   const totalCandidates = companyJobs.reduce(
@@ -108,8 +111,13 @@ export default function CompanyDashboardScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -117,12 +125,23 @@ export default function CompanyDashboardScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Olá, Empresa</Text>
-            <Text style={styles.title}>Gerencie seus chamados</Text>
+            <Text style={[styles.greeting, { color: theme.textSecondary }]}>
+              Olá, Empresa
+            </Text>
+
+            <Text style={[styles.title, { color: theme.text }]}>
+              Gerencie seus chamados
+            </Text>
           </View>
 
           <Pressable
-            style={styles.profileButton}
+            style={[
+              styles.profileButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
             onPress={() => router.push("/company-profile")}
           >
             <Image
@@ -134,19 +153,58 @@ export default function CompanyDashboardScreen() {
         </View>
 
         <View style={styles.summaryArea}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryNumber}>{companyJobs.length}</Text>
-            <Text style={styles.summaryLabel}>Chamados</Text>
+          <View
+            style={[
+              styles.summaryCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.summaryNumber, { color: theme.text }]}>
+              {companyJobs.length}
+            </Text>
+
+            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>
+              Chamados
+            </Text>
           </View>
 
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryNumber}>{activeJobs}</Text>
-            <Text style={styles.summaryLabel}>Ativos</Text>
+          <View
+            style={[
+              styles.summaryCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.summaryNumber, { color: theme.text }]}>
+              {activeJobs}
+            </Text>
+
+            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>
+              Ativos
+            </Text>
           </View>
 
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryNumber}>{totalCandidates}</Text>
-            <Text style={styles.summaryLabel}>Candidatos</Text>
+          <View
+            style={[
+              styles.summaryCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.summaryNumber, { color: theme.text }]}>
+              {totalCandidates}
+            </Text>
+
+            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>
+              Candidatos
+            </Text>
           </View>
         </View>
 
@@ -162,8 +220,13 @@ export default function CompanyDashboardScreen() {
         </Pressable>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Meus chamados</Text>
-          <Text style={styles.sectionSubtitle}>Acompanhe suas publicações</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Meus chamados
+          </Text>
+
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+            Acompanhe suas publicações
+          </Text>
         </View>
 
         <View style={styles.jobsList}>
@@ -175,14 +238,23 @@ export default function CompanyDashboardScreen() {
                 key={job.id}
                 style={({ pressed }) => [
                   styles.jobCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   pressed && styles.jobCardPressed,
                 ]}
                 onPress={() => handleViewCandidates(job)}
               >
                 <View style={styles.cardTop}>
                   <View style={styles.cardTitleArea}>
-                    <Text style={styles.jobTitle}>{job.title}</Text>
-                    <Text style={styles.jobCategory}>{job.category}</Text>
+                    <Text style={[styles.jobTitle, { color: theme.text }]}>
+                      {job.title}
+                    </Text>
+
+                    <Text style={[styles.jobCategory, { color: theme.textSecondary }]}>
+                      {job.category}
+                    </Text>
                   </View>
 
                   <View
@@ -208,7 +280,9 @@ export default function CompanyDashboardScreen() {
                       <WalletIcon width={18} height={18} />
                     </View>
 
-                    <Text style={styles.infoText}>{job.price}</Text>
+                    <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                      {job.price}
+                    </Text>
                   </View>
 
                   <View style={styles.infoRow}>
@@ -216,7 +290,9 @@ export default function CompanyDashboardScreen() {
                       <LocationIcon width={18} height={18} color={colors.location}/>
                     </View>
 
-                    <Text style={styles.infoText}>{job.location}</Text>
+                    <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                      {job.location}
+                    </Text>
                   </View>
 
                   <View style={styles.infoRow}>
@@ -224,17 +300,26 @@ export default function CompanyDashboardScreen() {
                       <TimeIcon width={18} height={18} />
                     </View>
 
-                    <Text style={styles.infoText}>{job.time}</Text>
+                    <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                      {job.time}
+                    </Text>
                   </View>
                 </View>
 
-                <View style={styles.cardFooter}>
+                <View
+                  style={[
+                    styles.cardFooter,
+                    { borderTopColor: theme.border },
+                  ]}
+                >
                   <View style={styles.candidatesArea}>
-                    <Text style={styles.candidatesNumber}>
+                    <Text style={[styles.candidatesNumber, { color: theme.text }]}>
                       {job.candidates}
                     </Text>
 
-                    <Text style={styles.candidatesText}>candidatos</Text>
+                    <Text style={[styles.candidatesText, { color: theme.textSecondary }]}>
+                      candidatos
+                    </Text>
                   </View>
 
                   <Text style={styles.detailsText}>Ver candidatos ›</Text>
@@ -244,10 +329,20 @@ export default function CompanyDashboardScreen() {
           })}
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Dica para empresas</Text>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Dica para empresas
+          </Text>
 
-          <Text style={styles.tipText}>
+          <Text style={[styles.tipText, { color: theme.textSecondary }]}>
             Chamados com descrição clara, valor definido e horário informado
             costumam receber mais candidatos qualificados.
           </Text>

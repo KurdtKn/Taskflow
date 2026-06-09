@@ -18,13 +18,12 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 import AssignmentIcon from "../../assets/icons/assignment.svg";
 import LocationIcon from "../../assets/icons/Location-check.svg";
 import CalendarIcon from "../../assets/icons/calendar.svg";
-import SendIcon from "../../assets/icons/send.svg";
 import SupportIcon from "../../assets/icons/support_agent.svg";
 import EditIcon from "../../assets/icons/edit.svg";
 import NotificationIcon from "../../assets/icons/notifications.svg";
 
 import { styles } from "@/app/styles/supportJobIssue";
-import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type IssueType = "cancelamento" | "candidato" | "informacoes" | "andamento";
 type PriorityType = "baixa" | "media" | "alta";
@@ -73,6 +72,8 @@ export default function SupportJobIssueScreen() {
   const [jobLocation, setJobLocation] = useState("");
   const [description, setDescription] = useState("");
 
+  const { isDark, theme } = useTheme();
+
   function handleSendIssue() {
     if (!jobTitle.trim() || !description.trim()) {
       Alert.alert(
@@ -95,8 +96,13 @@ export default function SupportJobIssueScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -107,7 +113,9 @@ export default function SupportJobIssueScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Problema com chamado</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Problema com chamado
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -116,11 +124,25 @@ export default function SupportJobIssueScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.heroCard}>
+          <View
+            style={[
+              styles.heroCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View>
-              <Text style={styles.heroLabel}>Suporte TaskFlow</Text>
-              <Text style={styles.heroTitle}>Relate um problema</Text>
-              <Text style={styles.heroText}>
+              <Text style={[styles.heroLabel, { color: theme.primary }]}>
+                Suporte TaskFlow
+              </Text>
+
+              <Text style={[styles.heroTitle, { color: theme.text }]}>
+                Relate um problema
+              </Text>
+
+              <Text style={[styles.heroText, { color: theme.textSecondary }]}>
                 Informe o que aconteceu para que o suporte acompanhe o chamado.
               </Text>
             </View>
@@ -131,7 +153,9 @@ export default function SupportJobIssueScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tipo de problema</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Tipo de problema
+            </Text>
 
             <View style={styles.issueList}>
               {issueTypes.map((issue) => {
@@ -143,11 +167,23 @@ export default function SupportJobIssueScreen() {
                     key={issue.id}
                     style={[
                       styles.issueCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
                       isSelected && styles.issueCardActive,
                     ]}
                     onPress={() => setSelectedIssue(issue.id)}
                   >
-                    <View style={styles.issueIconBox}>
+                    <View
+                      style={[
+                        styles.issueIconBox,
+                        {
+                          backgroundColor: theme.inputBackground,
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
                       <Icon width={24} height={24} />
                     </View>
 
@@ -155,6 +191,7 @@ export default function SupportJobIssueScreen() {
                       <Text
                         style={[
                           styles.issueTitle,
+                          { color: theme.text },
                           isSelected && styles.issueTitleActive,
                         ]}
                       >
@@ -164,6 +201,7 @@ export default function SupportJobIssueScreen() {
                       <Text
                         style={[
                           styles.issueSubtitle,
+                          { color: theme.textSecondary },
                           isSelected && styles.issueSubtitleActive,
                         ]}
                       >
@@ -174,6 +212,7 @@ export default function SupportJobIssueScreen() {
                     <View
                       style={[
                         styles.radio,
+                        { borderColor: theme.border },
                         isSelected && styles.radioActive,
                       ]}
                     >
@@ -186,15 +225,25 @@ export default function SupportJobIssueScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Nome do chamado</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Nome do chamado
+            </Text>
 
-            <View style={styles.inputWithIcon}>
+            <View
+              style={[
+                styles.inputWithIcon,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
               <AssignmentIcon width={20} height={20} />
 
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: theme.text }]}
                 placeholder="Ex: Garçom para Evento"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.textSecondary}
                 value={jobTitle}
                 onChangeText={setJobTitle}
               />
@@ -203,15 +252,25 @@ export default function SupportJobIssueScreen() {
 
           <View style={styles.twoColumns}>
             <View style={styles.columnItem}>
-              <Text style={styles.label}>Data</Text>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Data
+              </Text>
 
-              <View style={styles.smallInputWithIcon}>
+              <View
+                style={[
+                  styles.smallInputWithIcon,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
                 <CalendarIcon width={18} height={18} />
 
                 <TextInput
-                  style={styles.smallInput}
+                  style={[styles.smallInput, { color: theme.text }]}
                   placeholder="Hoje"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.textSecondary}
                   value={jobDate}
                   onChangeText={setJobDate}
                 />
@@ -219,15 +278,25 @@ export default function SupportJobIssueScreen() {
             </View>
 
             <View style={styles.columnItem}>
-              <Text style={styles.label}>Local</Text>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Local
+              </Text>
 
-              <View style={styles.smallInputWithIcon}>
-                <LocationIcon width={18} height={18} color={colors.location}/>
+              <View
+                style={[
+                  styles.smallInputWithIcon,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <LocationIcon width={18} height={18} />
 
                 <TextInput
-                  style={styles.smallInput}
+                  style={[styles.smallInput, { color: theme.text }]}
                   placeholder="Centro"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.textSecondary}
                   value={jobLocation}
                   onChangeText={setJobLocation}
                 />
@@ -236,12 +305,18 @@ export default function SupportJobIssueScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Prioridade</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Prioridade
+            </Text>
 
             <View style={styles.priorityRow}>
               <Pressable
                 style={[
                   styles.priorityChip,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   priority === "baixa" && styles.priorityChipActive,
                 ]}
                 onPress={() => setPriority("baixa")}
@@ -249,6 +324,7 @@ export default function SupportJobIssueScreen() {
                 <Text
                   style={[
                     styles.priorityText,
+                    { color: theme.textSecondary },
                     priority === "baixa" && styles.priorityTextActive,
                   ]}
                 >
@@ -259,6 +335,10 @@ export default function SupportJobIssueScreen() {
               <Pressable
                 style={[
                   styles.priorityChip,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   priority === "media" && styles.priorityChipActive,
                 ]}
                 onPress={() => setPriority("media")}
@@ -266,6 +346,7 @@ export default function SupportJobIssueScreen() {
                 <Text
                   style={[
                     styles.priorityText,
+                    { color: theme.textSecondary },
                     priority === "media" && styles.priorityTextActive,
                   ]}
                 >
@@ -276,6 +357,10 @@ export default function SupportJobIssueScreen() {
               <Pressable
                 style={[
                   styles.priorityChip,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   priority === "alta" && styles.priorityChipDanger,
                 ]}
                 onPress={() => setPriority("alta")}
@@ -283,6 +368,7 @@ export default function SupportJobIssueScreen() {
                 <Text
                   style={[
                     styles.priorityText,
+                    { color: theme.textSecondary },
                     priority === "alta" && styles.priorityTextDanger,
                   ]}
                 >
@@ -293,12 +379,22 @@ export default function SupportJobIssueScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Descreva o problema</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Descreva o problema
+            </Text>
 
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Explique o que aconteceu com o chamado..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               multiline
               textAlignVertical="top"
               value={description}
@@ -306,15 +402,22 @@ export default function SupportJobIssueScreen() {
             />
           </View>
 
-          <View style={styles.infoBox}>
-            <View style={styles.infoHeader}>
-              <SupportIcon width={22} height={22} />
-              <Text style={styles.infoTitle}>Análise do suporte</Text>
-            </View>
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.infoTitle, { color: theme.text }]}>
+              Como o suporte analisa?
+            </Text>
 
-            <Text style={styles.infoText}>
-              No protótipo, o envio é simulado. Na versão final, essa solicitação
-              será enviada para a API e vinculada ao chamado no banco de dados.
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+              O suporte poderá verificar as informações do chamado, mensagens,
+              candidatura e status para entender o problema relatado.
             </Text>
           </View>
 
@@ -325,18 +428,23 @@ export default function SupportJobIssueScreen() {
             ]}
             onPress={handleSendIssue}
           >
-            <SendIcon width={20} height={20} />
-            <Text style={styles.sendButtonText}>Enviar problema</Text>
+            <Text style={styles.sendButtonText}>Enviar solicitação</Text>
           </Pressable>
 
           <Pressable
             style={({ pressed }) => [
               styles.cancelButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && styles.buttonPressed,
             ]}
             onPress={() => router.back()}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text style={[styles.cancelButtonText, { color: theme.text }]}>
+              Cancelar
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

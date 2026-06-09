@@ -20,6 +20,7 @@ import SupportIcon from "../../assets/icons/support_agent.svg";
 import SettingsIcon from "../../assets/icons/settings.svg";
 
 import { styles } from "@/app/styles/companySecurityCenter";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type SecurityTip = {
   id: string;
@@ -98,6 +99,8 @@ const securityFeatures: SecurityFeature[] = [
 ];
 
 export default function CompanySecurityCenterScreen() {
+  const { isDark, theme } = useTheme();
+
   function handleReportSecurityIssue() {
     Alert.alert(
       "Central de segurança",
@@ -106,15 +109,22 @@ export default function CompanySecurityCenterScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Central de segurança</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Central de segurança
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -123,11 +133,25 @@ export default function CompanySecurityCenterScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.heroCard}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View>
-            <Text style={styles.heroLabel}>Empresa protegida</Text>
-            <Text style={styles.heroTitle}>Contrate com mais segurança</Text>
-            <Text style={styles.heroText}>
+            <Text style={[styles.heroLabel, { color: theme.primary }]}>
+              Empresa protegida
+            </Text>
+
+            <Text style={[styles.heroTitle, { color: theme.text }]}>
+              Contrate com mais segurança
+            </Text>
+
+            <Text style={[styles.heroText, { color: theme.textSecondary }]}>
               Veja orientações para proteger sua empresa durante a contratação.
             </Text>
           </View>
@@ -137,14 +161,25 @@ export default function CompanySecurityCenterScreen() {
           </View>
         </View>
 
-        <View style={styles.statusCard}>
+        <View
+          style={[
+            styles.statusCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.statusIconBox}>
             <CheckIcon width={24} height={24} />
           </View>
 
           <View style={styles.statusTextArea}>
-            <Text style={styles.statusTitle}>Conta empresarial ativa</Text>
-            <Text style={styles.statusText}>
+            <Text style={[styles.statusTitle, { color: theme.text }]}>
+              Conta empresarial ativa
+            </Text>
+
+            <Text style={[styles.statusText, { color: theme.textSecondary }]}>
               Sua empresa está apta para publicar chamados, avaliar candidatos e
               acompanhar contratações pelo TaskFlow.
             </Text>
@@ -152,21 +187,40 @@ export default function CompanySecurityCenterScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Boas práticas</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Boas práticas
+          </Text>
 
           <View style={styles.tipsList}>
             {securityTips.map((tip) => {
               const Icon = tip.Icon;
 
               return (
-                <View key={tip.id} style={styles.tipCard}>
+                <View
+                  key={tip.id}
+                  style={[
+                    styles.tipCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
                   <View style={styles.tipIconBox}>
                     <Icon width={24} height={24} />
                   </View>
 
                   <View style={styles.tipTextArea}>
-                    <Text style={styles.tipTitle}>{tip.title}</Text>
-                    <Text style={styles.tipDescription}>
+                    <Text style={[styles.tipTitle, { color: theme.text }]}>
+                      {tip.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.tipDescription,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {tip.description}
                     </Text>
                   </View>
@@ -177,21 +231,40 @@ export default function CompanySecurityCenterScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recursos de segurança</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Recursos de segurança
+          </Text>
 
           <View style={styles.featuresList}>
             {securityFeatures.map((feature) => {
               const Icon = feature.Icon;
 
               return (
-                <View key={feature.id} style={styles.featureCard}>
+                <View
+                  key={feature.id}
+                  style={[
+                    styles.featureCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
                   <View style={styles.featureIconBox}>
                     <Icon width={22} height={22} />
                   </View>
 
                   <View style={styles.featureTextArea}>
-                    <Text style={styles.featureTitle}>{feature.title}</Text>
-                    <Text style={styles.featureSubtitle}>
+                    <Text style={[styles.featureTitle, { color: theme.text }]}>
+                      {feature.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.featureSubtitle,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {feature.subtitle}
                     </Text>
                   </View>
@@ -201,21 +274,45 @@ export default function CompanySecurityCenterScreen() {
           </View>
         </View>
 
-        <View style={styles.warningBox}>
-          <Text style={styles.warningTitle}>Atenção em contratações</Text>
+        <View
+          style={[
+            styles.warningBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.warningTitle, { color: theme.text }]}>
+            Atenção em contratações
+          </Text>
 
-          <Text style={styles.warningText}>
+          <Text style={[styles.warningText, { color: theme.textSecondary }]}>
             Evite compartilhar dados sensíveis fora da plataforma. Caso perceba
             comportamento suspeito, registre o problema pelo suporte para análise.
           </Text>
         </View>
 
-        <View style={styles.actionsCard}>
-          <Text style={styles.actionsTitle}>Ações rápidas</Text>
+        <View
+          style={[
+            styles.actionsCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.actionsTitle, { color: theme.text }]}>
+            Ações rápidas
+          </Text>
 
           <Pressable
             style={({ pressed }) => [
               styles.actionItem,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+              },
               pressed && styles.actionItemPressed,
             ]}
             onPress={() => router.push("/change-password")}
@@ -225,18 +322,27 @@ export default function CompanySecurityCenterScreen() {
             </View>
 
             <View style={styles.actionTextArea}>
-              <Text style={styles.actionTitle}>Alterar senha</Text>
-              <Text style={styles.actionSubtitle}>
+              <Text style={[styles.actionTitle, { color: theme.text }]}>
+                Alterar senha
+              </Text>
+
+              <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>
                 Atualize sua senha de acesso
               </Text>
             </View>
 
-            <Text style={styles.actionArrow}>›</Text>
+            <Text style={[styles.actionArrow, { color: theme.textSecondary }]}>
+              ›
+            </Text>
           </Pressable>
 
           <Pressable
             style={({ pressed }) => [
               styles.actionItem,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+              },
               pressed && styles.actionItemPressed,
             ]}
             onPress={() => router.push("/privacy-security")}
@@ -246,18 +352,27 @@ export default function CompanySecurityCenterScreen() {
             </View>
 
             <View style={styles.actionTextArea}>
-              <Text style={styles.actionTitle}>Privacidade e segurança</Text>
-              <Text style={styles.actionSubtitle}>
+              <Text style={[styles.actionTitle, { color: theme.text }]}>
+                Privacidade e segurança
+              </Text>
+
+              <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>
                 Gerencie permissões da conta
               </Text>
             </View>
 
-            <Text style={styles.actionArrow}>›</Text>
+            <Text style={[styles.actionArrow, { color: theme.textSecondary }]}>
+              ›
+            </Text>
           </Pressable>
 
           <Pressable
             style={({ pressed }) => [
               styles.actionItem,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+              },
               pressed && styles.actionItemPressed,
             ]}
             onPress={() => router.push("/support-contact")}
@@ -267,13 +382,18 @@ export default function CompanySecurityCenterScreen() {
             </View>
 
             <View style={styles.actionTextArea}>
-              <Text style={styles.actionTitle}>Falar com suporte</Text>
-              <Text style={styles.actionSubtitle}>
+              <Text style={[styles.actionTitle, { color: theme.text }]}>
+                Falar com suporte
+              </Text>
+
+              <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>
                 Entre em contato com a equipe
               </Text>
             </View>
 
-            <Text style={styles.actionArrow}>›</Text>
+            <Text style={[styles.actionArrow, { color: theme.textSecondary }]}>
+              ›
+            </Text>
           </Pressable>
         </View>
 
@@ -292,11 +412,17 @@ export default function CompanySecurityCenterScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.secondaryButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             pressed && styles.buttonPressed,
           ]}
           onPress={() => router.push("/terms")}
         >
-          <Text style={styles.secondaryButtonText}>Ver termos e políticas</Text>
+          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
+            Ver termos e políticas
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

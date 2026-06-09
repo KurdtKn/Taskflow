@@ -18,6 +18,7 @@ import CreditCardIcon from "../../assets/icons/credit_card.svg";
 import LockIcon from "../../assets/icons/lock-icon.svg";
 
 import { styles } from "@/app/styles/freelancerSupport";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type HelpOption = {
   id: string;
@@ -61,6 +62,8 @@ const faqItems: FaqItem[] = [
 ];
 
 export default function FreelancerSupportScreen() {
+  const { isDark, theme } = useTheme();
+
   const helpOptions: HelpOption[] = [
     {
       id: "1",
@@ -100,15 +103,22 @@ export default function FreelancerSupportScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Ajuda e suporte</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Ajuda e suporte
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -117,11 +127,25 @@ export default function FreelancerSupportScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.heroCard}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View>
-            <Text style={styles.heroLabel}>Central do freelancer</Text>
-            <Text style={styles.heroTitle}>Como podemos ajudar?</Text>
-            <Text style={styles.heroText}>
+            <Text style={[styles.heroLabel, { color: theme.primary }]}>
+              Central do freelancer
+            </Text>
+
+            <Text style={[styles.heroTitle, { color: theme.text }]}>
+              Como podemos ajudar?
+            </Text>
+
+            <Text style={[styles.heroText, { color: theme.textSecondary }]}>
               Tire dúvidas sobre chamados, candidaturas, chat, avaliações e
               segurança.
             </Text>
@@ -133,7 +157,9 @@ export default function FreelancerSupportScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Atendimento rápido</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Atendimento rápido
+          </Text>
 
           <View style={styles.optionsArea}>
             {helpOptions.map((option) => {
@@ -144,6 +170,10 @@ export default function FreelancerSupportScreen() {
                   key={option.id}
                   style={({ pressed }) => [
                     styles.optionCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
                     pressed && styles.optionCardPressed,
                   ]}
                   onPress={option.action}
@@ -153,11 +183,23 @@ export default function FreelancerSupportScreen() {
                   </View>
 
                   <View style={styles.optionTextArea}>
-                    <Text style={styles.optionTitle}>{option.title}</Text>
-                    <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
+                    <Text style={[styles.optionTitle, { color: theme.text }]}>
+                      {option.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.optionSubtitle,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {option.subtitle}
+                    </Text>
                   </View>
 
-                  <Text style={styles.optionArrow}>›</Text>
+                  <Text style={[styles.optionArrow, { color: theme.textSecondary }]}>
+                    ›
+                  </Text>
                 </Pressable>
               );
             })}
@@ -165,26 +207,52 @@ export default function FreelancerSupportScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dúvidas frequentes</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Dúvidas frequentes
+          </Text>
 
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Veja respostas rápidas para as principais dúvidas sobre o uso do app.
           </Text>
 
           <View style={styles.faqArea}>
             {faqItems.map((item) => (
-              <View key={item.id} style={styles.faqCard}>
-                <Text style={styles.faqQuestion}>{item.question}</Text>
-                <Text style={styles.faqAnswer}>{item.answer}</Text>
+              <View
+                key={item.id}
+                style={[
+                  styles.faqCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.faqQuestion, { color: theme.text }]}>
+                  {item.question}
+                </Text>
+
+                <Text style={[styles.faqAnswer, { color: theme.textSecondary }]}>
+                  {item.answer}
+                </Text>
               </View>
             ))}
           </View>
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Segurança no TaskFlow</Text>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Segurança no TaskFlow
+          </Text>
 
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             Para proteger as duas partes, o chat só é liberado após o aceite da
             empresa e confirmação do fluxo. Ao final do serviço, ambos podem se
             avaliar.
@@ -206,11 +274,17 @@ export default function FreelancerSupportScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.secondaryButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             pressed && styles.secondaryButtonPressed,
           ]}
           onPress={() => router.back()}
         >
-          <Text style={styles.secondaryButtonText}>Voltar</Text>
+          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
+            Voltar
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

@@ -17,6 +17,7 @@ import { router } from "expo-router";
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/companyData";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 const serviceAreas = [
   "Eventos",
@@ -43,6 +44,8 @@ export default function CompanyDataScreen() {
     "Contratação rápida",
     "Serviços gerais",
   ]);
+
+  const { isDark, theme } = useTheme();
 
   function formatCnpj(value: string) {
     const numbersOnly = value.replace(/\D/g, "").slice(0, 14);
@@ -106,8 +109,13 @@ export default function CompanyDataScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -118,7 +126,9 @@ export default function CompanyDataScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Dados da empresa</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Dados da empresa
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -140,85 +150,174 @@ export default function CompanyDataScreen() {
               </Pressable>
             </View>
 
-            <Text style={styles.logoText}>Alterar logo da empresa</Text>
+            <Text style={[styles.logoText, { color: theme.textSecondary }]}>
+              Alterar logo da empresa
+            </Text>
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Nome da empresa</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Nome da empresa
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Digite o nome da empresa"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={companyName}
               onChangeText={setCompanyName}
             />
 
-            <Text style={styles.label}>CNPJ</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              CNPJ
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="00.000.000/0000-00"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={cnpj}
               onChangeText={handleChangeCnpj}
               keyboardType="numeric"
               maxLength={18}
             />
 
-            <Text style={styles.label}>E-mail comercial</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              E-mail comercial
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="empresa@email.com"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
             />
 
-            <Text style={styles.label}>Telefone</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Telefone
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="(00) 00000-0000"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={phone}
               onChangeText={handleChangePhone}
               keyboardType="phone-pad"
               maxLength={15}
             />
 
-            <Text style={styles.label}>Cidade / Estado</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Cidade / Estado
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Ex: Sorocaba - SP"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={city}
               onChangeText={setCity}
             />
 
-            <Text style={styles.label}>Endereço</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Endereço
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Rua, número, bairro"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={address}
               onChangeText={setAddress}
             />
 
-            <Text style={styles.label}>Descrição da empresa</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Descrição da empresa
+            </Text>
+
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Conte um pouco sobre a empresa"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={description}
               onChangeText={setDescription}
               multiline
               textAlignVertical="top"
             />
 
-            <View style={styles.verifiedCard}>
+            <View
+              style={[
+                styles.verifiedCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
               <View>
-                <Text style={styles.verifiedTitle}>Empresa verificada</Text>
-                <Text style={styles.verifiedSubtitle}>
+                <Text style={[styles.verifiedTitle, { color: theme.text }]}>
+                  Empresa verificada
+                </Text>
+
+                <Text
+                  style={[
+                    styles.verifiedSubtitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Indica que os dados principais foram conferidos.
                 </Text>
               </View>
@@ -235,9 +334,16 @@ export default function CompanyDataScreen() {
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Áreas de atuação</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Áreas de atuação
+              </Text>
 
-              <Text style={styles.sectionSubtitle}>
+              <Text
+                style={[
+                  styles.sectionSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Selecione as categorias em que sua empresa costuma contratar.
               </Text>
 
@@ -248,12 +354,20 @@ export default function CompanyDataScreen() {
                   return (
                     <Pressable
                       key={area}
-                      style={[styles.areaChip, isSelected && styles.areaChipActive]}
+                      style={[
+                        styles.areaChip,
+                        {
+                          backgroundColor: theme.card,
+                          borderColor: theme.border,
+                        },
+                        isSelected && styles.areaChipActive,
+                      ]}
                       onPress={() => toggleArea(area)}
                     >
                       <Text
                         style={[
                           styles.areaText,
+                          { color: theme.textSecondary },
                           isSelected && styles.areaTextActive,
                         ]}
                       >
@@ -265,10 +379,20 @@ export default function CompanyDataScreen() {
               </View>
             </View>
 
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>Por que manter atualizado?</Text>
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Por que manter atualizado?
+              </Text>
 
-              <Text style={styles.infoText}>
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
                 Dados completos aumentam a confiança dos freelancers e ajudam a
                 plataforma a organizar melhor os chamados publicados.
               </Text>

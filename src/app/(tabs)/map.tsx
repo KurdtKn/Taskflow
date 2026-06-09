@@ -9,6 +9,7 @@ import LocationIcon from "../../../assets/icons/Location-check.svg";
 import TimeIcon from "../../../assets/icons/access_time.svg";
 import { styles } from "@/app/styles/map";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type PercentValue = `${number}%`;
 
@@ -77,6 +78,8 @@ export default function MapScreen() {
 
   const [search, setSearch] = useState("");
 
+  const { isDark, theme } = useTheme();
+
   function handleOpenFilters() {
     router.push({
       pathname: "/job_filters",
@@ -137,22 +140,43 @@ export default function MapScreen() {
   }, [categoria, cidade, valorMin, valorMax, search]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Mapa de chamados</Text>
-        <Text style={styles.subtitle}>Serviços disponíveis perto de você</Text>
+        <Text style={[styles.title, { color: theme.text }]}>
+          Mapa de chamados
+        </Text>
+
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          Serviços disponíveis perto de você
+        </Text>
       </View>
 
       <View style={styles.searchArea}>
-        <View style={styles.searchBox}>
+        <View
+          style={[
+            styles.searchBox,
+            {
+              backgroundColor: theme.inputBackground,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <SearchIcon width={22} height={22} />
 
           <TextInput
-            style={styles.searchInput}
+            style={[
+              styles.searchInput,
+              { color: theme.text },
+            ]}
             placeholder="Buscar no mapa..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.textSecondary}
             value={search}
             onChangeText={setSearch}
           />
@@ -161,6 +185,10 @@ export default function MapScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.filterButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
           ]}
           onPress={handleOpenFilters}
@@ -169,16 +197,57 @@ export default function MapScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.mapContainer}>
-        <View style={styles.mapBackground}>
+      <View
+        style={[
+          styles.mapContainer,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.border,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.mapBackground,
+            {
+              backgroundColor: isDark ? "#0F172A" : "#EAF1FF",
+            },
+          ]}
+        >
           <View style={[styles.road, styles.roadHorizontalOne]} />
           <View style={[styles.road, styles.roadHorizontalTwo]} />
           <View style={[styles.road, styles.roadVerticalOne]} />
           <View style={[styles.road, styles.roadVerticalTwo]} />
 
-          <Text style={[styles.mapLabel, styles.mapLabelOne]}>Centro</Text>
-          <Text style={[styles.mapLabel, styles.mapLabelTwo]}>Jardim</Text>
-          <Text style={[styles.mapLabel, styles.mapLabelThree]}>Moema</Text>
+          <Text
+            style={[
+              styles.mapLabel,
+              styles.mapLabelOne,
+              { color: theme.textSecondary },
+            ]}
+          >
+            Centro
+          </Text>
+
+          <Text
+            style={[
+              styles.mapLabel,
+              styles.mapLabelTwo,
+              { color: theme.textSecondary },
+            ]}
+          >
+            Jardim
+          </Text>
+
+          <Text
+            style={[
+              styles.mapLabel,
+              styles.mapLabelThree,
+              { color: theme.textSecondary },
+            ]}
+          >
+            Moema
+          </Text>
 
           {filteredServices.map((service) => {
             const isSelected = selectedService.id === service.id;
@@ -201,33 +270,65 @@ export default function MapScreen() {
           })}
         </View>
 
-        <Pressable style={styles.currentLocationButton}>
-          <LocationIcon width={24} height={24} color={colors.blue[300]}/>
+        <Pressable
+          style={[
+            styles.currentLocationButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <LocationIcon width={24} height={24} color={colors.location} />
         </Pressable>
       </View>
 
       {filteredServices.length === 0 ? (
-        <View style={styles.serviceCard}>
-          <Text style={styles.cardTitle}>Nenhum chamado encontrado</Text>
-          <Text style={styles.cardCategory}>
+        <View
+          style={[
+            styles.serviceCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: theme.text }]}>
+            Nenhum chamado encontrado
+          </Text>
+
+          <Text style={[styles.cardCategory, { color: theme.textSecondary }]}>
             Tente alterar a busca ou os filtros aplicados.
           </Text>
         </View>
       ) : (
-        <View style={styles.serviceCard}>
+        <View
+          style={[
+            styles.serviceCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.cardHeader}>
             <View>
-              <Text style={styles.cardTitle}>{selectedService.title}</Text>
-              <Text style={styles.cardCategory}>{selectedService.category}</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>
+                {selectedService.title}
+              </Text>
+
+              <Text style={[styles.cardCategory, { color: theme.textSecondary }]}>
+                {selectedService.category}
+              </Text>
             </View>
 
             <Text style={styles.cardPrice}>{selectedService.price}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <LocationIcon width={16} height={16} color={colors.location}/>
+            <LocationIcon width={16} height={16} color={colors.location} />
 
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
               {selectedService.distance} - {selectedService.location}
             </Text>
           </View>
@@ -235,7 +336,9 @@ export default function MapScreen() {
           <View style={styles.infoRow}>
             <TimeIcon width={16} height={16} />
 
-            <Text style={styles.infoText}>{selectedService.time}</Text>
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+              {selectedService.time}
+            </Text>
           </View>
 
           <Pressable

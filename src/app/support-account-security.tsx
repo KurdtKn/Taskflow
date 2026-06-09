@@ -1,4 +1,3 @@
-import type { ComponentType } from "react";
 import { useState } from "react";
 import {
   Alert,
@@ -21,47 +20,39 @@ import CheckIcon from "../../assets/icons/check.svg";
 import NotificationIcon from "../../assets/icons/notifications.svg";
 import SendIcon from "../../assets/icons/send.svg";
 import SupportIcon from "../../assets/icons/support_agent.svg";
-import EditIcon from "../../assets/icons/edit.svg";
-import CrossIcon from "../../assets/icons/cross.svg";
 
 import { colors } from "@/styles/colors";
 import { styles } from "@/app/styles/supportAccountSecurity";
+import { useTheme } from "@/app/context/ThemeContext";
 
-type SecurityIssueType = "login" | "suspeita" | "dados" | "bloqueio";
-
-type SecurityIssue = {
-  id: SecurityIssueType;
-  title: string;
-  subtitle: string;
-  Icon: ComponentType<any>;
-};
-
-const securityIssues: SecurityIssue[] = [
+const securityIssues = [
   {
     id: "login",
     title: "Problema de login",
     subtitle: "Não consigo acessar minha conta",
-    Icon: LockIcon,
+    icon: "🔐",
   },
   {
     id: "suspeita",
     title: "Acesso suspeito",
     subtitle: "Acredito que alguém acessou minha conta",
-    Icon: NotificationIcon,
+    icon: "⚠️",
   },
   {
     id: "dados",
     title: "Dados alterados",
     subtitle: "Minhas informações foram modificadas",
-    Icon: EditIcon,
+    icon: "📝",
   },
   {
     id: "bloqueio",
     title: "Conta bloqueada",
     subtitle: "Minha conta foi limitada ou bloqueada",
-    Icon: CrossIcon,
+    icon: "🚫",
   },
-];
+] as const;
+
+type SecurityIssueType = (typeof securityIssues)[number]["id"];
 
 export default function SupportAccountSecurityScreen() {
   const [selectedIssue, setSelectedIssue] =
@@ -71,6 +62,8 @@ export default function SupportAccountSecurityScreen() {
   const [email, setEmail] = useState("");
   const [lastAccess, setLastAccess] = useState("");
   const [description, setDescription] = useState("");
+
+  const { isDark, theme } = useTheme();
 
   function handleSendSecurityIssue() {
     if (!email.trim() || !description.trim()) {
@@ -94,8 +87,13 @@ export default function SupportAccountSecurityScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -106,7 +104,9 @@ export default function SupportAccountSecurityScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Segurança da conta</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Segurança da conta
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -115,11 +115,25 @@ export default function SupportAccountSecurityScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.heroCard}>
+          <View
+            style={[
+              styles.heroCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View>
-              <Text style={styles.heroLabel}>Proteção da conta</Text>
-              <Text style={styles.heroTitle}>Relate um risco</Text>
-              <Text style={styles.heroText}>
+              <Text style={[styles.heroLabel, { color: theme.primary }]}>
+                Proteção da conta
+              </Text>
+
+              <Text style={[styles.heroTitle, { color: theme.text }]}>
+                Relate um risco
+              </Text>
+
+              <Text style={[styles.heroText, { color: theme.textSecondary }]}>
                 Informe problemas de acesso, login suspeito ou alterações não
                 reconhecidas.
               </Text>
@@ -130,43 +144,58 @@ export default function SupportAccountSecurityScreen() {
             </View>
           </View>
 
-          <View style={styles.warningBox}>
+          <View
+            style={[
+              styles.warningBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.warningHeader}>
               <NotificationIcon width={22} height={22} />
-              <Text style={styles.warningTitle}>Atenção</Text>
+
+              <Text style={[styles.warningTitle, { color: theme.text }]}>
+                Atenção
+              </Text>
             </View>
 
-            <Text style={styles.warningText}>
+            <Text style={[styles.warningText, { color: theme.textSecondary }]}>
               Caso perceba acesso estranho, altere sua senha e evite compartilhar
               códigos de verificação com terceiros.
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tipo de problema</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Tipo de problema
+            </Text>
 
             <View style={styles.issueList}>
               {securityIssues.map((issue) => {
                 const isSelected = selectedIssue === issue.id;
-                const Icon = issue.Icon;
 
                 return (
                   <Pressable
                     key={issue.id}
                     style={[
                       styles.issueCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
                       isSelected && styles.issueCardActive,
                     ]}
                     onPress={() => setSelectedIssue(issue.id)}
                   >
-                    <View style={styles.issueIconBox}>
-                      <Icon width={24} height={24} />
-                    </View>
+                    <Text style={styles.issueIcon}>{issue.icon}</Text>
 
                     <View style={styles.issueTextArea}>
                       <Text
                         style={[
                           styles.issueTitle,
+                          { color: theme.text },
                           isSelected && styles.issueTitleActive,
                         ]}
                       >
@@ -176,6 +205,7 @@ export default function SupportAccountSecurityScreen() {
                       <Text
                         style={[
                           styles.issueSubtitle,
+                          { color: theme.textSecondary },
                           isSelected && styles.issueSubtitleActive,
                         ]}
                       >
@@ -186,6 +216,7 @@ export default function SupportAccountSecurityScreen() {
                     <View
                       style={[
                         styles.radio,
+                        { borderColor: theme.border },
                         isSelected && styles.radioActive,
                       ]}
                     >
@@ -198,12 +229,21 @@ export default function SupportAccountSecurityScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>E-mail da conta</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              E-mail da conta
+            </Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Digite o e-mail cadastrado"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -212,25 +252,45 @@ export default function SupportAccountSecurityScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Último acesso reconhecido</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Último acesso reconhecido
+            </Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Ex: Hoje pela manhã, ontem à noite..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={lastAccess}
               onChangeText={setLastAccess}
             />
           </View>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchIconBox}>
               <CheckIcon width={22} height={22} />
             </View>
 
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Marcar como urgente</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Marcar como urgente
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Use se houver suspeita real de invasão ou perda de acesso.
               </Text>
             </View>
@@ -247,12 +307,22 @@ export default function SupportAccountSecurityScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Descreva o problema</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Descreva o problema
+            </Text>
 
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Explique o que aconteceu com sua conta..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               multiline
               textAlignVertical="top"
               value={description}
@@ -260,13 +330,24 @@ export default function SupportAccountSecurityScreen() {
             />
           </View>
 
-          <View style={styles.infoBox}>
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.infoHeader}>
               <SupportIcon width={22} height={22} />
-              <Text style={styles.infoTitle}>Análise de segurança</Text>
+
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Análise de segurança
+              </Text>
             </View>
 
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
               No protótipo, o envio é simulado. Na versão final, essa solicitação
               será enviada para a API e analisada pelo suporte.
             </Text>
@@ -286,11 +367,17 @@ export default function SupportAccountSecurityScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.cancelButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && styles.buttonPressed,
             ]}
             onPress={() => router.back()}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text style={[styles.cancelButtonText, { color: theme.text }]}>
+              Cancelar
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

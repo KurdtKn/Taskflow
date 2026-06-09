@@ -19,6 +19,7 @@ import AssignmentIcon from "../../assets/icons/assignment.svg";
 
 import { styles } from "@/app/styles/freelancerSettings";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type SettingOption = {
   id: string;
@@ -35,6 +36,8 @@ export default function FreelancerSettingsScreen() {
   const [messageAlerts, setMessageAlerts] = useState(true);
   const [reviewAlerts, setReviewAlerts] = useState(true);
   const [profileVisible, setProfileVisible] = useState(true);
+
+  const { isDark, toggleTheme, theme } = useTheme();
 
   const settingOptions: SettingOption[] = [
     {
@@ -114,15 +117,22 @@ export default function FreelancerSettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Configurações</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Configurações
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -131,11 +141,25 @@ export default function FreelancerSettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.heroCard}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.heroTextArea}>
-            <Text style={styles.heroLabel}>Conta freelancer</Text>
-            <Text style={styles.heroTitle}>Preferências do perfil</Text>
-            <Text style={styles.heroText}>
+            <Text style={[styles.heroLabel, { color: theme.primary }]}>
+              Conta freelancer
+            </Text>
+
+            <Text style={[styles.heroTitle, { color: theme.text }]}>
+              Preferências do perfil
+            </Text>
+
+            <Text style={[styles.heroText, { color: theme.textSecondary }]}>
               Gerencie notificações, disponibilidade, privacidade e segurança.
             </Text>
           </View>
@@ -146,12 +170,25 @@ export default function FreelancerSettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Disponibilidade</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Disponibilidade
+          </Text>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Disponível para chamados</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Disponível para chamados
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Permitir que empresas encontrem seu perfil para serviços.
               </Text>
             </View>
@@ -169,16 +206,65 @@ export default function FreelancerSettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notificações</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Aparência
+          </Text>
 
-          <Text style={styles.sectionSubtitle}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <View style={styles.switchTextArea}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Modo noturno
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
+                Ativar tema escuro no aplicativo.
+              </Text>
+            </View>
+
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{
+                false: colors.border,
+                true: "rgba(9,40,112,0.45)",
+              }}
+              thumbColor={isDark ? colors.primary : "#F4F4F5"}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Notificações
+          </Text>
+
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Escolha quais avisos deseja receber no TaskFlow.
           </Text>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Notificações push</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Notificações push
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Receber alertas importantes no celular.
               </Text>
             </View>
@@ -194,10 +280,21 @@ export default function FreelancerSettingsScreen() {
             />
           </View>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Novos chamados</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Novos chamados
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Avisar quando uma empresa publicar um chamado próximo.
               </Text>
             </View>
@@ -213,10 +310,21 @@ export default function FreelancerSettingsScreen() {
             />
           </View>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Mensagens do chat</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Mensagens do chat
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Receber aviso quando uma empresa enviar mensagem.
               </Text>
             </View>
@@ -232,10 +340,21 @@ export default function FreelancerSettingsScreen() {
             />
           </View>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Avaliações</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Avaliações
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Avisar quando uma nova avaliação for recebida.
               </Text>
             </View>
@@ -253,12 +372,25 @@ export default function FreelancerSettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacidade</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Privacidade
+          </Text>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Perfil visível</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Perfil visível
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Permitir que empresas vejam seu perfil, portfólio e avaliações.
               </Text>
             </View>
@@ -276,7 +408,9 @@ export default function FreelancerSettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Segurança e conta</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Segurança e conta
+          </Text>
 
           <View style={styles.optionsArea}>
             {settingOptions.map((option) => {
@@ -287,6 +421,10 @@ export default function FreelancerSettingsScreen() {
                   key={option.id}
                   style={({ pressed }) => [
                     styles.optionCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
                     pressed && styles.optionCardPressed,
                   ]}
                   onPress={option.action}
@@ -296,21 +434,43 @@ export default function FreelancerSettingsScreen() {
                   </View>
 
                   <View style={styles.optionTextArea}>
-                    <Text style={styles.optionTitle}>{option.title}</Text>
-                    <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
+                    <Text style={[styles.optionTitle, { color: theme.text }]}>
+                      {option.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.optionSubtitle,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {option.subtitle}
+                    </Text>
                   </View>
 
-                  <Text style={styles.optionArrow}>›</Text>
+                  <Text style={[styles.optionArrow, { color: theme.textSecondary }]}>
+                    ›
+                  </Text>
                 </Pressable>
               );
             })}
           </View>
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Controle de dados</Text>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Controle de dados
+          </Text>
 
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             Na versão final, essa área permitirá controlar dados pessoais,
             permissões, privacidade e exclusão da conta conforme a LGPD.
           </Text>

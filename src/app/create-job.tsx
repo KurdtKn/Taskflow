@@ -14,6 +14,7 @@ import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/createJob";
+import { useTheme } from "@/app/context/ThemeContext";
 
 const categories = [
   "Eventos",
@@ -34,7 +35,9 @@ export default function CreateJobScreen() {
   const [price, setPrice] = useState("");
   const [professionals, setProfessionals] = useState("1");
 
-    function formatDate(value: string) {
+  const { isDark, theme } = useTheme();
+
+  function formatDate(value: string) {
     const numbersOnly = value.replace(/\D/g, "").slice(0, 4);
 
     if (numbersOnly.length <= 2) {
@@ -94,8 +97,13 @@ export default function CreateJobScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -106,7 +114,9 @@ export default function CreateJobScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Criar chamado</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Criar chamado
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -115,27 +125,49 @@ export default function CreateJobScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.introCard}>
-            <Text style={styles.introTitle}>Publique uma nova demanda</Text>
+          <View
+            style={[
+              styles.introCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.introTitle, { color: theme.text }]}>
+              Publique uma nova demanda
+            </Text>
 
-            <Text style={styles.introText}>
+            <Text style={[styles.introText, { color: theme.textSecondary }]}>
               Informe os detalhes do serviço para que freelancers próximos
               possam se candidatar ao chamado.
             </Text>
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Título do chamado</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Título do chamado
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Ex: Garçom para evento"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={title}
               onChangeText={(value) => setTitle(value.slice(0, 100))}
               maxLength={100}
             />
 
-            <Text style={styles.label}>Categoria</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Categoria
+            </Text>
 
             <View style={styles.categoriesArea}>
               {categories.map((category) => {
@@ -146,6 +178,10 @@ export default function CreateJobScreen() {
                     key={category}
                     style={[
                       styles.categoryChip,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
                       isSelected && styles.categoryChipActive,
                     ]}
                     onPress={() => setSelectedCategory(category)}
@@ -153,6 +189,7 @@ export default function CreateJobScreen() {
                     <Text
                       style={[
                         styles.categoryText,
+                        { color: theme.textSecondary },
                         isSelected && styles.categoryTextActive,
                       ]}
                     >
@@ -163,11 +200,22 @@ export default function CreateJobScreen() {
               })}
             </View>
 
-            <Text style={styles.label}>Descrição do serviço</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Descrição do serviço
+            </Text>
+
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Descreva o que precisa ser feito, requisitos e observações importantes."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={description}
               onChangeText={(value) => setDescription(value.slice(0, 500))}
               maxLength={500}
@@ -175,11 +223,21 @@ export default function CreateJobScreen() {
               textAlignVertical="top"
             />
 
-            <Text style={styles.label}>Local do serviço</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Local do serviço
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Ex: Centro, Sorocaba - SP"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={location}
               onChangeText={(value) => setLocation(value.slice(0, 60))}
               maxLength={60}
@@ -187,66 +245,118 @@ export default function CreateJobScreen() {
 
             <View style={styles.doubleInputArea}>
               <View style={styles.doubleInputBox}>
-                <Text style={styles.label}>Data</Text>
+                <Text style={[styles.label, { color: theme.text }]}>
+                  Data
+                </Text>
+
                 <TextInput
-                style={styles.input}
-                placeholder="Ex: 15/06"
-                placeholderTextColor="#9CA3AF"
-                value={date}
-                onChangeText={handleChangeDate}
-                keyboardType="numeric"
-                maxLength={5}
-              />
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.inputBackground,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    },
+                  ]}
+                  placeholder="Ex: 15/06"
+                  placeholderTextColor={theme.textSecondary}
+                  value={date}
+                  onChangeText={handleChangeDate}
+                  keyboardType="numeric"
+                  maxLength={5}
+                />
               </View>
 
               <View style={styles.doubleInputBox}>
-                <Text style={styles.label}>Horário</Text>
+                <Text style={[styles.label, { color: theme.text }]}>
+                  Horário
+                </Text>
+
                 <TextInput
-                style={styles.input}
-                placeholder="Ex: 18:00"
-                placeholderTextColor="#9CA3AF"
-                value={hour}
-                onChangeText={handleChangeHour}
-                keyboardType="numeric"
-                maxLength={5}
-              />
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.inputBackground,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    },
+                  ]}
+                  placeholder="Ex: 18:00"
+                  placeholderTextColor={theme.textSecondary}
+                  value={hour}
+                  onChangeText={handleChangeHour}
+                  keyboardType="numeric"
+                  maxLength={5}
+                />
               </View>
             </View>
 
             <View style={styles.doubleInputArea}>
               <View style={styles.doubleInputBox}>
-                <Text style={styles.label}>Valor estimado</Text>
+                <Text style={[styles.label, { color: theme.text }]}>
+                  Valor estimado
+                </Text>
+
                 <TextInput
-                style={styles.input}
-                placeholder="Ex: R$200,00"
-                placeholderTextColor="#9CA3AF"
-                value={price}
-                onChangeText={(value) => setPrice(value.replace(/\D/g, "").slice(0, 8))}
-                keyboardType="numeric"
-                maxLength={8}
-              />
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.inputBackground,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    },
+                  ]}
+                  placeholder="Ex: R$200,00"
+                  placeholderTextColor={theme.textSecondary}
+                  value={price}
+                  onChangeText={(value) =>
+                    setPrice(value.replace(/\D/g, "").slice(0, 8))
+                  }
+                  keyboardType="numeric"
+                  maxLength={8}
+                />
               </View>
 
               <View style={styles.doubleInputBox}>
-                <Text style={styles.label}>Profissionais</Text>
+                <Text style={[styles.label, { color: theme.text }]}>
+                  Profissionais
+                </Text>
+
                 <TextInput
-                style={styles.input}
-                placeholder="Ex: 1"
-                placeholderTextColor="#9CA3AF"
-                value={professionals}
-                onChangeText={(value) =>
-                  setProfessionals(value.replace(/\D/g, "").slice(0, 2))
-                }
-                keyboardType="numeric"
-                maxLength={2}
-              />
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.inputBackground,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    },
+                  ]}
+                  placeholder="Ex: 1"
+                  placeholderTextColor={theme.textSecondary}
+                  value={professionals}
+                  onChangeText={(value) =>
+                    setProfessionals(value.replace(/\D/g, "").slice(0, 2))
+                  }
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
               </View>
             </View>
 
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>Como funciona?</Text>
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Como funciona?
+              </Text>
 
-              <Text style={styles.infoText}>
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
                 Após publicar o chamado, freelancers da região poderão visualizar
                 a demanda e enviar uma solicitação. Você poderá analisar os
                 candidatos antes de aceitar um profissional.

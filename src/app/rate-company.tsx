@@ -14,6 +14,7 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/rateCompany";
+import { useTheme } from "@/app/context/ThemeContext";
 
 const ratingTags = [
   "Boa comunicação",
@@ -40,6 +41,8 @@ export default function RateCompanyScreen() {
   ]);
   const [comment, setComment] = useState("");
 
+  const { isDark, theme } = useTheme();
+
   function toggleTag(tag: string) {
     setSelectedTags((currentTags) => {
       if (currentTags.includes(tag)) {
@@ -63,8 +66,13 @@ export default function RateCompanyScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -75,7 +83,9 @@ export default function RateCompanyScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Avaliar empresa</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Avaliar empresa
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -84,32 +94,61 @@ export default function RateCompanyScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.introCard}>
+          <View
+            style={[
+              styles.introCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.iconBox}>
               <Text style={styles.iconText}>⭐</Text>
             </View>
 
-            <Text style={styles.introTitle}>Como foi trabalhar com a empresa?</Text>
+            <Text style={[styles.introTitle, { color: theme.text }]}>
+              Como foi trabalhar com a empresa?
+            </Text>
 
-            <Text style={styles.introText}>
+            <Text style={[styles.introText, { color: theme.textSecondary }]}>
               Sua avaliação ajuda outros freelancers a entenderem se a empresa é
               confiável e organizada.
             </Text>
           </View>
 
-          <View style={styles.serviceCard}>
-            <Text style={styles.cardLabel}>Serviço concluído</Text>
+          <View
+            style={[
+              styles.serviceCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.cardLabel, { color: theme.primary }]}>
+              Serviço concluído
+            </Text>
 
-            <Text style={styles.serviceTitle}>{jobTitle}</Text>
+            <Text style={[styles.serviceTitle, { color: theme.text }]}>
+              {jobTitle}
+            </Text>
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Empresa</Text>
-              <Text style={styles.infoValue}>{companyName}</Text>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Empresa
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                {companyName}
+              </Text>
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Sua nota</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Sua nota
+            </Text>
 
             <View style={styles.starsArea}>
               {Array.from({ length: 5 }).map((_, index) => {
@@ -135,7 +174,7 @@ export default function RateCompanyScreen() {
               })}
             </View>
 
-            <Text style={styles.ratingText}>
+            <Text style={[styles.ratingText, { color: theme.text }]}>
               {rating === 5
                 ? "Excelente"
                 : rating === 4
@@ -149,9 +188,11 @@ export default function RateCompanyScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>O que se destacou?</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              O que se destacou?
+            </Text>
 
-            <Text style={styles.sectionSubtitle}>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
               Selecione pontos sobre a experiência com a empresa.
             </Text>
 
@@ -162,12 +203,20 @@ export default function RateCompanyScreen() {
                 return (
                   <Pressable
                     key={tag}
-                    style={[styles.tag, isSelected && styles.tagActive]}
+                    style={[
+                      styles.tag,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
+                      isSelected && styles.tagActive,
+                    ]}
                     onPress={() => toggleTag(tag)}
                   >
                     <Text
                       style={[
                         styles.tagText,
+                        { color: theme.textSecondary },
                         isSelected && styles.tagTextActive,
                       ]}
                     >
@@ -180,12 +229,21 @@ export default function RateCompanyScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Comentário</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Comentário
+            </Text>
 
             <TextInput
-              style={styles.textArea}
+              style={[
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Escreva um comentário sobre sua experiência..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={comment}
               onChangeText={setComment}
               multiline
@@ -193,10 +251,20 @@ export default function RateCompanyScreen() {
             />
           </View>
 
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Avaliação mútua</Text>
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.infoTitle, { color: theme.text }]}>
+              Avaliação mútua
+            </Text>
 
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
               Essa etapa complementa a avaliação feita pela empresa. Assim, os
               dois lados constroem reputação dentro do TaskFlow.
             </Text>
@@ -215,11 +283,17 @@ export default function RateCompanyScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.secondaryButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && styles.secondaryButtonPressed,
             ]}
             onPress={() => router.replace("/home")}
           >
-            <Text style={styles.secondaryButtonText}>Voltar para início</Text>
+            <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
+              Voltar para início
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

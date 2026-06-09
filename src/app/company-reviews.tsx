@@ -11,6 +11,7 @@ import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/companyReviews";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type ReviewFilter = "all" | "positive" | "recent";
 
@@ -70,6 +71,8 @@ const reviewsData: CompanyReview[] = [
 export default function CompanyReviewsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<ReviewFilter>("all");
 
+  const { isDark, theme } = useTheme();
+
   const filteredReviews = useMemo(() => {
     if (selectedFilter === "positive") {
       return reviewsData.filter((review) => review.rating >= 5);
@@ -98,7 +101,10 @@ export default function CompanyReviewsScreen() {
       return (
         <Text
           key={starValue}
-          style={[styles.star, isActive ? styles.starActive : styles.starInactive]}
+          style={[
+            styles.star,
+            isActive ? styles.starActive : styles.starInactive,
+          ]}
         >
           ★
         </Text>
@@ -107,15 +113,22 @@ export default function CompanyReviewsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Avaliações da empresa</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Avaliações da empresa
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -124,7 +137,15 @@ export default function CompanyReviewsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.summaryCard}>
+        <View
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.ratingCircle}>
             <Text style={styles.ratingNumber}>
               {averageRating.toFixed(1).replace(".", ",")}
@@ -132,30 +153,70 @@ export default function CompanyReviewsScreen() {
             <Text style={styles.ratingMax}>/5</Text>
           </View>
 
-          <Text style={styles.summaryTitle}>Reputação da empresa</Text>
+          <Text style={[styles.summaryTitle, { color: theme.text }]}>
+            Reputação da empresa
+          </Text>
 
-          <View style={styles.summaryStars}>{renderStars(Math.round(averageRating))}</View>
+          <View style={styles.summaryStars}>
+            {renderStars(Math.round(averageRating))}
+          </View>
 
-          <Text style={styles.summaryText}>
+          <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
             Baseado em {reviewsData.length} avaliações feitas por freelancers
             após serviços concluídos.
           </Text>
         </View>
 
         <View style={styles.statsArea}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{reviewsData.length}</Text>
-            <Text style={styles.statLabel}>Avaliações</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {reviewsData.length}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              Avaliações
+            </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{fiveStarReviews}</Text>
-            <Text style={styles.statLabel}>Nota 5</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {fiveStarReviews}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              Nota 5
+            </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>96%</Text>
-            <Text style={styles.statLabel}>Satisfação</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              96%
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              Satisfação
+            </Text>
           </View>
         </View>
 
@@ -163,6 +224,10 @@ export default function CompanyReviewsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "all" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("all")}
@@ -170,6 +235,7 @@ export default function CompanyReviewsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "all" && styles.filterTextActive,
               ]}
             >
@@ -180,6 +246,10 @@ export default function CompanyReviewsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "positive" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("positive")}
@@ -187,6 +257,7 @@ export default function CompanyReviewsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "positive" && styles.filterTextActive,
               ]}
             >
@@ -197,6 +268,10 @@ export default function CompanyReviewsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "recent" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("recent")}
@@ -204,6 +279,7 @@ export default function CompanyReviewsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "recent" && styles.filterTextActive,
               ]}
             >
@@ -213,15 +289,27 @@ export default function CompanyReviewsScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Comentários recebidos</Text>
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Comentários recebidos
+          </Text>
+
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Avaliações feitas por freelancers que prestaram serviços.
           </Text>
         </View>
 
         <View style={styles.reviewsList}>
           {filteredReviews.map((review) => (
-            <View key={review.id} style={styles.reviewCard}>
+            <View
+              key={review.id}
+              style={[
+                styles.reviewCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
               <View style={styles.reviewHeader}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
@@ -230,27 +318,46 @@ export default function CompanyReviewsScreen() {
                 </View>
 
                 <View style={styles.reviewHeaderText}>
-                  <Text style={styles.freelancerName}>
+                  <Text style={[styles.freelancerName, { color: theme.text }]}>
                     {review.freelancerName}
                   </Text>
 
-                  <Text style={styles.serviceName}>{review.service}</Text>
+                  <Text style={[styles.serviceName, { color: theme.textSecondary }]}>
+                    {review.service}
+                  </Text>
                 </View>
 
-                <Text style={styles.reviewDate}>{review.date}</Text>
+                <Text style={[styles.reviewDate, { color: theme.textSecondary }]}>
+                  {review.date}
+                </Text>
               </View>
 
               <View style={styles.reviewStarsArea}>
                 {renderStars(review.rating)}
-                <Text style={styles.reviewRatingText}>{review.rating},0</Text>
+                <Text style={[styles.reviewRatingText, { color: theme.text }]}>
+                  {review.rating},0
+                </Text>
               </View>
 
-              <Text style={styles.reviewComment}>{review.comment}</Text>
+              <Text style={[styles.reviewComment, { color: theme.textSecondary }]}>
+                {review.comment}
+              </Text>
 
               <View style={styles.tagsArea}>
                 {review.tags.map((tag) => (
-                  <View key={tag} style={styles.tag}>
-                    <Text style={styles.tagText}>{tag}</Text>
+                  <View
+                    key={tag}
+                    style={[
+                      styles.tag,
+                      {
+                        backgroundColor: theme.background,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.tagText, { color: theme.text }]}>
+                      {tag}
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -258,10 +365,20 @@ export default function CompanyReviewsScreen() {
           ))}
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Avaliação mútua</Text>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Avaliação mútua
+          </Text>
 
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             No TaskFlow, a reputação da empresa ajuda freelancers a entenderem
             se o contratante é confiável, organizado e mantém boa comunicação.
           </Text>

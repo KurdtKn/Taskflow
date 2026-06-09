@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Image,  
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,11 +17,14 @@ import Visibility from "../../assets/icons/visibility.svg";
 import VisibilityOff from "../../assets/icons/visibility_off.svg";
 
 import { styles } from "./styles/login";
+import { useTheme } from "@/app/context/ThemeContext";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const { isDark, theme } = useTheme();
 
   function handleLogin() {
     console.log({
@@ -33,8 +36,13 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -45,20 +53,31 @@ export default function LoginScreen() {
         </Pressable>
 
         <View style={styles.header}>
-          <Text style={styles.title}>Entrar</Text>
+          <Text style={[styles.title, { color: theme.text }]}>
+            Entrar
+          </Text>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             Acesse sua conta para continuar usando o TaskFlow.
           </Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>E-mail</Text>
+          <Text style={[styles.label, { color: theme.text }]}>
+            E-mail
+          </Text>
 
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+                color: theme.text,
+              },
+            ]}
             placeholder="exemplo@email.com"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.textSecondary}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -66,13 +85,26 @@ export default function LoginScreen() {
             autoCorrect={false}
           />
 
-          <Text style={styles.label}>Senha</Text>
+          <Text style={[styles.label, { color: theme.text }]}>
+            Senha
+          </Text>
 
-          <View style={styles.passwordArea}>
+          <View
+            style={[
+              styles.passwordArea,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <TextInput
-              style={styles.passwordInput}
+              style={[
+                styles.passwordInput,
+                { color: theme.text },
+              ]}
               placeholder="Digite sua senha"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
@@ -92,7 +124,9 @@ export default function LoginScreen() {
           </View>
 
           <Pressable style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Esqueci minha senha</Text>
+            <Text style={styles.forgotPasswordText}>
+              Esqueci minha senha
+            </Text>
           </Pressable>
 
           <Pressable
@@ -107,32 +141,50 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.dividerArea}>
-          <Text style={styles.dividerText}>ou continue com</Text>
+          <Text style={[styles.dividerText, { color: theme.textSecondary }]}>
+            ou continue com
+          </Text>
         </View>
 
         <View style={styles.socialArea}>
-        <Pressable style={styles.socialButton}>
+          <Pressable
+            style={[
+              styles.socialButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <Image
-            source={require("../../assets/icons/google.png")}
-            style={styles.socialIcon}
-            resizeMode="contain"
+              source={require("../../assets/icons/google.png")}
+              style={styles.socialIcon}
+              resizeMode="contain"
             />
-        </Pressable>
+          </Pressable>
 
-        <Pressable style={styles.socialButton}>
+          <Pressable
+            style={[
+              styles.socialButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <Image
-            source={require("../../assets/icons/logotipo-do-mac-os.png")}
-            style={styles.socialIcon}
-            resizeMode="contain"
+              source={require("../../assets/icons/logotipo-do-mac-os.png")}
+              style={styles.socialIcon}
+              resizeMode="contain"
             />
-        </Pressable>
+          </Pressable>
         </View>
 
         <Pressable
           style={styles.createAccountArea}
           onPress={() => router.push("/create-account")}
         >
-          <Text style={styles.createAccountText}>
+          <Text style={[styles.createAccountText, { color: theme.textSecondary }]}>
             Não tem uma conta?{" "}
             <Text style={styles.createAccountLink}>Criar conta</Text>
           </Text>
