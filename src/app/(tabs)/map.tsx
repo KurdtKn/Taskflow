@@ -238,11 +238,6 @@ export default function MapScreen() {
             <Text style={styles.infoText}>{selectedService.time}</Text>
           </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>🕒</Text>
-            <Text style={styles.infoText}>{selectedService.time}</Text>
-          </View>
-
           <Pressable
             style={({ pressed }) => [
               styles.detailsButton,

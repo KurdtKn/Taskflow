@@ -157,7 +157,7 @@ export default function CompanyDashboardScreen() {
           ]}
           onPress={handleCreateJob}
         >
-          <PlusIcon width={18} height={18} />
+          <PlusIcon width={18} height={18} color={colors.plus}/>
           <Text style={styles.createJobText}>Criar novo chamado</Text>
         </Pressable>
 
