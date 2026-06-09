@@ -19,6 +19,7 @@ import VisibilityIcon from "../../assets/icons/visibility.svg";
 import VisibilityOffIcon from "../../assets/icons/visibility_off.svg";
 
 import { styles } from "@/app/styles/changePassword";
+import { useTheme } from "@/app/context/ThemeContext";
 
 export default function ChangePasswordScreen() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -28,6 +29,8 @@ export default function ChangePasswordScreen() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const { isDark, theme } = useTheme();
 
   function handleChangePassword() {
     if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
@@ -58,8 +61,13 @@ export default function ChangePasswordScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -70,7 +78,9 @@ export default function ChangePasswordScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Alterar senha</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Alterar senha
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -79,11 +89,25 @@ export default function ChangePasswordScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.heroCard}>
+          <View
+            style={[
+              styles.heroCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View>
-              <Text style={styles.heroLabel}>Segurança</Text>
-              <Text style={styles.heroTitle}>Atualize sua senha</Text>
-              <Text style={styles.heroText}>
+              <Text style={[styles.heroLabel, { color: theme.primary }]}>
+                Segurança
+              </Text>
+
+              <Text style={[styles.heroTitle, { color: theme.text }]}>
+                Atualize sua senha
+              </Text>
+
+              <Text style={[styles.heroText, { color: theme.textSecondary }]}>
                 Use uma senha segura para proteger sua conta no TaskFlow.
               </Text>
             </View>
@@ -95,13 +119,26 @@ export default function ChangePasswordScreen() {
 
           <View style={styles.formArea}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Senha atual</Text>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Senha atual
+              </Text>
 
-              <View style={styles.passwordBox}>
+              <View
+                style={[
+                  styles.passwordBox,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    { color: theme.text },
+                  ]}
                   placeholder="Digite sua senha atual"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.textSecondary}
                   secureTextEntry={!showCurrentPassword}
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
@@ -121,13 +158,26 @@ export default function ChangePasswordScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nova senha</Text>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Nova senha
+              </Text>
 
-              <View style={styles.passwordBox}>
+              <View
+                style={[
+                  styles.passwordBox,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    { color: theme.text },
+                  ]}
                   placeholder="Digite a nova senha"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.textSecondary}
                   secureTextEntry={!showNewPassword}
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -147,13 +197,26 @@ export default function ChangePasswordScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Confirmar nova senha</Text>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Confirmar nova senha
+              </Text>
 
-              <View style={styles.passwordBox}>
+              <View
+                style={[
+                  styles.passwordBox,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    { color: theme.text },
+                  ]}
                   placeholder="Confirme a nova senha"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.textSecondary}
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -173,9 +236,20 @@ export default function ChangePasswordScreen() {
             </View>
           </View>
 
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Dica de segurança</Text>
-            <Text style={styles.infoText}>
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.infoTitle, { color: theme.text }]}>
+              Dica de segurança
+            </Text>
+
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
               Evite usar datas de nascimento, nomes simples ou senhas repetidas
               de outros aplicativos.
             </Text>
@@ -194,11 +268,17 @@ export default function ChangePasswordScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.cancelButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && styles.buttonPressed,
             ]}
             onPress={() => router.back()}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text style={[styles.cancelButtonText, { color: theme.text }]}>
+              Cancelar
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

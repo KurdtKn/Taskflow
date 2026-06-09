@@ -14,6 +14,7 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/chat";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type Message = {
   id: string;
@@ -63,6 +64,8 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [messageText, setMessageText] = useState("");
 
+  const { isDark, theme } = useTheme();
+
   function handleSendMessage() {
     const trimmedMessage = messageText.trim();
 
@@ -87,30 +90,48 @@ export default function ChatScreen() {
 
   function handleFinishService() {
     router.push({
-        pathname: "/service-completion",
-        params: {
+      pathname: "/service-completion",
+      params: {
         jobTitle,
         candidateName,
-       },
+      },
     });
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <ArrowBack width={28} height={28} />
           </Pressable>
 
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>{candidateName}</Text>
-            <Text style={styles.headerSubtitle}>Online agora</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>
+              {candidateName}
+            </Text>
+
+            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+              Online agora
+            </Text>
           </View>
 
           <Pressable style={styles.finishButton} onPress={handleFinishService}>
@@ -118,10 +139,24 @@ export default function ChatScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.jobCard}>
-          <Text style={styles.jobLabel}>Chamado em andamento</Text>
-          <Text style={styles.jobTitle}>{jobTitle}</Text>
-          <Text style={styles.jobText}>
+        <View
+          style={[
+            styles.jobCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.jobLabel, { color: theme.primary }]}>
+            Chamado em andamento
+          </Text>
+
+          <Text style={[styles.jobTitle, { color: theme.text }]}>
+            {jobTitle}
+          </Text>
+
+          <Text style={[styles.jobText, { color: theme.textSecondary }]}>
             Combine os detalhes finais do serviço diretamente pelo chat.
           </Text>
         </View>
@@ -141,8 +176,24 @@ export default function ChatScreen() {
 
             if (isSystem) {
               return (
-                <View key={message.id} style={styles.systemMessage}>
-                  <Text style={styles.systemMessageText}>{message.text}</Text>
+                <View
+                  key={message.id}
+                  style={[
+                    styles.systemMessage,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.systemMessageText,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {message.text}
+                  </Text>
                 </View>
               );
             }
@@ -160,14 +211,23 @@ export default function ChatScreen() {
                   style={[
                     styles.messageBubble,
                     isCompany && styles.companyBubble,
-                    isFreelancer && styles.freelancerBubble,
+                    isFreelancer && [
+                      styles.freelancerBubble,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
+                    ],
                   ]}
                 >
                   <Text
                     style={[
                       styles.messageText,
                       isCompany && styles.companyMessageText,
-                      isFreelancer && styles.freelancerMessageText,
+                      isFreelancer && [
+                        styles.freelancerMessageText,
+                        { color: theme.text },
+                      ],
                     ]}
                   >
                     {message.text}
@@ -177,7 +237,10 @@ export default function ChatScreen() {
                     style={[
                       styles.messageTime,
                       isCompany && styles.companyMessageTime,
-                      isFreelancer && styles.freelancerMessageTime,
+                      isFreelancer && [
+                        styles.freelancerMessageTime,
+                        { color: theme.textSecondary },
+                      ],
                     ]}
                   >
                     {message.time}
@@ -188,11 +251,26 @@ export default function ChatScreen() {
           })}
         </ScrollView>
 
-        <View style={styles.inputArea}>
+        <View
+          style={[
+            styles.inputArea,
+            {
+              backgroundColor: theme.background,
+              borderTopColor: theme.border,
+            },
+          ]}
+        >
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+                color: theme.text,
+              },
+            ]}
             placeholder="Digite uma mensagem..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.textSecondary}
             value={messageText}
             onChangeText={setMessageText}
             multiline

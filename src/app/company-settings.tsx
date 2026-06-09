@@ -19,6 +19,7 @@ import AssignmentIcon from "../../assets/icons/assignment.svg";
 
 import { styles } from "@/app/styles/companySettings";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type SettingOption = {
   id: string;
@@ -34,6 +35,8 @@ export default function CompanySettingsScreen() {
   const [candidateAlerts, setCandidateAlerts] = useState(true);
   const [paymentAlerts, setPaymentAlerts] = useState(true);
   const [showCompanyProfile, setShowCompanyProfile] = useState(true);
+
+  const { isDark, toggleTheme, theme } = useTheme();
 
   const settingOptions: SettingOption[] = [
     {
@@ -93,15 +96,22 @@ export default function CompanySettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Configurações</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Configurações
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -110,11 +120,25 @@ export default function CompanySettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.heroCard}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View>
-            <Text style={styles.heroLabel}>Conta empresarial</Text>
-            <Text style={styles.heroTitle}>Preferências da empresa</Text>
-            <Text style={styles.heroText}>
+            <Text style={[styles.heroLabel, { color: theme.primary }]}>
+              Conta empresarial
+            </Text>
+
+            <Text style={[styles.heroTitle, { color: theme.text }]}>
+              Preferências da empresa
+            </Text>
+
+            <Text style={[styles.heroText, { color: theme.textSecondary }]}>
               Configure notificações, privacidade, segurança e opções da conta.
             </Text>
           </View>
@@ -125,16 +149,65 @@ export default function CompanySettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notificações</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Aparência
+          </Text>
 
-          <Text style={styles.sectionSubtitle}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <View style={styles.switchTextArea}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Modo noturno
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
+                Ativar tema escuro no aplicativo.
+              </Text>
+            </View>
+
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{
+                false: colors.border,
+                true: "rgba(9,40,112,0.45)",
+              }}
+              thumbColor={isDark ? colors.primary : "#F4F4F5"}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Notificações
+          </Text>
+
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Escolha quais avisos sua empresa deseja receber.
           </Text>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Notificações push</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Notificações push
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Receber alertas no celular sobre atividades importantes.
               </Text>
             </View>
@@ -150,12 +223,22 @@ export default function CompanySettingsScreen() {
             />
           </View>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Notificações por e-mail</Text>
-              <Text style={styles.switchSubtitle}>
-                Receber resumo de chamados, pagamentos e candidaturas por
-                e-mail.
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Notificações por e-mail
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
+                Receber resumo de chamados, pagamentos e candidaturas por e-mail.
               </Text>
             </View>
 
@@ -170,10 +253,21 @@ export default function CompanySettingsScreen() {
             />
           </View>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Alertas de candidatos</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Alertas de candidatos
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Avisar quando um freelancer se candidatar a um chamado.
               </Text>
             </View>
@@ -189,10 +283,21 @@ export default function CompanySettingsScreen() {
             />
           </View>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Alertas de pagamento</Text>
-              <Text style={styles.switchSubtitle}>
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Alertas de pagamento
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
                 Avisar quando uma taxa ou transação for confirmada.
               </Text>
             </View>
@@ -210,14 +315,26 @@ export default function CompanySettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacidade</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Privacidade
+          </Text>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.switchTextArea}>
-              <Text style={styles.switchTitle}>Perfil visível</Text>
-              <Text style={styles.switchSubtitle}>
-                Permitir que freelancers visualizem informações básicas da
-                empresa.
+              <Text style={[styles.switchTitle, { color: theme.text }]}>
+                Perfil visível
+              </Text>
+
+              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
+                Permitir que freelancers visualizem informações básicas da empresa.
               </Text>
             </View>
 
@@ -234,7 +351,9 @@ export default function CompanySettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Segurança e conta</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Segurança e conta
+          </Text>
 
           <View style={styles.optionsArea}>
             {settingOptions.map((option) => {
@@ -245,6 +364,10 @@ export default function CompanySettingsScreen() {
                   key={option.id}
                   style={({ pressed }) => [
                     styles.optionCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
                     pressed && styles.optionCardPressed,
                   ]}
                   onPress={option.action}
@@ -254,21 +377,43 @@ export default function CompanySettingsScreen() {
                   </View>
 
                   <View style={styles.optionTextArea}>
-                    <Text style={styles.optionTitle}>{option.title}</Text>
-                    <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
+                    <Text style={[styles.optionTitle, { color: theme.text }]}>
+                      {option.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.optionSubtitle,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {option.subtitle}
+                    </Text>
                   </View>
 
-                  <Text style={styles.optionArrow}>›</Text>
+                  <Text style={[styles.optionArrow, { color: theme.textSecondary }]}>
+                    ›
+                  </Text>
                 </Pressable>
               );
             })}
           </View>
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>LGPD e segurança</Text>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            LGPD e segurança
+          </Text>
 
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             Na versão final, essa área poderá controlar permissões, dados da
             empresa, exclusão de conta e preferências de privacidade.
           </Text>

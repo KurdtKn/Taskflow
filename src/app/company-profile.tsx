@@ -25,6 +25,7 @@ import CheckIcon from "../../assets/icons/check.svg";
 
 import { styles } from "@/app/styles/companyProfile";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type MenuOption = {
   id: string;
@@ -35,6 +36,8 @@ type MenuOption = {
 };
 
 export default function CompanyProfileScreen() {
+  const { isDark, theme } = useTheme();
+
   const menuOptions: MenuOption[] = [
     {
       id: "1",
@@ -92,8 +95,13 @@ export default function CompanyProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -104,12 +112,22 @@ export default function CompanyProfileScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Perfil da empresa</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Perfil da empresa
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
 
-        <View style={styles.companyCard}>
+        <View
+          style={[
+            styles.companyCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.logoArea}>
             <Image
               source={require("../../assets/images/icon.png")}
@@ -122,64 +140,149 @@ export default function CompanyProfileScreen() {
             </View>
           </View>
 
-          <Text style={styles.companyName}>TaskFlow Eventos</Text>
+          <Text style={[styles.companyName, { color: theme.text }]}>
+            TaskFlow Eventos
+          </Text>
 
-          <Text style={styles.companyType}>Empresa contratante</Text>
+          <Text style={[styles.companyType, { color: theme.textSecondary }]}>
+            Empresa contratante
+          </Text>
 
           <View style={styles.ratingArea}>
             <Text style={{ fontSize: 15, marginRight: 5 }}>⭐</Text>
-            <Text style={styles.ratingText}>4,9</Text>
-            <Text style={styles.ratingSubtext}>• 32 avaliações</Text>
+
+            <Text style={[styles.ratingText, { color: theme.text }]}>
+              4,9
+            </Text>
+
+            <Text style={[styles.ratingSubtext, { color: theme.textSecondary }]}>
+              • 32 avaliações
+            </Text>
           </View>
 
           <View style={styles.statsArea}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>12</Text>
-              <Text style={styles.statLabel}>Chamados</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                12
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Chamados
+              </Text>
             </View>
 
-            <View style={styles.statDivider} />
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>8</Text>
-              <Text style={styles.statLabel}>Concluídos</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                8
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Concluídos
+              </Text>
             </View>
 
-            <View style={styles.statDivider} />
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>96%</Text>
-              <Text style={styles.statLabel}>Satisfação</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                96%
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Satisfação
+              </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.aboutCard}>
-          <Text style={styles.sectionTitle}>Sobre a empresa</Text>
+        <View
+          style={[
+            styles.aboutCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Sobre a empresa
+          </Text>
 
-          <Text style={styles.aboutText}>
+          <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
             Empresa focada na organização de eventos, contratação de profissionais
             temporários e serviços sob demanda. Utiliza o TaskFlow para encontrar
             freelancers qualificados de forma rápida, segura e organizada.
           </Text>
 
           <View style={styles.tagsArea}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Eventos</Text>
+            <View
+              style={[
+                styles.tag,
+                {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.tagText, { color: theme.text }]}>
+                Eventos
+              </Text>
             </View>
 
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Contratação rápida</Text>
+            <View
+              style={[
+                styles.tag,
+                {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.tagText, { color: theme.text }]}>
+                Contratação rápida
+              </Text>
             </View>
 
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Empresa verificada</Text>
+            <View
+              style={[
+                styles.tag,
+                {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.tagText, { color: theme.text }]}>
+                Empresa verificada
+              </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.contactCard}>
-          <Text style={styles.sectionTitle}>Informações principais</Text>
+        <View
+          style={[
+            styles.contactCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Informações principais
+          </Text>
 
           <View style={styles.contactRow}>
             <View style={styles.contactIconBox}>
@@ -187,12 +290,22 @@ export default function CompanyProfileScreen() {
             </View>
 
             <View style={styles.contactTextArea}>
-              <Text style={styles.contactLabel}>Localização</Text>
-              <Text style={styles.contactValue}>Sorocaba - SP</Text>
+              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>
+                Localização
+              </Text>
+
+              <Text style={[styles.contactValue, { color: theme.text }]}>
+                Sorocaba - SP
+              </Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.contactRow}>
             <View style={styles.contactIconBox}>
@@ -200,12 +313,22 @@ export default function CompanyProfileScreen() {
             </View>
 
             <View style={styles.contactTextArea}>
-              <Text style={styles.contactLabel}>Telefone</Text>
-              <Text style={styles.contactValue}>(15) 99999-9999</Text>
+              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>
+                Telefone
+              </Text>
+
+              <Text style={[styles.contactValue, { color: theme.text }]}>
+                (15) 99999-9999
+              </Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.contactRow}>
             <View style={styles.contactIconBox}>
@@ -213,20 +336,31 @@ export default function CompanyProfileScreen() {
             </View>
 
             <View style={styles.contactTextArea}>
-              <Text style={styles.contactLabel}>E-mail</Text>
-              <Text style={styles.contactValue}>empresa@taskflow.com</Text>
+              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>
+                E-mail
+              </Text>
+
+              <Text style={[styles.contactValue, { color: theme.text }]}>
+                empresa@taskflow.com
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.menuArea}>
-          <Text style={styles.sectionTitle}>Opções da empresa</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Opções da empresa
+          </Text>
 
           {menuOptions.map((option) => (
             <Pressable
               key={option.id}
               style={({ pressed }) => [
                 styles.menuItem,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
                 pressed && styles.menuItemPressed,
               ]}
               onPress={option.action}
@@ -236,11 +370,18 @@ export default function CompanyProfileScreen() {
               </View>
 
               <View style={styles.menuTextArea}>
-                <Text style={styles.menuTitle}>{option.title}</Text>
-                <Text style={styles.menuSubtitle}>{option.subtitle}</Text>
+                <Text style={[styles.menuTitle, { color: theme.text }]}>
+                  {option.title}
+                </Text>
+
+                <Text style={[styles.menuSubtitle, { color: theme.textSecondary }]}>
+                  {option.subtitle}
+                </Text>
               </View>
 
-              <Text style={styles.menuArrow}>›</Text>
+              <Text style={[styles.menuArrow, { color: theme.textSecondary }]}>
+                ›
+              </Text>
             </Pressable>
           ))}
         </View>

@@ -20,12 +20,15 @@ import SettingsIcon from "../../assets/icons/settings.svg";
 
 import { colors } from "@/styles/colors";
 import { styles } from "@/app/styles/privacySecurity";
+import { useTheme } from "@/app/context/ThemeContext";
 
 export default function PrivacySecurityScreen() {
   const [profileVisible, setProfileVisible] = useState(true);
   const [showLocation, setShowLocation] = useState(true);
   const [allowNotifications, setAllowNotifications] = useState(true);
   const [securityAlerts, setSecurityAlerts] = useState(true);
+
+  const { isDark, theme } = useTheme();
 
   function handleSaveSettings() {
     Alert.alert(
@@ -35,15 +38,22 @@ export default function PrivacySecurityScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Privacidade</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Privacidade
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -52,11 +62,25 @@ export default function PrivacySecurityScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.heroCard}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View>
-            <Text style={styles.heroLabel}>Segurança</Text>
-            <Text style={styles.heroTitle}>Controle seus dados</Text>
-            <Text style={styles.heroText}>
+            <Text style={[styles.heroLabel, { color: theme.primary }]}>
+              Segurança
+            </Text>
+
+            <Text style={[styles.heroTitle, { color: theme.text }]}>
+              Controle seus dados
+            </Text>
+
+            <Text style={[styles.heroText, { color: theme.textSecondary }]}>
               Gerencie visibilidade, localização e alertas importantes da sua conta.
             </Text>
           </View>
@@ -67,16 +91,29 @@ export default function PrivacySecurityScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacidade da conta</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Privacidade da conta
+          </Text>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.optionIconBox}>
               <CheckIcon width={22} height={22} />
             </View>
 
             <View style={styles.optionTextArea}>
-              <Text style={styles.optionTitle}>Perfil visível</Text>
-              <Text style={styles.optionSubtitle}>
+              <Text style={[styles.optionTitle, { color: theme.text }]}>
+                Perfil visível
+              </Text>
+
+              <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
                 Permite que outros usuários encontrem seu perfil na plataforma.
               </Text>
             </View>
@@ -89,14 +126,25 @@ export default function PrivacySecurityScreen() {
             />
           </View>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.optionIconBox}>
               <LocationIcon width={22} height={22} color={colors.location}/>
             </View>
 
             <View style={styles.optionTextArea}>
-              <Text style={styles.optionTitle}>Compartilhar localização</Text>
-              <Text style={styles.optionSubtitle}>
+              <Text style={[styles.optionTitle, { color: theme.text }]}>
+                Compartilhar localização
+              </Text>
+
+              <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
                 Ajuda a exibir chamados próximos e melhorar recomendações.
               </Text>
             </View>
@@ -111,16 +159,29 @@ export default function PrivacySecurityScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Alertas de segurança</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Alertas de segurança
+          </Text>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.optionIconBox}>
               <NotificationIcon width={22} height={22} />
             </View>
 
             <View style={styles.optionTextArea}>
-              <Text style={styles.optionTitle}>Notificações importantes</Text>
-              <Text style={styles.optionSubtitle}>
+              <Text style={[styles.optionTitle, { color: theme.text }]}>
+                Notificações importantes
+              </Text>
+
+              <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
                 Receba avisos sobre solicitações, mensagens e atualizações.
               </Text>
             </View>
@@ -133,14 +194,25 @@ export default function PrivacySecurityScreen() {
             />
           </View>
 
-          <View style={styles.switchCard}>
+          <View
+            style={[
+              styles.switchCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.optionIconBox}>
               <SettingsIcon width={22} height={22} />
             </View>
 
             <View style={styles.optionTextArea}>
-              <Text style={styles.optionTitle}>Alertas da conta</Text>
-              <Text style={styles.optionSubtitle}>
+              <Text style={[styles.optionTitle, { color: theme.text }]}>
+                Alertas da conta
+              </Text>
+
+              <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
                 Avise quando houver alteração de senha, login ou dados sensíveis.
               </Text>
             </View>
@@ -154,34 +226,55 @@ export default function PrivacySecurityScreen() {
           </View>
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Como funciona no protótipo?</Text>
-          <Text style={styles.infoText}>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Como funciona no protótipo?
+          </Text>
+
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             Nesta versão, as opções são visuais. Na integração final, essas
             preferências serão enviadas para a API e salvas no banco de dados.
           </Text>
         </View>
 
-        <View style={styles.securityCard}>
-          <Text style={styles.securityTitle}>Recursos de segurança</Text>
+        <View
+          style={[
+            styles.securityCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.securityTitle, { color: theme.text }]}>
+            Recursos de segurança
+          </Text>
 
           <View style={styles.securityItem}>
             <Text style={styles.securityDot}>•</Text>
-            <Text style={styles.securityText}>
+            <Text style={[styles.securityText, { color: theme.textSecondary }]}>
               Chat liberado apenas após confirmação do fluxo.
             </Text>
           </View>
 
           <View style={styles.securityItem}>
             <Text style={styles.securityDot}>•</Text>
-            <Text style={styles.securityText}>
+            <Text style={[styles.securityText, { color: theme.textSecondary }]}>
               Avaliações entre empresa e freelancer após o serviço.
             </Text>
           </View>
 
           <View style={styles.securityItem}>
             <Text style={styles.securityDot}>•</Text>
-            <Text style={styles.securityText}>
+            <Text style={[styles.securityText, { color: theme.textSecondary }]}>
               Perfil com informações organizadas para aumentar a confiança.
             </Text>
           </View>

@@ -5,12 +5,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 
 import { styles } from "./styles/splash";
+import { useTheme } from "@/app/context/ThemeContext";
 
 const LOADING_TIME = 1800;
 const PROGRESS_WIDTH = 190;
 
 export default function SplashScreen() {
   const progress = useRef(new Animated.Value(0)).current;
+  const { isDark } = useTheme();
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -30,7 +32,11 @@ export default function SplashScreen() {
 
   return (
     <LinearGradient
-      colors={["#163E9F", "#0B57D0", "#1E63E9"]}
+      colors={
+        isDark
+          ? ["#020617", "#092870", "#0F172A"]
+          : ["#163E9F", "#0B57D0", "#1E63E9"]
+      }
       style={styles.container}
     >
       <StatusBar style="light" />

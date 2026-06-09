@@ -11,6 +11,7 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import { styles } from "@/app/styles/profile";
+import { useTheme } from "@/app/context/ThemeContext";
 
 import EditIcon from "../../../assets/icons/edit.svg";
 import BadgeIcon from "../../../assets/icons/badge.svg";
@@ -28,6 +29,8 @@ type MenuOption = {
 };
 
 export default function ProfileScreen() {
+  const { isDark, theme } = useTheme();
+
   const menuOptions: MenuOption[] = [
     {
       id: "1",
@@ -82,19 +85,30 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Meu perfil</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Meu perfil
+          </Text>
 
           <Pressable
             style={({ pressed }) => [
               styles.settingsButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
             ]}
             onPress={handleOpenSettings}
@@ -103,7 +117,15 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.profileCard}>
+        <View
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.avatarArea}>
             <Image
               source={require("../../../assets/images/icon.png")}
@@ -114,84 +136,188 @@ export default function ProfileScreen() {
             <View style={styles.onlineBadge} />
           </View>
 
-          <Text style={styles.userName}>Usuário TaskFlow</Text>
-          <Text style={styles.userType}>Freelancer</Text>
+          <Text style={[styles.userName, { color: theme.text }]}>
+            Usuário TaskFlow
+          </Text>
+
+          <Text style={[styles.userType, { color: theme.textSecondary }]}>
+            Freelancer
+          </Text>
 
           <View style={styles.ratingArea}>
             <Text style={{ fontSize: 16 }}>⭐</Text>
 
-            <Text style={styles.ratingText}>4,8</Text>
-            <Text style={styles.ratingSubtext}>• 24 avaliações</Text>
+            <Text style={[styles.ratingText, { color: theme.text }]}>
+              4,8
+            </Text>
+
+            <Text style={[styles.ratingSubtext, { color: theme.textSecondary }]}>
+              • 24 avaliações
+            </Text>
           </View>
 
-          <View style={styles.statsArea}>
+          <View
+            style={[
+              styles.statsArea,
+              {
+                backgroundColor: theme.background,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>18</Text>
-              <Text style={styles.statLabel}>Serviços</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                18
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Serviços
+              </Text>
             </View>
 
-            <View style={styles.statDivider} />
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>92%</Text>
-              <Text style={styles.statLabel}>Aceitação</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                92%
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Aceitação
+              </Text>
             </View>
 
-            <View style={styles.statDivider} />
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>4</Text>
-              <Text style={styles.statLabel}>Ativos</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                4
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Ativos
+              </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.aboutCard}>
-          <Text style={styles.sectionTitle}>Sobre</Text>
+        <View
+          style={[
+            styles.aboutCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Sobre
+          </Text>
 
-          <Text style={styles.aboutText}>
+          <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
             Profissional disponível para serviços sob demanda, eventos e
             atividades rápidas. Perfil em desenvolvimento para o protótipo do
             TaskFlow.
           </Text>
 
           <View style={styles.tagsArea}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Eventos</Text>
+            <View
+              style={[
+                styles.tag,
+                {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.tagText, { color: theme.text }]}>
+                Eventos
+              </Text>
             </View>
 
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Serviços gerais</Text>
+            <View
+              style={[
+                styles.tag,
+                {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.tagText, { color: theme.text }]}>
+                Serviços gerais
+              </Text>
             </View>
 
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Disponível</Text>
+            <View
+              style={[
+                styles.tag,
+                {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.tagText, { color: theme.text }]}>
+                Disponível
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.menuArea}>
-          <Text style={styles.sectionTitle}>Opções da conta</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Opções da conta
+          </Text>
 
           {menuOptions.map((option) => (
             <Pressable
               key={option.id}
               style={({ pressed }) => [
                 styles.menuItem,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
                 pressed && styles.menuItemPressed,
               ]}
               onPress={option.action}
             >
-              <View style={styles.menuIconBox}>
+              <View
+                style={[
+                  styles.menuIconBox,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
                 <option.Icon width={24} height={24} />
               </View>
 
               <View style={styles.menuTextArea}>
-                <Text style={styles.menuTitle}>{option.title}</Text>
-                <Text style={styles.menuSubtitle}>{option.subtitle}</Text>
+                <Text style={[styles.menuTitle, { color: theme.text }]}>
+                  {option.title}
+                </Text>
+
+                <Text style={[styles.menuSubtitle, { color: theme.textSecondary }]}>
+                  {option.subtitle}
+                </Text>
               </View>
 
-              <Text style={styles.menuArrow}>›</Text>
+              <Text style={[styles.menuArrow, { color: theme.textSecondary }]}>
+                ›
+              </Text>
             </Pressable>
           ))}
         </View>

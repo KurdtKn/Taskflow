@@ -17,6 +17,7 @@ import ChatIcon from "../../assets/icons/chat.svg";
 
 import { styles } from "@/app/styles/companyPublicProfile";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 const companyTags = [
   "Empresa verificada",
@@ -60,21 +61,38 @@ export default function CompanyPublicProfileScreen() {
     jobTitle?: string;
   }>();
 
+  const { isDark, theme } = useTheme();
+
   const companyName = params.companyName ?? "TaskFlow Eventos";
   const companyLocation = params.companyLocation ?? "Sorocaba - SP";
   const companyRating = params.companyRating ?? "4,9";
   const jobTitle = params.jobTitle ?? "Garçom para Evento";
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+          },
+        ]}
+      >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Perfil da empresa</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Perfil da empresa
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -83,7 +101,15 @@ export default function CompanyPublicProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.companyCard}>
+        <View
+          style={[
+            styles.companyCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.logoArea}>
             <Image
               source={require("../../assets/images/icon.png")}
@@ -96,51 +122,117 @@ export default function CompanyPublicProfileScreen() {
             </View>
           </View>
 
-          <Text style={styles.companyName}>{companyName}</Text>
+          <Text style={[styles.companyName, { color: theme.text }]}>
+            {companyName}
+          </Text>
 
-          <Text style={styles.companyType}>Empresa contratante</Text>
+          <Text style={[styles.companyType, { color: theme.textSecondary }]}>
+            Empresa contratante
+          </Text>
 
           <View style={styles.ratingArea}>
             <Text style={styles.ratingIcon}>⭐</Text>
-            <Text style={styles.ratingText}>{companyRating}</Text>
-            <Text style={styles.ratingSubtext}>• 32 avaliações</Text>
+
+            <Text style={[styles.ratingText, { color: theme.text }]}>
+              {companyRating}
+            </Text>
+
+            <Text style={[styles.ratingSubtext, { color: theme.textSecondary }]}>
+              • 32 avaliações
+            </Text>
           </View>
 
-          <View style={styles.statsArea}>
+          <View
+            style={[
+              styles.statsArea,
+              {
+                backgroundColor: theme.background,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>32</Text>
-              <Text style={styles.statLabel}>Chamados</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                32
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Chamados
+              </Text>
             </View>
 
-            <View style={styles.statDivider} />
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>28</Text>
-              <Text style={styles.statLabel}>Concluídos</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                28
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Concluídos
+              </Text>
             </View>
 
-            <View style={styles.statDivider} />
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>96%</Text>
-              <Text style={styles.statLabel}>Satisfação</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                96%
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Satisfação
+              </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.jobCard}>
-          <Text style={styles.cardLabel}>Chamado relacionado</Text>
-          <Text style={styles.jobTitle}>{jobTitle}</Text>
+        <View
+          style={[
+            styles.jobCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardLabel, { color: theme.primary }]}>
+            Chamado relacionado
+          </Text>
 
-          <Text style={styles.jobText}>
+          <Text style={[styles.jobTitle, { color: theme.text }]}>
+            {jobTitle}
+          </Text>
+
+          <Text style={[styles.jobText, { color: theme.textSecondary }]}>
             Este é o chamado publicado pela empresa que você está visualizando.
           </Text>
         </View>
 
-        <View style={styles.aboutCard}>
-          <Text style={styles.sectionTitle}>Sobre a empresa</Text>
+        <View
+          style={[
+            styles.aboutCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Sobre a empresa
+          </Text>
 
-          <Text style={styles.aboutText}>
+          <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
             Empresa focada na contratação de profissionais para eventos, serviços
             rápidos e demandas sob demanda. Costuma publicar chamados com
             informações claras sobre local, horário, valor e atividades esperadas.
@@ -148,15 +240,36 @@ export default function CompanyPublicProfileScreen() {
 
           <View style={styles.tagsArea}>
             {companyTags.map((tag) => (
-              <View key={tag} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
+              <View
+                key={tag}
+                style={[
+                  styles.tag,
+                  {
+                    backgroundColor: theme.background,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.tagText, { color: theme.text }]}>
+                  {tag}
+                </Text>
               </View>
             ))}
           </View>
         </View>
 
-        <View style={styles.infoCard}>
-          <Text style={styles.sectionTitle}>Informações públicas</Text>
+        <View
+          style={[
+            styles.infoCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Informações públicas
+          </Text>
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
@@ -164,12 +277,22 @@ export default function CompanyPublicProfileScreen() {
             </View>
 
             <View style={styles.infoTextArea}>
-              <Text style={styles.infoLabel}>Localização</Text>
-              <Text style={styles.infoValue}>{companyLocation}</Text>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Localização
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                {companyLocation}
+              </Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
@@ -177,12 +300,22 @@ export default function CompanyPublicProfileScreen() {
             </View>
 
             <View style={styles.infoTextArea}>
-              <Text style={styles.infoLabel}>Tipo de conta</Text>
-              <Text style={styles.infoValue}>Empresa verificada</Text>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Tipo de conta
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                Empresa verificada
+              </Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
@@ -190,23 +323,39 @@ export default function CompanyPublicProfileScreen() {
             </View>
 
             <View style={styles.infoTextArea}>
-              <Text style={styles.infoLabel}>Tempo médio de resposta</Text>
-              <Text style={styles.infoValue}>Até 10 minutos</Text>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Tempo médio de resposta
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                Até 10 minutos
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Avaliações de freelancers</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Avaliações de freelancers
+          </Text>
 
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Comentários feitos por profissionais que já prestaram serviços para
             esta empresa.
           </Text>
 
           <View style={styles.reviewsList}>
             {reviews.map((review) => (
-              <View key={review.id} style={styles.reviewCard}>
+              <View
+                key={review.id}
+                style={[
+                  styles.reviewCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
                 <View style={styles.reviewHeader}>
                   <View style={styles.avatar}>
                     <Text style={styles.avatarText}>
@@ -215,26 +364,40 @@ export default function CompanyPublicProfileScreen() {
                   </View>
 
                   <View style={styles.reviewHeaderText}>
-                    <Text style={styles.freelancerName}>
+                    <Text style={[styles.freelancerName, { color: theme.text }]}>
                       {review.freelancer}
                     </Text>
 
-                    <Text style={styles.reviewDate}>{review.date}</Text>
+                    <Text style={[styles.reviewDate, { color: theme.textSecondary }]}>
+                      {review.date}
+                    </Text>
                   </View>
 
                   <Text style={styles.reviewRating}>⭐ {review.rating},0</Text>
                 </View>
 
-                <Text style={styles.reviewComment}>{review.comment}</Text>
+                <Text style={[styles.reviewComment, { color: theme.textSecondary }]}>
+                  {review.comment}
+                </Text>
               </View>
             ))}
           </View>
         </View>
 
-        <View style={styles.securityBox}>
-          <Text style={styles.securityTitle}>Contratação segura</Text>
+        <View
+          style={[
+            styles.securityBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.securityTitle, { color: theme.text }]}>
+            Contratação segura
+          </Text>
 
-          <Text style={styles.securityText}>
+          <Text style={[styles.securityText, { color: theme.textSecondary }]}>
             O chat só será liberado após aceite da empresa e confirmação do
             fluxo. Ao final do serviço, as duas partes poderão se avaliar.
           </Text>

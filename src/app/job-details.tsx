@@ -14,6 +14,7 @@ import LocationIcon from "../../assets/icons/Location-check.svg";
 import TimeIcon from "../../assets/icons/access_time.svg";
 
 import { styles } from "@/app/styles/jobDetails";
+import { useTheme } from "@/app/context/ThemeContext";
 
 export default function JobDetailsScreen() {
   const params = useLocalSearchParams<{
@@ -24,6 +25,8 @@ export default function JobDetailsScreen() {
     location?: string;
     time?: string;
   }>();
+
+  const { isDark, theme } = useTheme();
 
   const title = params.title ?? "Garçom para Evento";
   const category = params.category ?? "Evento";
@@ -59,8 +62,13 @@ export default function JobDetailsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -71,12 +79,22 @@ export default function JobDetailsScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Detalhes do chamado</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Detalhes do chamado
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
 
-        <View style={styles.imagePlaceholder}>
+        <View
+          style={[
+            styles.imagePlaceholder,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <SettingsIcon width={46} height={46} />
         </View>
 
@@ -85,26 +103,44 @@ export default function JobDetailsScreen() {
             <Text style={styles.categoryText}>{category}</Text>
           </View>
 
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: theme.text }]}>
+            {title}
+          </Text>
 
           <Text style={styles.price}>{price}</Text>
         </View>
 
-        <View style={styles.infoCard}>
+        <View
+          style={[
+            styles.infoCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
               <LocationIcon width={22} height={22} color="#e62727"/>
             </View>
 
             <View style={styles.infoTextArea}>
-              <Text style={styles.infoLabel}>Localização</Text>
-              <Text style={styles.infoValue}>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Localização
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
                 {distance} - {location}
               </Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
@@ -112,16 +148,23 @@ export default function JobDetailsScreen() {
             </View>
 
             <View style={styles.infoTextArea}>
-              <Text style={styles.infoLabel}>Data e horário</Text>
-              <Text style={styles.infoValue}>{time}</Text>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Data e horário
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                {time}
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Descrição do serviço</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Descrição do serviço
+          </Text>
 
-          <Text style={styles.description}>
+          <Text style={[styles.description, { color: theme.textSecondary }]}>
             A empresa está procurando um profissional disponível para atender
             este chamado de forma pontual, com responsabilidade, boa comunicação
             e experiência na categoria informada. O freelancer deverá comparecer
@@ -130,31 +173,56 @@ export default function JobDetailsScreen() {
           </Text>
         </View>
 
-        <View style={styles.companyCard}>
+        <View
+          style={[
+            styles.companyCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.companyAvatar}>
             <Text style={styles.companyAvatarText}>TF</Text>
           </View>
 
           <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>TaskFlow Eventos</Text>
-            <Text style={styles.companyRating}>⭐ 4,8 • Empresa verificada</Text>
+            <Text style={[styles.companyName, { color: theme.text }]}>
+              TaskFlow Eventos
+            </Text>
+
+            <Text style={[styles.companyRating, { color: theme.textSecondary }]}>
+              ⭐ 4,8 • Empresa verificada
+            </Text>
           </View>
         </View>
 
         <Pressable
           style={({ pressed }) => [
             styles.companyProfileButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             pressed && styles.companyProfileButtonPressed,
           ]}
           onPress={handleViewCompanyProfile}
         >
-          <Text style={styles.companyProfileButtonText}>
+          <Text style={[styles.companyProfileButtonText, { color: theme.text }]}>
             Ver perfil da empresa
           </Text>
         </Pressable>
 
-        <View style={styles.warningBox}>
-          <Text style={styles.warningText}>
+        <View
+          style={[
+            styles.warningBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.warningText, { color: theme.textSecondary }]}>
             O chat será liberado somente após a empresa aceitar sua solicitação e
             confirmar o fluxo do chamado.
           </Text>

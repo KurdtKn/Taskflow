@@ -12,6 +12,7 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 import AssignmentIcon from "../../assets/icons/assignment.svg";
 
 import { styles } from "@/app/styles/freelancerProfile";
+import { useTheme } from "@/app/context/ThemeContext";
 
 const skills = [
   "Eventos",
@@ -66,6 +67,8 @@ export default function FreelancerProfileScreen() {
     candidatePrice?: string;
   }>();
 
+  const { isDark, theme } = useTheme();
+
   const jobTitle = params.jobTitle ?? "Garçom para Evento";
   const jobCategory = params.jobCategory ?? "Eventos";
   const jobPrice = params.jobPrice ?? "R$200,00";
@@ -93,15 +96,22 @@ export default function FreelancerProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Perfil do freelancer</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Perfil do freelancer
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -110,70 +120,156 @@ export default function FreelancerProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.profileCard}>
+        <View
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{candidateName.charAt(0)}</Text>
           </View>
 
-          <Text style={styles.name}>{candidateName}</Text>
+          <Text style={[styles.name, { color: theme.text }]}>
+            {candidateName}
+          </Text>
 
-          <Text style={styles.role}>Freelancer verificado</Text>
+          <Text style={[styles.role, { color: theme.textSecondary }]}>
+            Freelancer verificado
+          </Text>
 
           <View style={styles.ratingArea}>
             <Text style={styles.ratingIcon}>⭐</Text>
-            <Text style={styles.ratingText}>{candidateRating}</Text>
-            <Text style={styles.ratingSubtext}>• 24 serviços concluídos</Text>
+
+            <Text style={[styles.ratingText, { color: theme.text }]}>
+              {candidateRating}
+            </Text>
+
+            <Text style={[styles.ratingSubtext, { color: theme.textSecondary }]}>
+              • 24 serviços concluídos
+            </Text>
           </View>
 
           <View style={styles.statsArea}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>24</Text>
-              <Text style={styles.statLabel}>Serviços</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                24
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Serviços
+              </Text>
             </View>
 
-            <View style={styles.statDivider} />
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>98%</Text>
-              <Text style={styles.statLabel}>Satisfação</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                98%
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Satisfação
+              </Text>
             </View>
 
-            <View style={styles.statDivider} />
+            <View
+              style={[
+                styles.statDivider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>2 min</Text>
-              <Text style={styles.statLabel}>Resposta</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>
+                2 min
+              </Text>
+
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                Resposta
+              </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.serviceCard}>
-          <Text style={styles.sectionTitle}>Candidatura para o chamado</Text>
+        <View
+          style={[
+            styles.serviceCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Candidatura para o chamado
+          </Text>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Chamado</Text>
-            <Text style={styles.infoValue}>{jobTitle}</Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Chamado
+            </Text>
+
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {jobTitle}
+            </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Categoria</Text>
-            <Text style={styles.infoValue}>{jobCategory}</Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Categoria
+            </Text>
+
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {jobCategory}
+            </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Valor proposto</Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Valor proposto
+            </Text>
+
             <Text style={styles.priceValue}>{candidatePrice}</Text>
           </View>
         </View>
 
-        <View style={styles.aboutCard}>
-          <Text style={styles.sectionTitle}>Sobre o profissional</Text>
+        <View
+          style={[
+            styles.aboutCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Sobre o profissional
+          </Text>
 
-          <Text style={styles.aboutText}>
+          <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
             Profissional com experiência em serviços sob demanda, eventos e
             atendimento ao público. Busca manter boa comunicação com a empresa,
             pontualidade e organização durante todo o serviço.
@@ -181,30 +277,62 @@ export default function FreelancerProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Habilidades</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Habilidades
+          </Text>
 
           <View style={styles.skillsArea}>
             {skills.map((skill) => (
-              <View key={skill} style={styles.skillChip}>
-                <Text style={styles.skillText}>{skill}</Text>
+              <View
+                key={skill}
+                style={[
+                  styles.skillChip,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.skillText, { color: theme.text }]}>
+                  {skill}
+                </Text>
               </View>
             ))}
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Portfólio</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Portfólio
+          </Text>
 
           <View style={styles.portfolioList}>
             {portfolioItems.map((item) => (
-              <View key={item.id} style={styles.portfolioCard}>
+              <View
+                key={item.id}
+                style={[
+                  styles.portfolioCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
                 <View style={styles.portfolioIconBox}>
                   <AssignmentIcon width={24} height={24} />
                 </View>
 
                 <View style={styles.portfolioTextArea}>
-                  <Text style={styles.portfolioTitle}>{item.title}</Text>
-                  <Text style={styles.portfolioDescription}>
+                  <Text style={[styles.portfolioTitle, { color: theme.text }]}>
+                    {item.title}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.portfolioDescription,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
                     {item.description}
                   </Text>
                 </View>
@@ -214,26 +342,59 @@ export default function FreelancerProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Avaliações recentes</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Avaliações recentes
+          </Text>
 
           <View style={styles.reviewsList}>
             {reviews.map((review) => (
-              <View key={review.id} style={styles.reviewCard}>
+              <View
+                key={review.id}
+                style={[
+                  styles.reviewCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
                 <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewCompany}>{review.company}</Text>
-                  <Text style={styles.reviewRating}>⭐ {review.rating},0</Text>
+                  <Text style={[styles.reviewCompany, { color: theme.text }]}>
+                    {review.company}
+                  </Text>
+
+                  <Text style={styles.reviewRating}>
+                    ⭐ {review.rating},0
+                  </Text>
                 </View>
 
-                <Text style={styles.reviewComment}>{review.comment}</Text>
+                <Text
+                  style={[
+                    styles.reviewComment,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  {review.comment}
+                </Text>
               </View>
             ))}
           </View>
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Segurança na contratação</Text>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Segurança na contratação
+          </Text>
 
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             O chat só será liberado após a empresa aceitar o candidato e
             confirmar a taxa da plataforma.
           </Text>
@@ -252,11 +413,17 @@ export default function FreelancerProfileScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.secondaryButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             pressed && styles.secondaryButtonPressed,
           ]}
           onPress={() => router.back()}
         >
-          <Text style={styles.secondaryButtonText}>Voltar aos candidatos</Text>
+          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
+            Voltar aos candidatos
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

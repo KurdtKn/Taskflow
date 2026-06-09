@@ -24,6 +24,7 @@ import AssignmentIcon from "../../assets/icons/assignment.svg";
 import CrossIcon from "../../assets/icons/cross.svg";
 
 import { styles } from "@/app/styles/supportPaymentIssue";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type PaymentIssueType = "taxa" | "pix" | "cartao" | "reembolso";
 type PaymentMethod = "pix" | "card" | "wallet";
@@ -73,6 +74,8 @@ export default function SupportPaymentIssueScreen() {
   const [transactionCode, setTransactionCode] = useState("");
   const [description, setDescription] = useState("");
 
+  const { isDark, theme } = useTheme();
+
   function handleSendPaymentIssue() {
     if (!jobTitle.trim() || !paymentValue.trim() || !description.trim()) {
       Alert.alert(
@@ -95,8 +98,13 @@ export default function SupportPaymentIssueScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -107,7 +115,9 @@ export default function SupportPaymentIssueScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Problema com pagamento</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Problema com pagamento
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -116,11 +126,25 @@ export default function SupportPaymentIssueScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.heroCard}>
+          <View
+            style={[
+              styles.heroCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View>
-              <Text style={styles.heroLabel}>Suporte financeiro</Text>
-              <Text style={styles.heroTitle}>Ajuda com pagamento</Text>
-              <Text style={styles.heroText}>
+              <Text style={[styles.heroLabel, { color: theme.primary }]}>
+                Suporte financeiro
+              </Text>
+
+              <Text style={[styles.heroTitle, { color: theme.text }]}>
+                Ajuda com pagamento
+              </Text>
+
+              <Text style={[styles.heroText, { color: theme.textSecondary }]}>
                 Relate cobranças, taxas, Pix, cartão ou reembolsos.
               </Text>
             </View>
@@ -131,7 +155,9 @@ export default function SupportPaymentIssueScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tipo de problema</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Tipo de problema
+            </Text>
 
             <View style={styles.issueList}>
               {paymentIssues.map((issue) => {
@@ -143,6 +169,10 @@ export default function SupportPaymentIssueScreen() {
                     key={issue.id}
                     style={[
                       styles.issueCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
                       isSelected && styles.issueCardActive,
                     ]}
                     onPress={() => setSelectedIssue(issue.id)}
@@ -155,6 +185,7 @@ export default function SupportPaymentIssueScreen() {
                       <Text
                         style={[
                           styles.issueTitle,
+                          { color: theme.text },
                           isSelected && styles.issueTitleActive,
                         ]}
                       >
@@ -164,6 +195,7 @@ export default function SupportPaymentIssueScreen() {
                       <Text
                         style={[
                           styles.issueSubtitle,
+                          { color: theme.textSecondary },
                           isSelected && styles.issueSubtitleActive,
                         ]}
                       >
@@ -174,6 +206,7 @@ export default function SupportPaymentIssueScreen() {
                     <View
                       style={[
                         styles.radio,
+                        { borderColor: theme.border },
                         isSelected && styles.radioActive,
                       ]}
                     >
@@ -186,12 +219,18 @@ export default function SupportPaymentIssueScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Forma de pagamento</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Forma de pagamento
+            </Text>
 
             <View style={styles.paymentMethods}>
               <Pressable
                 style={[
                   styles.paymentMethod,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   paymentMethod === "pix" && styles.paymentMethodActive,
                 ]}
                 onPress={() => setPaymentMethod("pix")}
@@ -201,6 +240,7 @@ export default function SupportPaymentIssueScreen() {
                 <Text
                   style={[
                     styles.paymentMethodText,
+                    { color: theme.textSecondary },
                     paymentMethod === "pix" && styles.paymentMethodTextActive,
                   ]}
                 >
@@ -211,6 +251,10 @@ export default function SupportPaymentIssueScreen() {
               <Pressable
                 style={[
                   styles.paymentMethod,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   paymentMethod === "card" && styles.paymentMethodActive,
                 ]}
                 onPress={() => setPaymentMethod("card")}
@@ -220,6 +264,7 @@ export default function SupportPaymentIssueScreen() {
                 <Text
                   style={[
                     styles.paymentMethodText,
+                    { color: theme.textSecondary },
                     paymentMethod === "card" && styles.paymentMethodTextActive,
                   ]}
                 >
@@ -230,6 +275,10 @@ export default function SupportPaymentIssueScreen() {
               <Pressable
                 style={[
                   styles.paymentMethod,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   paymentMethod === "wallet" && styles.paymentMethodActive,
                 ]}
                 onPress={() => setPaymentMethod("wallet")}
@@ -239,6 +288,7 @@ export default function SupportPaymentIssueScreen() {
                 <Text
                   style={[
                     styles.paymentMethodText,
+                    { color: theme.textSecondary },
                     paymentMethod === "wallet" &&
                       styles.paymentMethodTextActive,
                   ]}
@@ -250,15 +300,25 @@ export default function SupportPaymentIssueScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Chamado relacionado</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Chamado relacionado
+            </Text>
 
-            <View style={styles.inputWithIcon}>
+            <View
+              style={[
+                styles.inputWithIcon,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
               <AssignmentIcon width={20} height={20} />
 
               <TextInput
-                style={styles.inputInside}
+                style={[styles.inputInside, { color: theme.text }]}
                 placeholder="Ex: Garçom para Evento"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.textSecondary}
                 value={jobTitle}
                 onChangeText={setJobTitle}
               />
@@ -267,12 +327,21 @@ export default function SupportPaymentIssueScreen() {
 
           <View style={styles.twoColumns}>
             <View style={styles.columnItem}>
-              <Text style={styles.label}>Valor</Text>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Valor
+              </Text>
 
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  },
+                ]}
                 placeholder="R$ 200,00"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.textSecondary}
                 keyboardType="numeric"
                 value={paymentValue}
                 onChangeText={setPaymentValue}
@@ -280,15 +349,25 @@ export default function SupportPaymentIssueScreen() {
             </View>
 
             <View style={styles.columnItem}>
-              <Text style={styles.label}>Data</Text>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Data
+              </Text>
 
-              <View style={styles.inputWithIcon}>
+              <View
+                style={[
+                  styles.inputWithIcon,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
                 <CalendarIcon width={18} height={18} />
 
                 <TextInput
-                  style={styles.inputInside}
+                  style={[styles.inputInside, { color: theme.text }]}
                   placeholder="Hoje"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.textSecondary}
                   value={paymentDate}
                   onChangeText={setPaymentDate}
                 />
@@ -297,12 +376,21 @@ export default function SupportPaymentIssueScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Código da transação</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Código da transação
+            </Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Ex: TX-123456 ou ID do pagamento"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               autoCapitalize="characters"
               value={transactionCode}
               onChangeText={setTransactionCode}
@@ -310,12 +398,22 @@ export default function SupportPaymentIssueScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Descreva o problema</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Descreva o problema
+            </Text>
 
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Explique o que aconteceu com o pagamento..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               multiline
               textAlignVertical="top"
               value={description}
@@ -323,22 +421,43 @@ export default function SupportPaymentIssueScreen() {
             />
           </View>
 
-          <View style={styles.warningBox}>
-            <Text style={styles.warningTitle}>Importante</Text>
+          <View
+            style={[
+              styles.warningBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.warningTitle, { color: theme.text }]}>
+              Importante
+            </Text>
 
-            <Text style={styles.warningText}>
+            <Text style={[styles.warningText, { color: theme.textSecondary }]}>
               Guarde comprovantes, prints e dados da transação. Na versão final,
               esses anexos poderão ser enviados junto da solicitação.
             </Text>
           </View>
 
-          <View style={styles.infoBox}>
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.infoHeader}>
               <SupportIcon width={22} height={22} />
-              <Text style={styles.infoTitle}>Análise financeira</Text>
+
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Análise financeira
+              </Text>
             </View>
 
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
               No protótipo, o envio é simulado. Depois, essa solicitação será
               enviada para a API e vinculada ao pagamento no banco.
             </Text>
@@ -358,11 +477,17 @@ export default function SupportPaymentIssueScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.cancelButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && styles.buttonPressed,
             ]}
             onPress={() => router.back()}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text style={[styles.cancelButtonText, { color: theme.text }]}>
+              Cancelar
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

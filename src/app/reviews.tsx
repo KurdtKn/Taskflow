@@ -11,6 +11,7 @@ import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/reviews";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type ReviewType = "received" | "sent";
 
@@ -90,6 +91,8 @@ function renderStars(rating: number) {
 export default function ReviewsScreen() {
   const [selectedType, setSelectedType] = useState<ReviewType>("received");
 
+  const { isDark, theme } = useTheme();
+
   const filteredReviews = useMemo(() => {
     return reviewsData.filter((review) => review.type === selectedType);
   }, [selectedType]);
@@ -103,15 +106,22 @@ export default function ReviewsScreen() {
     receivedReviews.length;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Avaliações</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Avaliações
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -120,7 +130,15 @@ export default function ReviewsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.summaryCard}>
+        <View
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.ratingCircle}>
             <Text style={styles.averageRating}>
               {averageRating.toFixed(1)}
@@ -128,36 +146,76 @@ export default function ReviewsScreen() {
           </View>
 
           <View style={styles.summaryContent}>
-            <Text style={styles.summaryTitle}>Reputação no TaskFlow</Text>
+            <Text style={[styles.summaryTitle, { color: theme.text }]}>
+              Reputação no TaskFlow
+            </Text>
 
             <Text style={styles.summaryStars}>
               {renderStars(Math.round(averageRating))}
             </Text>
 
-            <Text style={styles.summarySubtitle}>
+            <Text style={[styles.summarySubtitle, { color: theme.textSecondary }]}>
               Baseado em {receivedReviews.length} avaliações recebidas
             </Text>
           </View>
         </View>
 
         <View style={styles.statsArea}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>24</Text>
-            <Text style={styles.statLabel}>Total</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>24</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              Total
+            </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>92%</Text>
-            <Text style={styles.statLabel}>Satisfação</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>92%</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              Satisfação
+            </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>18</Text>
-            <Text style={styles.statLabel}>Serviços</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>18</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              Serviços
+            </Text>
           </View>
         </View>
 
-        <View style={styles.filterArea}>
+        <View
+          style={[
+            styles.filterArea,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <Pressable
             style={[
               styles.filterButton,
@@ -168,6 +226,7 @@ export default function ReviewsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedType === "received" && styles.filterTextActive,
               ]}
             >
@@ -185,6 +244,7 @@ export default function ReviewsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedType === "sent" && styles.filterTextActive,
               ]}
             >
@@ -195,7 +255,16 @@ export default function ReviewsScreen() {
 
         <View style={styles.reviewsList}>
           {filteredReviews.map((review) => (
-            <View key={review.id} style={styles.reviewCard}>
+            <View
+              key={review.id}
+              style={[
+                styles.reviewCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
               <View style={styles.reviewHeader}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
@@ -204,29 +273,50 @@ export default function ReviewsScreen() {
                 </View>
 
                 <View style={styles.reviewInfo}>
-                  <Text style={styles.reviewAuthor}>
+                  <Text style={[styles.reviewAuthor, { color: theme.text }]}>
                     {review.type === "received"
                       ? review.author
                       : `Para ${review.target}`}
                   </Text>
 
-                  <Text style={styles.reviewService}>{review.service}</Text>
+                  <Text
+                    style={[
+                      styles.reviewService,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {review.service}
+                  </Text>
                 </View>
 
-                <Text style={styles.reviewDate}>{review.date}</Text>
+                <Text style={[styles.reviewDate, { color: theme.textSecondary }]}>
+                  {review.date}
+                </Text>
               </View>
 
               <Text style={styles.stars}>{renderStars(review.rating)}</Text>
 
-              <Text style={styles.comment}>{review.comment}</Text>
+              <Text style={[styles.comment, { color: theme.text }]}>
+                {review.comment}
+              </Text>
             </View>
           ))}
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Importância das avaliações</Text>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Importância das avaliações
+          </Text>
 
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             As avaliações ajudam empresas e freelancers a criarem confiança,
             transparência e reputação dentro da plataforma.
           </Text>

@@ -11,6 +11,7 @@ import { router } from "expo-router";
 
 import { styles } from "@/app/styles/notifications";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 import LocationIcon from "../../../assets/icons/Location-check.svg";
 import AssignmentIcon from "../../../assets/icons/assignment.svg";
@@ -118,6 +119,8 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] =
     useState<NotificationItem[]>(notificationsData);
 
+  const { isDark, theme } = useTheme();
+
   const filteredNotifications = useMemo(() => {
     if (selectedFilter === "unread") {
       return notifications.filter((notification) => notification.unread);
@@ -191,13 +194,21 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Notificações</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: theme.text }]}>
+            Notificações
+          </Text>
+
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             {unreadCount > 0
               ? `${unreadCount} notificações não lidas`
               : "Tudo em dia por aqui"}
@@ -213,6 +224,10 @@ export default function NotificationsScreen() {
         <Pressable
           style={[
             styles.filterChip,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             selectedFilter === "all" && styles.filterChipActive,
           ]}
           onPress={() => setSelectedFilter("all")}
@@ -220,6 +235,7 @@ export default function NotificationsScreen() {
           <Text
             style={[
               styles.filterText,
+              { color: theme.textSecondary },
               selectedFilter === "all" && styles.filterTextActive,
             ]}
           >
@@ -230,6 +246,10 @@ export default function NotificationsScreen() {
         <Pressable
           style={[
             styles.filterChip,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             selectedFilter === "unread" && styles.filterChipActive,
           ]}
           onPress={() => setSelectedFilter("unread")}
@@ -237,6 +257,7 @@ export default function NotificationsScreen() {
           <Text
             style={[
               styles.filterText,
+              { color: theme.textSecondary },
               selectedFilter === "unread" && styles.filterTextActive,
             ]}
           >
@@ -247,6 +268,10 @@ export default function NotificationsScreen() {
         <Pressable
           style={[
             styles.filterChip,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             selectedFilter === "jobs" && styles.filterChipActive,
           ]}
           onPress={() => setSelectedFilter("jobs")}
@@ -254,6 +279,7 @@ export default function NotificationsScreen() {
           <Text
             style={[
               styles.filterText,
+              { color: theme.textSecondary },
               selectedFilter === "jobs" && styles.filterTextActive,
             ]}
           >
@@ -267,12 +293,22 @@ export default function NotificationsScreen() {
         contentContainerStyle={styles.notificationsList}
       >
         {filteredNotifications.length === 0 ? (
-          <View style={styles.emptyArea}>
+          <View
+            style={[
+              styles.emptyArea,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <BellIcon width={38} height={38} />
 
-            <Text style={styles.emptyTitle}>Nenhuma notificação</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              Nenhuma notificação
+            </Text>
 
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
               Quando houver novidades, elas aparecerão aqui.
             </Text>
           </View>
@@ -282,6 +318,10 @@ export default function NotificationsScreen() {
               key={notification.id}
               style={({ pressed }) => [
                 styles.notificationCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
                 notification.unread && styles.notificationCardUnread,
                 pressed && styles.notificationCardPressed,
               ]}
@@ -293,16 +333,31 @@ export default function NotificationsScreen() {
 
               <View style={styles.notificationContent}>
                 <View style={styles.notificationTop}>
-                  <Text style={styles.notificationTitle}>
+                  <Text
+                    style={[
+                      styles.notificationTitle,
+                      { color: theme.text },
+                    ]}
+                  >
                     {notification.title}
                   </Text>
 
-                  <Text style={styles.notificationTime}>
+                  <Text
+                    style={[
+                      styles.notificationTime,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
                     {notification.time}
                   </Text>
                 </View>
 
-                <Text style={styles.notificationDescription}>
+                <Text
+                  style={[
+                    styles.notificationDescription,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   {notification.description}
                 </Text>
               </View>

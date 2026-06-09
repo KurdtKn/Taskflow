@@ -3,19 +3,27 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import { styles } from "@/app/styles/welcome";
+import { useTheme } from "@/app/context/ThemeContext";
 
 export default function WelcomeScreen() {
+  const { isDark, theme } = useTheme();
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.content}>
         <View style={styles.textArea}>
-          <Text style={styles.title}>
+          <Text style={[styles.title, { color: theme.text }]}>
             Conectando{"\n"}quem precisa{"\n"}com quem faz!
           </Text>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             Encontre serviços rápidos e confiáveis perto de você.
           </Text>
         </View>
@@ -38,7 +46,7 @@ export default function WelcomeScreen() {
       </Pressable>
 
       <Pressable style={styles.loginArea} onPress={() => router.push("/login")}>
-        <Text style={styles.loginText}>
+        <Text style={[styles.loginText, { color: theme.textSecondary }]}>
           Já tem uma conta? <Text style={styles.loginLink}>Entrar</Text>
         </Text>
       </Pressable>

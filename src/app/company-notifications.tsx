@@ -19,6 +19,7 @@ import CheckIcon from "../../assets/icons/check.svg";
 
 import { styles } from "@/app/styles/companyNotifications";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type NotificationType = "candidate" | "payment" | "message" | "service";
 type NotificationFilter = "all" | "unread" | NotificationType;
@@ -121,6 +122,8 @@ export default function CompanyNotificationsScreen() {
   const [notifications, setNotifications] =
     useState<CompanyNotification[]>(notificationsData);
 
+  const { isDark, theme } = useTheme();
+
   const unreadCount = notifications.filter(
     (notification) => !notification.isRead
   ).length;
@@ -187,15 +190,22 @@ export default function CompanyNotificationsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Notificações</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Notificações
+        </Text>
 
         <Pressable style={styles.markAllButton} onPress={markAllAsRead}>
           <Text style={styles.markAllText}>Ler todas</Text>
@@ -206,15 +216,27 @@ export default function CompanyNotificationsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.summaryCard}>
+        <View
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View>
-            <Text style={styles.summaryLabel}>Central da empresa</Text>
-            <Text style={styles.summaryTitle}>
+            <Text style={[styles.summaryLabel, { color: theme.primary }]}>
+              Central da empresa
+            </Text>
+
+            <Text style={[styles.summaryTitle, { color: theme.text }]}>
               {unreadCount > 0
                 ? `${unreadCount} novas notificações`
                 : "Tudo em dia"}
             </Text>
-            <Text style={styles.summaryText}>
+
+            <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
               Acompanhe candidaturas, pagamentos, mensagens e andamento dos
               serviços.
             </Text>
@@ -229,6 +251,10 @@ export default function CompanyNotificationsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "all" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("all")}
@@ -236,6 +262,7 @@ export default function CompanyNotificationsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "all" && styles.filterTextActive,
               ]}
             >
@@ -246,6 +273,10 @@ export default function CompanyNotificationsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "unread" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("unread")}
@@ -253,6 +284,7 @@ export default function CompanyNotificationsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "unread" && styles.filterTextActive,
               ]}
             >
@@ -263,6 +295,10 @@ export default function CompanyNotificationsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "candidate" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("candidate")}
@@ -270,6 +306,7 @@ export default function CompanyNotificationsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "candidate" && styles.filterTextActive,
               ]}
             >
@@ -280,6 +317,10 @@ export default function CompanyNotificationsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "payment" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("payment")}
@@ -287,6 +328,7 @@ export default function CompanyNotificationsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "payment" && styles.filterTextActive,
               ]}
             >
@@ -296,8 +338,11 @@ export default function CompanyNotificationsScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Atividades recentes</Text>
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Atividades recentes
+          </Text>
+
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Toque em uma notificação para acompanhar a atividade.
           </Text>
         </View>
@@ -312,6 +357,10 @@ export default function CompanyNotificationsScreen() {
                 key={notification.id}
                 style={({ pressed }) => [
                   styles.notificationCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   !notification.isRead && styles.notificationCardUnread,
                   pressed && styles.notificationCardPressed,
                 ]}
@@ -328,14 +377,24 @@ export default function CompanyNotificationsScreen() {
 
                 <View style={styles.notificationContent}>
                   <View style={styles.notificationTop}>
-                    <Text style={styles.notificationTitle}>
+                    <Text
+                      style={[
+                        styles.notificationTitle,
+                        { color: theme.text },
+                      ]}
+                    >
                       {notification.title}
                     </Text>
 
                     {!notification.isRead && <View style={styles.unreadDot} />}
                   </View>
 
-                  <Text style={styles.notificationDescription}>
+                  <Text
+                    style={[
+                      styles.notificationDescription,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
                     {notification.description}
                   </Text>
 
@@ -356,7 +415,9 @@ export default function CompanyNotificationsScreen() {
                       </Text>
                     </View>
 
-                    <Text style={styles.timeText}>{notification.time}</Text>
+                    <Text style={[styles.timeText, { color: theme.textSecondary }]}>
+                      {notification.time}
+                    </Text>
                   </View>
                 </View>
               </Pressable>
@@ -364,10 +425,20 @@ export default function CompanyNotificationsScreen() {
           })}
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Push notifications</Text>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Push notifications
+          </Text>
 
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             No app real, essa tela será integrada com notificações no celular,
             avisando a empresa sobre candidatos, pagamentos e mensagens.
           </Text>

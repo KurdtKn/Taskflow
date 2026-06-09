@@ -16,6 +16,7 @@ import WalletIcon from "../../assets/icons/wallet.svg";
 import SendIcon from "../../assets/icons/send.svg";
 
 import { styles } from "@/app/styles/payment";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type PaymentMethod = "card" | "pix" | "wallet";
 
@@ -64,6 +65,8 @@ export default function PaymentScreen() {
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("pix");
 
+  const { isDark, theme } = useTheme();
+
   const jobTitle = params.jobTitle ?? "Garçom para Evento";
   const candidateName = params.candidateName ?? "Usuário TaskFlow";
   const serviceValue = params.serviceValue ?? "R$200,00";
@@ -92,15 +95,22 @@ export default function PaymentScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Pagamento</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Pagamento
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -109,42 +119,89 @@ export default function PaymentScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.introCard}>
+        <View
+          style={[
+            styles.introCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.iconBox}>
             <CreditCardIcon width={34} height={34} />
           </View>
 
-          <Text style={styles.introTitle}>Pagamento da taxa</Text>
+          <Text style={[styles.introTitle, { color: theme.text }]}>
+            Pagamento da taxa
+          </Text>
 
-          <Text style={styles.introText}>
+          <Text style={[styles.introText, { color: theme.textSecondary }]}>
             Confirme o pagamento da taxa da plataforma para liberar o chat com o
             freelancer.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumo do chamado</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Resumo do chamado
+          </Text>
 
-          <View style={styles.jobCard}>
-            <Text style={styles.jobTitle}>{jobTitle}</Text>
+          <View
+            style={[
+              styles.jobCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.jobTitle, { color: theme.text }]}>
+              {jobTitle}
+            </Text>
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Freelancer</Text>
-              <Text style={styles.infoValue}>{candidateName}</Text>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Freelancer
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                {candidateName}
+              </Text>
             </View>
 
-            <View style={styles.divider} />
+            <View
+              style={[
+                styles.divider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Valor do serviço</Text>
-              <Text style={styles.infoValue}>{serviceValue}</Text>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Valor do serviço
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                {serviceValue}
+              </Text>
             </View>
 
-            <View style={styles.divider} />
+            <View
+              style={[
+                styles.divider,
+                { backgroundColor: theme.border },
+              ]}
+            />
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Taxa da plataforma</Text>
-              <Text style={styles.infoValue}>{platformFee}</Text>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Taxa da plataforma
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                {platformFee}
+              </Text>
             </View>
 
             <View style={styles.totalArea}>
@@ -155,7 +212,9 @@ export default function PaymentScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Forma de pagamento</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Forma de pagamento
+          </Text>
 
           <View style={styles.methodsArea}>
             {paymentMethods.map((method) => {
@@ -167,6 +226,10 @@ export default function PaymentScreen() {
                   key={method.id}
                   style={[
                     styles.methodCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
                     isSelected && styles.methodCardActive,
                   ]}
                   onPress={() => setSelectedMethod(method.id)}
@@ -176,8 +239,21 @@ export default function PaymentScreen() {
                   </View>
 
                   <View style={styles.methodTextArea}>
-                    <Text style={styles.methodTitle}>{method.title}</Text>
-                    <Text style={styles.methodSubtitle}>
+                    <Text
+                      style={[
+                        styles.methodTitle,
+                        { color: theme.text },
+                      ]}
+                    >
+                      {method.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.methodSubtitle,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {method.subtitle}
                     </Text>
                   </View>
@@ -185,6 +261,7 @@ export default function PaymentScreen() {
                   <View
                     style={[
                       styles.radio,
+                      { borderColor: theme.border },
                       isSelected && styles.radioActive,
                     ]}
                   />
@@ -194,10 +271,20 @@ export default function PaymentScreen() {
           </View>
         </View>
 
-        <View style={styles.warningBox}>
-          <Text style={styles.warningTitle}>Liberação do chat</Text>
+        <View
+          style={[
+            styles.warningBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.warningTitle, { color: theme.text }]}>
+            Liberação do chat
+          </Text>
 
-          <Text style={styles.warningText}>
+          <Text style={[styles.warningText, { color: theme.textSecondary }]}>
             Após a confirmação do pagamento, o chat entre empresa e freelancer
             será liberado para combinar os detalhes finais do serviço.
           </Text>

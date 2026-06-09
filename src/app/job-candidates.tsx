@@ -16,6 +16,7 @@ import LocationIcon from "../../assets/icons/Location-check.svg";
 import TimeIcon from "../../assets/icons/access_time.svg";
 
 import { styles } from "@/app/styles/jobCandidates";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type Candidate = {
   id: string;
@@ -88,6 +89,8 @@ export default function JobCandidatesScreen() {
     initialCandidates[0]?.id ?? ""
   );
 
+  const { isDark, theme } = useTheme();
+
   const jobTitle = params.title ?? "Garçom para Evento";
   const jobCategory = params.category ?? "Eventos";
   const jobPrice = params.price ?? "R$200,00";
@@ -147,15 +150,22 @@ export default function JobCandidatesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Candidatos</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Candidatos
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -164,9 +174,22 @@ export default function JobCandidatesScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.jobCard}>
-          <Text style={styles.jobLabel}>Chamado</Text>
-          <Text style={styles.jobTitle}>{jobTitle}</Text>
+        <View
+          style={[
+            styles.jobCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.jobLabel, { color: theme.primary }]}>
+            Chamado
+          </Text>
+
+          <Text style={[styles.jobTitle, { color: theme.text }]}>
+            {jobTitle}
+          </Text>
 
           <View style={styles.jobInfoArea}>
             <View style={styles.jobInfoRow}>
@@ -174,7 +197,9 @@ export default function JobCandidatesScreen() {
                 <WalletIcon width={18} height={18} />
               </View>
 
-              <Text style={styles.jobInfoText}>{jobPrice}</Text>
+              <Text style={[styles.jobInfoText, { color: theme.text }]}>
+                {jobPrice}
+              </Text>
             </View>
 
             <View style={styles.jobInfoRow}>
@@ -182,7 +207,9 @@ export default function JobCandidatesScreen() {
                 <LocationIcon width={18} height={18} />
               </View>
 
-              <Text style={styles.jobInfoText}>{jobLocation}</Text>
+              <Text style={[styles.jobInfoText, { color: theme.text }]}>
+                {jobLocation}
+              </Text>
             </View>
 
             <View style={styles.jobInfoRow}>
@@ -190,15 +217,20 @@ export default function JobCandidatesScreen() {
                 <TimeIcon width={18} height={18} />
               </View>
 
-              <Text style={styles.jobInfoText}>{jobTime}</Text>
+              <Text style={[styles.jobInfoText, { color: theme.text }]}>
+                {jobTime}
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>Freelancers interessados</Text>
-            <Text style={styles.sectionSubtitle}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Freelancers interessados
+            </Text>
+
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
               {candidates.length} candidatos encontrados
             </Text>
           </View>
@@ -206,9 +238,20 @@ export default function JobCandidatesScreen() {
 
         <View style={styles.candidatesList}>
           {candidates.length === 0 ? (
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>Nenhum candidato disponível</Text>
-              <Text style={styles.infoText}>
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Nenhum candidato disponível
+              </Text>
+
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
                 Todos os candidatos foram recusados ou ainda não há novas
                 candidaturas para esse chamado.
               </Text>
@@ -222,6 +265,10 @@ export default function JobCandidatesScreen() {
                   key={candidate.id}
                   style={({ pressed }) => [
                     styles.candidateCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
                     isSelected && styles.candidateCardSelected,
                     pressed && styles.candidateCardPressed,
                   ]}
@@ -235,17 +282,28 @@ export default function JobCandidatesScreen() {
                     />
 
                     <View style={styles.candidateInfo}>
-                      <Text style={styles.candidateName}>
+                      <Text style={[styles.candidateName, { color: theme.text }]}>
                         {candidate.name}
                       </Text>
 
-                      <Text style={styles.candidateRole}>
+                      <Text
+                        style={[
+                          styles.candidateRole,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         {candidate.role}
                       </Text>
 
                       <View style={styles.ratingArea}>
                         <Text style={styles.ratingIcon}>⭐</Text>
-                        <Text style={styles.ratingText}>
+
+                        <Text
+                          style={[
+                            styles.ratingText,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
                           {candidate.rating} • {candidate.reviews} avaliações
                         </Text>
                       </View>
@@ -256,53 +314,87 @@ export default function JobCandidatesScreen() {
                     </Text>
                   </View>
 
-                  <Text style={styles.description}>
+                  <Text style={[styles.description, { color: theme.textSecondary }]}>
                     {candidate.description}
                   </Text>
 
                   <View style={styles.skillsArea}>
                     {candidate.skills.map((skill) => (
-                      <View key={skill} style={styles.skillChip}>
-                        <Text style={styles.skillText}>{skill}</Text>
+                      <View
+                        key={skill}
+                        style={[
+                          styles.skillChip,
+                          {
+                            backgroundColor: theme.background,
+                            borderColor: theme.border,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.skillText, { color: theme.text }]}>
+                          {skill}
+                        </Text>
                       </View>
                     ))}
                   </View>
 
                   <View style={styles.statsArea}>
                     <View style={styles.statItem}>
-                      <Text style={styles.statNumber}>
+                      <Text style={[styles.statNumber, { color: theme.text }]}>
                         {candidate.completedJobs}
                       </Text>
-                      <Text style={styles.statLabel}>serviços</Text>
+
+                      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                        serviços
+                      </Text>
                     </View>
 
-                    <View style={styles.statDivider} />
+                    <View
+                      style={[
+                        styles.statDivider,
+                        { backgroundColor: theme.border },
+                      ]}
+                    />
 
                     <View style={styles.statItem}>
-                      <Text style={styles.statNumber}>
+                      <Text style={[styles.statNumber, { color: theme.text }]}>
                         {candidate.distance}
                       </Text>
-                      <Text style={styles.statLabel}>distância</Text>
+
+                      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                        distância
+                      </Text>
                     </View>
 
-                    <View style={styles.statDivider} />
+                    <View
+                      style={[
+                        styles.statDivider,
+                        { backgroundColor: theme.border },
+                      ]}
+                    />
 
                     <View style={styles.statItem}>
-                      <Text style={styles.statNumber}>
+                      <Text style={[styles.statNumber, { color: theme.text }]}>
                         {candidate.rating}
                       </Text>
-                      <Text style={styles.statLabel}>nota</Text>
+
+                      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                        nota
+                      </Text>
                     </View>
                   </View>
 
                   <Pressable
                     style={({ pressed }) => [
                       styles.profileButton,
+                      {
+                        backgroundColor: theme.background,
+                        borderColor: theme.border,
+                      },
                       pressed && styles.profileButtonPressed,
                     ]}
                     onPress={() => handleViewFreelancerProfile(candidate)}
                   >
-                    <Text style={styles.profileButtonText}>
+                    <Text style={[styles.profileButtonText, { color: theme.text }]}>
                       Ver perfil completo
                     </Text>
                   </Pressable>
@@ -311,6 +403,10 @@ export default function JobCandidatesScreen() {
                     <Pressable
                       style={({ pressed }) => [
                         styles.rejectButton,
+                        {
+                          backgroundColor: theme.card,
+                          borderColor: theme.border,
+                        },
                         pressed && styles.rejectButtonPressed,
                       ]}
                       onPress={() => handleRejectCandidate(candidate)}
@@ -334,9 +430,20 @@ export default function JobCandidatesScreen() {
           )}
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Antes de aceitar</Text>
-          <Text style={styles.infoText}>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Antes de aceitar
+          </Text>
+
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             Analise a avaliação, experiência e distância do freelancer. Após o
             aceite, o próximo passo será revisar o resumo do chamado e confirmar
             o fluxo.
@@ -344,7 +451,7 @@ export default function JobCandidatesScreen() {
         </View>
 
         {selectedCandidate && (
-          <Text style={styles.selectedText}>
+          <Text style={[styles.selectedText, { color: theme.textSecondary }]}>
             Selecionado: {selectedCandidate.name}
           </Text>
         )}

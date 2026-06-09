@@ -13,6 +13,7 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 import CheckIcon from "../../assets/icons/check.svg";
 
 import { styles } from "@/app/styles/serviceCompletion";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type ChecklistItem = {
   id: string;
@@ -49,6 +50,8 @@ export default function ServiceCompletionScreen() {
 
   const [checkedItems, setCheckedItems] = useState<string[]>(["1"]);
 
+  const { isDark, theme } = useTheme();
+
   function toggleChecklistItem(itemId: string) {
     setCheckedItems((currentItems) => {
       if (currentItems.includes(itemId)) {
@@ -82,15 +85,22 @@ export default function ServiceCompletionScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Conclusão do serviço</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Conclusão do serviço
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -99,41 +109,78 @@ export default function ServiceCompletionScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.introCard}>
+        <View
+          style={[
+            styles.introCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.iconBox}>
             <CheckIcon width={34} height={34} />
           </View>
 
-          <Text style={styles.introTitle}>Finalizar chamado</Text>
+          <Text style={[styles.introTitle, { color: theme.text }]}>
+            Finalizar chamado
+          </Text>
 
-          <Text style={styles.introText}>
+          <Text style={[styles.introText, { color: theme.textSecondary }]}>
             Confirme se o serviço foi realizado corretamente antes de encerrar o
             chamado.
           </Text>
         </View>
 
-        <View style={styles.serviceCard}>
-          <Text style={styles.cardLabel}>Chamado em andamento</Text>
+        <View
+          style={[
+            styles.serviceCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardLabel, { color: theme.primary }]}>
+            Chamado em andamento
+          </Text>
 
-          <Text style={styles.serviceTitle}>{jobTitle}</Text>
+          <Text style={[styles.serviceTitle, { color: theme.text }]}>
+            {jobTitle}
+          </Text>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Freelancer</Text>
-            <Text style={styles.infoValue}>{candidateName}</Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Freelancer
+            </Text>
+
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {candidateName}
+            </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Status</Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Status
+            </Text>
+
             <Text style={styles.statusValue}>Aguardando conclusão</Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Checklist de finalização</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Checklist de finalização
+          </Text>
 
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Marque os itens abaixo para confirmar que está tudo certo.
           </Text>
 
@@ -146,6 +193,10 @@ export default function ServiceCompletionScreen() {
                   key={item.id}
                   style={[
                     styles.checkItem,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
                     isChecked && styles.checkItemActive,
                   ]}
                   onPress={() => toggleChecklistItem(item.id)}
@@ -153,6 +204,7 @@ export default function ServiceCompletionScreen() {
                   <View
                     style={[
                       styles.checkbox,
+                      { borderColor: theme.border },
                       isChecked && styles.checkboxActive,
                     ]}
                   >
@@ -160,8 +212,16 @@ export default function ServiceCompletionScreen() {
                   </View>
 
                   <View style={styles.checkTextArea}>
-                    <Text style={styles.checkTitle}>{item.title}</Text>
-                    <Text style={styles.checkDescription}>
+                    <Text style={[styles.checkTitle, { color: theme.text }]}>
+                      {item.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.checkDescription,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {item.description}
                     </Text>
                   </View>
@@ -171,10 +231,20 @@ export default function ServiceCompletionScreen() {
           </View>
         </View>
 
-        <View style={styles.warningBox}>
-          <Text style={styles.warningTitle}>Depois da conclusão</Text>
+        <View
+          style={[
+            styles.warningBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.warningTitle, { color: theme.text }]}>
+            Depois da conclusão
+          </Text>
 
-          <Text style={styles.warningText}>
+          <Text style={[styles.warningText, { color: theme.textSecondary }]}>
             Após finalizar o serviço, a próxima etapa será avaliar o freelancer.
             Essa avaliação ajuda a manter a confiança dentro da plataforma.
           </Text>
@@ -195,11 +265,17 @@ export default function ServiceCompletionScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.secondaryButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             pressed && styles.secondaryButtonPressed,
           ]}
           onPress={() => router.back()}
         >
-          <Text style={styles.secondaryButtonText}>Voltar ao chat</Text>
+          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
+            Voltar ao chat
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

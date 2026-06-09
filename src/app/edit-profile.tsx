@@ -17,6 +17,7 @@ import { router } from "expo-router";
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/editProfile";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type Skill = {
   id: string;
@@ -50,6 +51,8 @@ export default function EditProfileScreen() {
     "Garçom",
     "Serviços gerais",
   ]);
+
+  const { isDark, theme } = useTheme();
 
   function formatPhone(value: string) {
     const numbersOnly = value.replace(/\D/g, "").slice(0, 11);
@@ -97,8 +100,13 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -109,7 +117,9 @@ export default function EditProfileScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Editar perfil</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Editar perfil
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -131,69 +141,137 @@ export default function EditProfileScreen() {
               </Pressable>
             </View>
 
-            <Text style={styles.avatarText}>Alterar foto do perfil</Text>
+            <Text style={[styles.avatarText, { color: theme.textSecondary }]}>
+              Alterar foto do perfil
+            </Text>
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Nome completo</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Nome completo
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Digite seu nome"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={name}
               onChangeText={setName}
             />
 
-            <Text style={styles.label}>Telefone</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Telefone
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="(00) 00000-0000"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={phone}
               onChangeText={handleChangePhone}
               keyboardType="phone-pad"
               maxLength={15}
             />
 
-            <Text style={styles.label}>Biografia</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Biografia
+            </Text>
+
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Conte um pouco sobre você"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={bio}
               onChangeText={setBio}
               multiline
               textAlignVertical="top"
             />
 
-            <Text style={styles.label}>Experiência</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Experiência
+            </Text>
+
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Descreva suas experiências profissionais"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={experience}
               onChangeText={setExperience}
               multiline
               textAlignVertical="top"
             />
 
-            <Text style={styles.label}>Link do portfólio</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Link do portfólio
+            </Text>
+
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="https://seuportfolio.com"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={portfolioUrl}
               onChangeText={setPortfolioUrl}
               autoCapitalize="none"
               keyboardType="url"
             />
 
-            <View style={styles.availabilityCard}>
+            <View
+              style={[
+                styles.availabilityCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
               <View>
-                <Text style={styles.availabilityTitle}>
+                <Text style={[styles.availabilityTitle, { color: theme.text }]}>
                   Disponível para chamados
                 </Text>
-                <Text style={styles.availabilitySubtitle}>
+
+                <Text
+                  style={[
+                    styles.availabilitySubtitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Ative para aparecer como disponível no TaskFlow.
                 </Text>
               </View>
@@ -210,9 +288,16 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.skillsSection}>
-              <Text style={styles.sectionTitle}>Habilidades e categorias</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Habilidades e categorias
+              </Text>
 
-              <Text style={styles.sectionSubtitle}>
+              <Text
+                style={[
+                  styles.sectionSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Selecione as áreas em que você deseja receber chamados.
               </Text>
 
@@ -225,6 +310,10 @@ export default function EditProfileScreen() {
                       key={skill.id}
                       style={[
                         styles.skillChip,
+                        {
+                          backgroundColor: theme.card,
+                          borderColor: theme.border,
+                        },
                         isSelected && styles.skillChipActive,
                       ]}
                       onPress={() => toggleSkill(skill.name)}
@@ -232,6 +321,7 @@ export default function EditProfileScreen() {
                       <Text
                         style={[
                           styles.skillText,
+                          { color: theme.textSecondary },
                           isSelected && styles.skillTextActive,
                         ]}
                       >

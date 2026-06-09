@@ -19,9 +19,9 @@ import SupportIcon from "../../assets/icons/support_agent.svg";
 import ChatIcon from "../../assets/icons/chat.svg";
 import SendIcon from "../../assets/icons/send.svg";
 import TimeIcon from "../../assets/icons/access_time.svg";
-import NotificationIcon from "../../assets/icons/notifications.svg";
 
 import { styles } from "@/app/styles/supportContact";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type SupportChannel = "chat" | "email" | "phone";
 
@@ -60,6 +60,8 @@ export default function SupportContactScreen() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
 
+  const { isDark, theme } = useTheme();
+
   function handleSendSupportRequest() {
     if (!subject.trim() || !message.trim()) {
       Alert.alert(
@@ -82,8 +84,13 @@ export default function SupportContactScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -94,7 +101,9 @@ export default function SupportContactScreen() {
             <ArrowBack width={28} height={28} />
           </Pressable>
 
-          <Text style={styles.headerTitle}>Falar com suporte</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Falar com suporte
+          </Text>
 
           <View style={styles.headerPlaceholder} />
         </View>
@@ -103,11 +112,25 @@ export default function SupportContactScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.heroCard}>
+          <View
+            style={[
+              styles.heroCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View>
-              <Text style={styles.heroLabel}>Central de ajuda</Text>
-              <Text style={styles.heroTitle}>Como podemos ajudar?</Text>
-              <Text style={styles.heroText}>
+              <Text style={[styles.heroLabel, { color: theme.primary }]}>
+                Central de ajuda
+              </Text>
+
+              <Text style={[styles.heroTitle, { color: theme.text }]}>
+                Como podemos ajudar?
+              </Text>
+
+              <Text style={[styles.heroText, { color: theme.textSecondary }]}>
                 Envie sua dúvida para o suporte do TaskFlow.
               </Text>
             </View>
@@ -117,14 +140,25 @@ export default function SupportContactScreen() {
             </View>
           </View>
 
-          <View style={styles.infoCard}>
+          <View
+            style={[
+              styles.infoCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.infoIconBox}>
               <TimeIcon width={22} height={22} />
             </View>
 
             <View style={styles.infoTextArea}>
-              <Text style={styles.infoTitle}>Tempo médio de resposta</Text>
-              <Text style={styles.infoText}>
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Tempo médio de resposta
+              </Text>
+
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
                 No protótipo, essa ação é simulada. Na versão final, a mensagem
                 será enviada para a API de suporte.
               </Text>
@@ -132,7 +166,9 @@ export default function SupportContactScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Escolha o canal</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Escolha o canal
+            </Text>
 
             <View style={styles.channelsList}>
               {channels.map((channel) => {
@@ -144,6 +180,10 @@ export default function SupportContactScreen() {
                     key={channel.id}
                     style={[
                       styles.channelCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
                       isSelected && styles.channelCardActive,
                     ]}
                     onPress={() => setSelectedChannel(channel.id)}
@@ -156,6 +196,7 @@ export default function SupportContactScreen() {
                       <Text
                         style={[
                           styles.channelTitle,
+                          { color: theme.text },
                           isSelected && styles.channelTitleActive,
                         ]}
                       >
@@ -165,6 +206,7 @@ export default function SupportContactScreen() {
                       <Text
                         style={[
                           styles.channelSubtitle,
+                          { color: theme.textSecondary },
                           isSelected && styles.channelSubtitleActive,
                         ]}
                       >
@@ -175,6 +217,7 @@ export default function SupportContactScreen() {
                     <View
                       style={[
                         styles.radio,
+                        { borderColor: theme.border },
                         isSelected && styles.radioActive,
                       ]}
                     >
@@ -187,24 +230,43 @@ export default function SupportContactScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Assunto</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Assunto
+            </Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Ex: Dúvida sobre minha conta"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               value={subject}
               onChangeText={setSubject}
             />
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.label}>Mensagem</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Mensagem
+            </Text>
 
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Descreva sua dúvida ou problema..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textSecondary}
               multiline
               textAlignVertical="top"
               value={message}
@@ -212,13 +274,24 @@ export default function SupportContactScreen() {
             />
           </View>
 
-          <View style={styles.quickHelpCard}>
+          <View
+            style={[
+              styles.quickHelpCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <View style={styles.quickHelpHeader}>
               <ChatIcon width={22} height={22} />
-              <Text style={styles.quickHelpTitle}>Antes de enviar</Text>
+
+              <Text style={[styles.quickHelpTitle, { color: theme.text }]}>
+                Antes de enviar
+              </Text>
             </View>
 
-            <Text style={styles.quickHelpText}>
+            <Text style={[styles.quickHelpText, { color: theme.textSecondary }]}>
               Informe o máximo de detalhes possível para que o suporte consiga
               entender melhor sua solicitação.
             </Text>
@@ -238,11 +311,17 @@ export default function SupportContactScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.cancelButton,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               pressed && styles.buttonPressed,
             ]}
             onPress={() => router.back()}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text style={[styles.cancelButtonText, { color: theme.text }]}>
+              Cancelar
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

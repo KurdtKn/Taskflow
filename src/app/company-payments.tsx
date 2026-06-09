@@ -14,6 +14,7 @@ import CreditCardIcon from "../../assets/icons/credit_card.svg";
 
 import { styles } from "@/app/styles/companyPayments";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type PaymentStatus = "paid" | "pending" | "refunded";
 type PaymentFilter = "all" | PaymentStatus;
@@ -98,6 +99,8 @@ const statusConfig = {
 export default function CompanyPaymentsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<PaymentFilter>("all");
 
+  const { isDark, theme } = useTheme();
+
   const filteredPayments = useMemo(() => {
     if (selectedFilter === "all") {
       return paymentsData;
@@ -117,15 +120,22 @@ export default function CompanyPaymentsScreen() {
   ).length;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Pagamentos</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Pagamentos
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -134,11 +144,25 @@ export default function CompanyPaymentsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.summaryCard}>
+        <View
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View>
-            <Text style={styles.summaryLabel}>Total movimentado</Text>
-            <Text style={styles.summaryValue}>R$682,00</Text>
-            <Text style={styles.summaryText}>
+            <Text style={[styles.summaryLabel, { color: theme.primary }]}>
+              Total movimentado
+            </Text>
+
+            <Text style={[styles.summaryValue, { color: theme.text }]}>
+              R$682,00
+            </Text>
+
+            <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
               Serviços e taxas registrados na plataforma.
             </Text>
           </View>
@@ -149,19 +173,58 @@ export default function CompanyPaymentsScreen() {
         </View>
 
         <View style={styles.statsArea}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{paymentsData.length}</Text>
-            <Text style={styles.statLabel}>Transações</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {paymentsData.length}
+            </Text>
+
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              Transações
+            </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{totalPaid}</Text>
-            <Text style={styles.statLabel}>Pagas</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {totalPaid}
+            </Text>
+
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              Pagas
+            </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{pendingPayments}</Text>
-            <Text style={styles.statLabel}>Pendentes</Text>
+          <View
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {pendingPayments}
+            </Text>
+
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              Pendentes
+            </Text>
           </View>
         </View>
 
@@ -169,6 +232,10 @@ export default function CompanyPaymentsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "all" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("all")}
@@ -176,6 +243,7 @@ export default function CompanyPaymentsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "all" && styles.filterTextActive,
               ]}
             >
@@ -186,6 +254,10 @@ export default function CompanyPaymentsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "paid" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("paid")}
@@ -193,6 +265,7 @@ export default function CompanyPaymentsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "paid" && styles.filterTextActive,
               ]}
             >
@@ -203,6 +276,10 @@ export default function CompanyPaymentsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "pending" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("pending")}
@@ -210,6 +287,7 @@ export default function CompanyPaymentsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "pending" && styles.filterTextActive,
               ]}
             >
@@ -220,6 +298,10 @@ export default function CompanyPaymentsScreen() {
           <Pressable
             style={[
               styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
               selectedFilter === "refunded" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("refunded")}
@@ -227,6 +309,7 @@ export default function CompanyPaymentsScreen() {
             <Text
               style={[
                 styles.filterText,
+                { color: theme.textSecondary },
                 selectedFilter === "refunded" && styles.filterTextActive,
               ]}
             >
@@ -236,8 +319,11 @@ export default function CompanyPaymentsScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Histórico de pagamentos</Text>
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Histórico de pagamentos
+          </Text>
+
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Acompanhe taxas, serviços e transações.
           </Text>
         </View>
@@ -251,16 +337,25 @@ export default function CompanyPaymentsScreen() {
                 key={payment.id}
                 style={({ pressed }) => [
                   styles.paymentCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
                   pressed && styles.paymentCardPressed,
                 ]}
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.cardTitleArea}>
-                    <Text style={styles.paymentService}>
+                    <Text style={[styles.paymentService, { color: theme.text }]}>
                       {payment.service}
                     </Text>
 
-                    <Text style={styles.paymentFreelancer}>
+                    <Text
+                      style={[
+                        styles.paymentFreelancer,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       Freelancer: {payment.freelancer}
                     </Text>
                   </View>
@@ -284,31 +379,62 @@ export default function CompanyPaymentsScreen() {
 
                 <View style={styles.infoArea}>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Data</Text>
-                    <Text style={styles.infoValue}>{payment.date}</Text>
+                    <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                      Data
+                    </Text>
+
+                    <Text style={[styles.infoValue, { color: theme.text }]}>
+                      {payment.date}
+                    </Text>
                   </View>
 
-                  <View style={styles.divider} />
+                  <View
+                    style={[
+                      styles.divider,
+                      { backgroundColor: theme.border },
+                    ]}
+                  />
 
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Forma</Text>
-                    <Text style={styles.infoValue}>{payment.method}</Text>
+                    <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                      Forma
+                    </Text>
+
+                    <Text style={[styles.infoValue, { color: theme.text }]}>
+                      {payment.method}
+                    </Text>
                   </View>
 
-                  <View style={styles.divider} />
+                  <View
+                    style={[
+                      styles.divider,
+                      { backgroundColor: theme.border },
+                    ]}
+                  />
 
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Valor do serviço</Text>
-                    <Text style={styles.infoValue}>
+                    <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                      Valor do serviço
+                    </Text>
+
+                    <Text style={[styles.infoValue, { color: theme.text }]}>
                       {payment.serviceValue}
                     </Text>
                   </View>
 
-                  <View style={styles.divider} />
+                  <View
+                    style={[
+                      styles.divider,
+                      { backgroundColor: theme.border },
+                    ]}
+                  />
 
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Taxa TaskFlow</Text>
-                    <Text style={styles.infoValue}>
+                    <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                      Taxa TaskFlow
+                    </Text>
+
+                    <Text style={[styles.infoValue, { color: theme.text }]}>
                       {payment.platformFee}
                     </Text>
                   </View>
@@ -323,10 +449,20 @@ export default function CompanyPaymentsScreen() {
           })}
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Controle financeiro</Text>
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            Controle financeiro
+          </Text>
 
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             Essa tela ajuda a empresa a acompanhar pagamentos, taxas da
             plataforma e histórico dos serviços contratados.
           </Text>

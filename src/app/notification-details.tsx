@@ -17,6 +17,7 @@ import AssignmentIcon from "../../assets/icons/assignment.svg";
 
 import { styles } from "@/app/styles/notificationDetail";
 import { colors } from "@/styles/colors";
+import { useTheme } from "@/app/context/ThemeContext";
 
 type NotificationType =
   | "new_job"
@@ -37,6 +38,8 @@ export default function NotificationDetailsScreen() {
     companyName?: string;
     userType?: "freelancer" | "empresa";
   }>();
+
+  const { isDark, theme } = useTheme();
 
   const type = params.type ?? "default";
   const title = params.title ?? "Notificação";
@@ -163,15 +166,22 @@ export default function NotificationDetailsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowBack width={28} height={28} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Detalhes</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Detalhes
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -180,49 +190,111 @@ export default function NotificationDetailsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.heroCard}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <View style={styles.iconBox}>{currentNotification.icon}</View>
 
-          <Text style={styles.notificationLabel}>
+          <Text style={[styles.notificationLabel, { color: theme.primary }]}>
             {currentNotification.label}
           </Text>
 
-          <Text style={styles.notificationTitle}>{title}</Text>
+          <Text style={[styles.notificationTitle, { color: theme.text }]}>
+            {title}
+          </Text>
 
-          <Text style={styles.notificationMessage}>{message}</Text>
+          <Text
+            style={[
+              styles.notificationMessage,
+              { color: theme.textSecondary },
+            ]}
+          >
+            {message}
+          </Text>
 
           <View style={styles.timeBadge}>
             <Text style={styles.timeText}>{time}</Text>
           </View>
         </View>
 
-        <View style={styles.infoCard}>
-          <Text style={styles.cardTitle}>Informações relacionadas</Text>
+        <View
+          style={[
+            styles.infoCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: theme.text }]}>
+            Informações relacionadas
+          </Text>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Chamado</Text>
-            <Text style={styles.infoValue}>{jobTitle}</Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Chamado
+            </Text>
+
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {jobTitle}
+            </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Empresa</Text>
-            <Text style={styles.infoValue}>{companyName}</Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Empresa
+            </Text>
+
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {companyName}
+            </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Tipo</Text>
-            <Text style={styles.infoValue}>{currentNotification.label}</Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Tipo
+            </Text>
+
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {currentNotification.label}
+            </Text>
           </View>
         </View>
 
-        <View style={styles.descriptionBox}>
-          <Text style={styles.descriptionTitle}>O que isso significa?</Text>
+        <View
+          style={[
+            styles.descriptionBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.descriptionTitle, { color: theme.text }]}>
+            O que isso significa?
+          </Text>
 
-          <Text style={styles.descriptionText}>
+          <Text style={[styles.descriptionText, { color: theme.textSecondary }]}>
             {currentNotification.description}
           </Text>
         </View>
@@ -242,11 +314,15 @@ export default function NotificationDetailsScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.secondaryButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
             pressed && styles.buttonPressed,
           ]}
           onPress={handleBackToNotifications}
         >
-          <Text style={styles.secondaryButtonText}>
+          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
             Voltar para notificações
           </Text>
         </Pressable>
