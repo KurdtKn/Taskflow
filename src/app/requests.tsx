@@ -10,6 +10,11 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import AssignmentIcon from "../../assets/icons/assignment.svg";
+import WalletIcon from "../../assets/icons/wallet.svg";
+import LocationIcon from "../../assets/icons/Location-check.svg";
+import TimeIcon from "../../assets/icons/access_time.svg";
+
 import { styles } from "@/app/styles/requests";
 import { colors } from "@/styles/colors";
 
@@ -237,8 +242,10 @@ export default function RequestsScreen() {
       >
         {filteredRequests.length === 0 ? (
           <View style={styles.emptyArea}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            <AssignmentIcon width={38} height={38} />
+
             <Text style={styles.emptyTitle}>Nenhuma solicitação</Text>
+
             <Text style={styles.emptyText}>
               Quando você se candidatar a um chamado, ele aparecerá aqui.
             </Text>
@@ -281,17 +288,17 @@ export default function RequestsScreen() {
 
                 <View style={styles.infoArea}>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoIcon}>💰</Text>
+                    <WalletIcon width={16} height={16} />
                     <Text style={styles.infoText}>{request.price}</Text>
                   </View>
 
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoIcon}>📍</Text>
+                    <LocationIcon width={16} height={16} />
                     <Text style={styles.infoText}>{request.location}</Text>
                   </View>
 
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoIcon}>🕒</Text>
+                    <TimeIcon width={16} height={16} />
                     <Text style={styles.infoText}>{request.time}</Text>
                   </View>
                 </View>
@@ -310,7 +317,9 @@ export default function RequestsScreen() {
                     ]}
                     onPress={() => handleRateCompany(request)}
                   >
-                    <Text style={styles.rateCompanyButtonText}>Avaliar empresa</Text>
+                    <Text style={styles.rateCompanyButtonText}>
+                      Avaliar empresa
+                    </Text>
                   </Pressable>
                 )}
               </Pressable>

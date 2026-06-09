@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { useState } from "react";
 import {
   Alert,
@@ -17,38 +18,47 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 import SupportIcon from "../../assets/icons/support_agent.svg";
 import SendIcon from "../../assets/icons/send.svg";
 import SettingsIcon from "../../assets/icons/settings.svg";
+import AssignmentIcon from "../../assets/icons/assignment.svg";
+import NotificationIcon from "../../assets/icons/notifications.svg";
 
 import { styles } from "@/app/styles/companyReportProblem";
 
-const problemTypes = [
+type ProblemType = "bug" | "chamado" | "candidato" | "outro";
+type PriorityType = "baixa" | "media" | "alta";
+
+type ProblemOption = {
+  id: ProblemType;
+  title: string;
+  subtitle: string;
+  Icon: ComponentType<any>;
+};
+
+const problemTypes: ProblemOption[] = [
   {
     id: "bug",
     title: "Erro no aplicativo",
     subtitle: "Tela travando, botão não funcionando ou erro visual",
-    icon: "⚠️",
+    Icon: NotificationIcon,
   },
   {
     id: "chamado",
     title: "Erro em chamado",
     subtitle: "Problema ao criar, editar ou acompanhar um chamado",
-    icon: "📋",
+    Icon: AssignmentIcon,
   },
   {
     id: "candidato",
     title: "Erro com candidato",
     subtitle: "Problema ao visualizar, aceitar ou recusar candidatos",
-    icon: "👤",
+    Icon: SupportIcon,
   },
   {
     id: "outro",
     title: "Outro problema",
     subtitle: "Informe uma dificuldade diferente das opções acima",
-    icon: "🛠️",
+    Icon: SettingsIcon,
   },
-] as const;
-
-type ProblemType = (typeof problemTypes)[number]["id"];
-type PriorityType = "baixa" | "media" | "alta";
+];
 
 export default function CompanyReportProblemScreen() {
   const [selectedProblem, setSelectedProblem] = useState<ProblemType>("bug");
@@ -119,6 +129,7 @@ export default function CompanyReportProblemScreen() {
             <View style={styles.problemList}>
               {problemTypes.map((problem) => {
                 const isSelected = selectedProblem === problem.id;
+                const Icon = problem.Icon;
 
                 return (
                   <Pressable
@@ -129,7 +140,9 @@ export default function CompanyReportProblemScreen() {
                     ]}
                     onPress={() => setSelectedProblem(problem.id)}
                   >
-                    <Text style={styles.problemIcon}>{problem.icon}</Text>
+                    <View style={styles.problemIconBox}>
+                      <Icon width={24} height={24} />
+                    </View>
 
                     <View style={styles.problemTextArea}>
                       <Text

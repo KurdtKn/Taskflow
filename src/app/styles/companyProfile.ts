@@ -293,6 +293,16 @@ export const styles = StyleSheet.create({
     fontSize: 21,
   },
 
+  contactIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    backgroundColor: colors.lightGray,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
   menuTextArea: {
     flex: 1,
   },

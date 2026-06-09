@@ -10,6 +10,8 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import CreditCardIcon from "../../assets/icons/credit_card.svg";
+
 import { styles } from "@/app/styles/companyPayments";
 import { colors } from "@/styles/colors";
 
@@ -109,6 +111,7 @@ export default function CompanyPaymentsScreen() {
   );
 
   const totalPaid = paidPayments.length;
+
   const pendingPayments = paymentsData.filter(
     (payment) => payment.status === "pending"
   ).length;
@@ -141,7 +144,7 @@ export default function CompanyPaymentsScreen() {
           </View>
 
           <View style={styles.summaryIconBox}>
-            <Text style={styles.summaryIcon}>💳</Text>
+            <CreditCardIcon width={34} height={34} />
           </View>
         </View>
 

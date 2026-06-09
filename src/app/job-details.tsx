@@ -9,6 +9,10 @@ import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import SettingsIcon from "../../assets/icons/settings.svg";
+import LocationIcon from "../../assets/icons/Location-check.svg";
+import TimeIcon from "../../assets/icons/access_time.svg";
+
 import { styles } from "@/app/styles/jobDetails";
 
 export default function JobDetailsScreen() {
@@ -73,7 +77,7 @@ export default function JobDetailsScreen() {
         </View>
 
         <View style={styles.imagePlaceholder}>
-          <Text style={styles.imageIcon}>🛠️</Text>
+          <SettingsIcon width={46} height={46} />
         </View>
 
         <View style={styles.titleArea}>
@@ -89,7 +93,7 @@ export default function JobDetailsScreen() {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <Text style={styles.infoIcon}>📍</Text>
+              <LocationIcon width={22} height={22} />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -104,7 +108,7 @@ export default function JobDetailsScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <Text style={styles.infoIcon}>🕒</Text>
+              <TimeIcon width={22} height={22} />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -118,11 +122,11 @@ export default function JobDetailsScreen() {
           <Text style={styles.sectionTitle}>Descrição do serviço</Text>
 
           <Text style={styles.description}>
-            A empresa está procurando um profissional disponível para atender este
-            chamado de forma pontual, com responsabilidade, boa comunicação e
-            experiência na categoria informada. O freelancer deverá comparecer no
-            local indicado e realizar o serviço conforme os detalhes combinados após
-            a aprovação da solicitação.
+            A empresa está procurando um profissional disponível para atender
+            este chamado de forma pontual, com responsabilidade, boa comunicação
+            e experiência na categoria informada. O freelancer deverá comparecer
+            no local indicado e realizar o serviço conforme os detalhes
+            combinados após a aprovação da solicitação.
           </Text>
         </View>
 

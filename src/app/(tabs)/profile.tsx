@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import {
   Image,
   Pressable,
@@ -11,11 +12,18 @@ import { router } from "expo-router";
 
 import { styles } from "@/app/styles/profile";
 
+import EditIcon from "../../../assets/icons/edit.svg";
+import BadgeIcon from "../../../assets/icons/badge.svg";
+import AssignmentIcon from "../../../assets/icons/assignment.svg";
+import StarIcon from "../../../assets/icons/star_border.svg";
+import SettingsIcon from "../../../assets/icons/settings.svg";
+import HelpIcon from "../../../assets/icons/help_outline.svg";
+
 type MenuOption = {
   id: string;
   title: string;
   subtitle: string;
-  icon: string;
+  Icon: ComponentType<any>;
   action: () => void;
 };
 
@@ -25,42 +33,42 @@ export default function ProfileScreen() {
       id: "1",
       title: "Editar perfil",
       subtitle: "Nome, telefone, foto e dados pessoais",
-      icon: "✏️",
+      Icon: EditIcon,
       action: () => router.push("/edit-profile"),
     },
     {
       id: "2",
       title: "Portfólio",
       subtitle: "Experiências, habilidades e trabalhos",
-      icon: "💼",
+      Icon: BadgeIcon,
       action: () => router.push("/portfolio"),
     },
     {
       id: "3",
       title: "Minhas solicitações",
       subtitle: "Acompanhe serviços solicitados",
-      icon: "📋",
+      Icon: AssignmentIcon,
       action: () => router.push("/requests"),
     },
     {
       id: "4",
       title: "Avaliações",
       subtitle: "Veja sua reputação no TaskFlow",
-      icon: "⭐",
+      Icon: StarIcon,
       action: () => router.push("/reviews"),
     },
     {
       id: "5",
       title: "Configurações",
       subtitle: "Preferências, segurança e privacidade",
-      icon: "⚙️",
+      Icon: SettingsIcon,
       action: () => router.push("/freelancer-settings"),
     },
     {
       id: "6",
       title: "Ajuda e suporte",
       subtitle: "Central de dúvidas e atendimento",
-      icon: "❔",
+      Icon: HelpIcon,
       action: () => router.push("/freelancer-support"),
     },
   ];
@@ -91,7 +99,7 @@ export default function ProfileScreen() {
             ]}
             onPress={handleOpenSettings}
           >
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <SettingsIcon width={24} height={24} />
           </Pressable>
         </View>
 
@@ -110,7 +118,8 @@ export default function ProfileScreen() {
           <Text style={styles.userType}>Freelancer</Text>
 
           <View style={styles.ratingArea}>
-            <Text style={styles.ratingIcon}>⭐</Text>
+            <Text style={{ fontSize: 16 }}>⭐</Text>
+
             <Text style={styles.ratingText}>4,8</Text>
             <Text style={styles.ratingSubtext}>• 24 avaliações</Text>
           </View>
@@ -174,7 +183,7 @@ export default function ProfileScreen() {
               onPress={option.action}
             >
               <View style={styles.menuIconBox}>
-                <Text style={styles.menuIcon}>{option.icon}</Text>
+                <option.Icon width={24} height={24} />
               </View>
 
               <View style={styles.menuTextArea}>

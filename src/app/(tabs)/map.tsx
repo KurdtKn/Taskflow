@@ -4,6 +4,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, SafeAreaView, Text, TextInput, View } from "react-native";
 
 import FilterIcon from "../../../assets/icons/filter.svg";
+import SearchIcon from "../../../assets/icons/search.svg";
+import LocationIcon from "../../../assets/icons/Location-check.svg";
+import TimeIcon from "../../../assets/icons/access_time.svg";
 import { styles } from "@/app/styles/map";
 
 type PercentValue = `${number}%`;
@@ -143,7 +146,7 @@ export default function MapScreen() {
 
       <View style={styles.searchArea}>
         <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <SearchIcon width={22} height={22} />
 
           <TextInput
             style={styles.searchInput}
@@ -198,7 +201,7 @@ export default function MapScreen() {
         </View>
 
         <Pressable style={styles.currentLocationButton}>
-          <Text style={styles.currentLocationIcon}>⌖</Text>
+          <LocationIcon width={24} height={24} />
         </Pressable>
       </View>
 
@@ -221,10 +224,17 @@ export default function MapScreen() {
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📍</Text>
+            <LocationIcon width={16} height={16} />
+
             <Text style={styles.infoText}>
               {selectedService.distance} - {selectedService.location}
             </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <TimeIcon width={16} height={16} />
+
+            <Text style={styles.infoText}>{selectedService.time}</Text>
           </View>
 
           <View style={styles.infoRow}>

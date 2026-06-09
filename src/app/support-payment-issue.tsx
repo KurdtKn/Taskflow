@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { useState } from "react";
 import {
   Alert,
@@ -19,38 +20,47 @@ import WalletIcon from "../../assets/icons/wallet.svg";
 import CalendarIcon from "../../assets/icons/calendar.svg";
 import SendIcon from "../../assets/icons/send.svg";
 import SupportIcon from "../../assets/icons/support_agent.svg";
+import AssignmentIcon from "../../assets/icons/assignment.svg";
+import CrossIcon from "../../assets/icons/cross.svg";
 
 import { styles } from "@/app/styles/supportPaymentIssue";
 
-const paymentIssues = [
+type PaymentIssueType = "taxa" | "pix" | "cartao" | "reembolso";
+type PaymentMethod = "pix" | "card" | "wallet";
+
+type PaymentIssue = {
+  id: PaymentIssueType;
+  title: string;
+  subtitle: string;
+  Icon: ComponentType<any>;
+};
+
+const paymentIssues: PaymentIssue[] = [
   {
     id: "taxa",
     title: "Taxa da plataforma",
     subtitle: "Dúvida ou erro na cobrança da taxa",
-    icon: "💳",
+    Icon: CreditCardIcon,
   },
   {
     id: "pix",
     title: "Pagamento via Pix",
     subtitle: "Problema com QR Code, chave ou confirmação",
-    icon: "🔷",
+    Icon: WalletIcon,
   },
   {
     id: "cartao",
     title: "Cartão recusado",
     subtitle: "Falha ao pagar usando cartão de crédito",
-    icon: "💰",
+    Icon: CreditCardIcon,
   },
   {
     id: "reembolso",
     title: "Reembolso",
     subtitle: "Solicitação ou dúvida sobre devolução de valor",
-    icon: "↩️",
+    Icon: CrossIcon,
   },
-] as const;
-
-type PaymentIssueType = (typeof paymentIssues)[number]["id"];
-type PaymentMethod = "pix" | "card" | "wallet";
+];
 
 export default function SupportPaymentIssueScreen() {
   const [selectedIssue, setSelectedIssue] =
@@ -126,6 +136,7 @@ export default function SupportPaymentIssueScreen() {
             <View style={styles.issueList}>
               {paymentIssues.map((issue) => {
                 const isSelected = selectedIssue === issue.id;
+                const Icon = issue.Icon;
 
                 return (
                   <Pressable
@@ -136,7 +147,9 @@ export default function SupportPaymentIssueScreen() {
                     ]}
                     onPress={() => setSelectedIssue(issue.id)}
                   >
-                    <Text style={styles.issueIcon}>{issue.icon}</Text>
+                    <View style={styles.issueIconBox}>
+                      <Icon width={24} height={24} />
+                    </View>
 
                     <View style={styles.issueTextArea}>
                       <Text
@@ -178,22 +191,22 @@ export default function SupportPaymentIssueScreen() {
             <View style={styles.paymentMethods}>
               <Pressable
                 style={[
-                    styles.paymentMethod,
-                    paymentMethod === "pix" && styles.paymentMethodActive,
+                  styles.paymentMethod,
+                  paymentMethod === "pix" && styles.paymentMethodActive,
                 ]}
                 onPress={() => setPaymentMethod("pix")}
-                >
-                <Text style={styles.paymentMethodIcon}>🔷</Text>
+              >
+                <WalletIcon width={24} height={24} />
 
                 <Text
-                    style={[
+                  style={[
                     styles.paymentMethodText,
                     paymentMethod === "pix" && styles.paymentMethodTextActive,
-                    ]}
+                  ]}
                 >
-                    Pix
+                  Pix
                 </Text>
-                </Pressable>
+              </Pressable>
 
               <Pressable
                 style={[
@@ -203,6 +216,7 @@ export default function SupportPaymentIssueScreen() {
                 onPress={() => setPaymentMethod("card")}
               >
                 <CreditCardIcon width={24} height={24} />
+
                 <Text
                   style={[
                     styles.paymentMethodText,
@@ -221,6 +235,7 @@ export default function SupportPaymentIssueScreen() {
                 onPress={() => setPaymentMethod("wallet")}
               >
                 <WalletIcon width={24} height={24} />
+
                 <Text
                   style={[
                     styles.paymentMethodText,
@@ -237,13 +252,17 @@ export default function SupportPaymentIssueScreen() {
           <View style={styles.section}>
             <Text style={styles.label}>Chamado relacionado</Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: Garçom para Evento"
-              placeholderTextColor="#9CA3AF"
-              value={jobTitle}
-              onChangeText={setJobTitle}
-            />
+            <View style={styles.inputWithIcon}>
+              <AssignmentIcon width={20} height={20} />
+
+              <TextInput
+                style={styles.inputInside}
+                placeholder="Ex: Garçom para Evento"
+                placeholderTextColor="#9CA3AF"
+                value={jobTitle}
+                onChangeText={setJobTitle}
+              />
+            </View>
           </View>
 
           <View style={styles.twoColumns}>

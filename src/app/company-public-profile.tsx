@@ -10,6 +10,11 @@ import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import CheckIcon from "../../assets/icons/check.svg";
+import LocationIcon from "../../assets/icons/Location-check.svg";
+import BadgeIcon from "../../assets/icons/badge.svg";
+import ChatIcon from "../../assets/icons/chat.svg";
+
 import { styles } from "@/app/styles/companyPublicProfile";
 
 const companyTags = [
@@ -86,7 +91,7 @@ export default function CompanyPublicProfileScreen() {
             />
 
             <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedIcon}>✓</Text>
+              <CheckIcon width={13} height={13} />
             </View>
           </View>
 
@@ -153,7 +158,9 @@ export default function CompanyPublicProfileScreen() {
           <Text style={styles.sectionTitle}>Informações públicas</Text>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📍</Text>
+            <View style={styles.infoIconBox}>
+              <LocationIcon width={22} height={22} />
+            </View>
 
             <View style={styles.infoTextArea}>
               <Text style={styles.infoLabel}>Localização</Text>
@@ -164,7 +171,9 @@ export default function CompanyPublicProfileScreen() {
           <View style={styles.divider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>🏢</Text>
+            <View style={styles.infoIconBox}>
+              <BadgeIcon width={22} height={22} />
+            </View>
 
             <View style={styles.infoTextArea}>
               <Text style={styles.infoLabel}>Tipo de conta</Text>
@@ -175,7 +184,9 @@ export default function CompanyPublicProfileScreen() {
           <View style={styles.divider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>💬</Text>
+            <View style={styles.infoIconBox}>
+              <ChatIcon width={22} height={22} />
+            </View>
 
             <View style={styles.infoTextArea}>
               <Text style={styles.infoLabel}>Tempo médio de resposta</Text>

@@ -9,6 +9,8 @@ import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import AssignmentIcon from "../../assets/icons/assignment.svg";
+
 import { styles } from "@/app/styles/freelancerProfile";
 
 const skills = [
@@ -197,7 +199,7 @@ export default function FreelancerProfileScreen() {
             {portfolioItems.map((item) => (
               <View key={item.id} style={styles.portfolioCard}>
                 <View style={styles.portfolioIconBox}>
-                  <Text style={styles.portfolioIcon}>📌</Text>
+                  <AssignmentIcon width={24} height={24} />
                 </View>
 
                 <View style={styles.portfolioTextArea}>

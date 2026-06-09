@@ -75,9 +75,12 @@ export const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  jobInfoIcon: {
-    fontSize: 14,
-    marginRight: 7,
+  jobInfoIconBox: {
+    width: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
   },
 
   jobInfoText: {

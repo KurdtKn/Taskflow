@@ -272,8 +272,13 @@ export const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  infoIcon: {
-    fontSize: 20,
+  infoIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    backgroundColor: "rgba(11,87,208,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
 

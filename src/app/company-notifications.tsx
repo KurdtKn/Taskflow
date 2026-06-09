@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { useMemo, useState } from "react";
 import {
   Pressable,
@@ -10,6 +11,12 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import NotificationIcon from "../../assets/icons/notifications.svg";
+import SupportIcon from "../../assets/icons/support_agent.svg";
+import CreditCardIcon from "../../assets/icons/credit_card.svg";
+import ChatIcon from "../../assets/icons/chat.svg";
+import CheckIcon from "../../assets/icons/check.svg";
+
 import { styles } from "@/app/styles/companyNotifications";
 import { colors } from "@/styles/colors";
 
@@ -23,6 +30,13 @@ type CompanyNotification = {
   description: string;
   time: string;
   isRead: boolean;
+};
+
+type NotificationTypeConfig = {
+  label: string;
+  Icon: ComponentType<any>;
+  color: string;
+  backgroundColor: string;
 };
 
 const notificationsData: CompanyNotification[] = [
@@ -73,28 +87,28 @@ const notificationsData: CompanyNotification[] = [
   },
 ];
 
-const typeConfig = {
+const typeConfig: Record<NotificationType, NotificationTypeConfig> = {
   candidate: {
     label: "Candidato",
-    icon: "👤",
+    Icon: SupportIcon,
     color: colors.primary,
     backgroundColor: "rgba(11,87,208,0.1)",
   },
   payment: {
     label: "Pagamento",
-    icon: "💳",
+    Icon: CreditCardIcon,
     color: colors.success,
     backgroundColor: "rgba(0,176,80,0.12)",
   },
   message: {
     label: "Mensagem",
-    icon: "💬",
+    Icon: ChatIcon,
     color: colors.warning,
     backgroundColor: "rgba(245,158,11,0.14)",
   },
   service: {
     label: "Serviço",
-    icon: "✅",
+    Icon: CheckIcon,
     color: colors.primaryDark,
     backgroundColor: "rgba(22,62,159,0.1)",
   },
@@ -103,6 +117,7 @@ const typeConfig = {
 export default function CompanyNotificationsScreen() {
   const [selectedFilter, setSelectedFilter] =
     useState<NotificationFilter>("all");
+
   const [notifications, setNotifications] =
     useState<CompanyNotification[]>(notificationsData);
 
@@ -159,7 +174,6 @@ export default function CompanyNotificationsScreen() {
 
     if (notification.type === "service") {
       router.push("/service-completion");
-      return;
     }
   }
 
@@ -207,7 +221,7 @@ export default function CompanyNotificationsScreen() {
           </View>
 
           <View style={styles.summaryIconBox}>
-            <Text style={styles.summaryIcon}>🔔</Text>
+            <NotificationIcon width={34} height={34} />
           </View>
         </View>
 
@@ -291,6 +305,7 @@ export default function CompanyNotificationsScreen() {
         <View style={styles.notificationsList}>
           {filteredNotifications.map((notification) => {
             const currentType = typeConfig[notification.type];
+            const Icon = currentType.Icon;
 
             return (
               <Pressable
@@ -308,7 +323,7 @@ export default function CompanyNotificationsScreen() {
                     { backgroundColor: currentType.backgroundColor },
                   ]}
                 >
-                  <Text style={styles.iconText}>{currentType.icon}</Text>
+                  <Icon width={24} height={24} />
                 </View>
 
                 <View style={styles.notificationContent}>

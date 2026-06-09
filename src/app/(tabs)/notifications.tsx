@@ -11,6 +11,14 @@ import { router } from "expo-router";
 
 import { styles } from "@/app/styles/notifications";
 
+import LocationIcon from "../../../assets/icons/Location-check.svg";
+import AssignmentIcon from "../../../assets/icons/assignment.svg";
+import CheckIcon from "../../../assets/icons/check.svg";
+import ChatIcon from "../../../assets/icons/chat.svg";
+import CreditCardIcon from "../../../assets/icons/credit_card.svg";
+import StarIcon from "../../../assets/icons/star_border.svg";
+import BellIcon from "../../../assets/icons/notifications.svg";
+
 type NotificationFilter = "all" | "unread" | "jobs";
 
 type NotificationDetailType =
@@ -25,7 +33,6 @@ type NotificationDetailType =
 type NotificationItem = {
   id: string;
   type: NotificationDetailType;
-  icon: string;
   title: string;
   description: string;
   time: string;
@@ -38,7 +45,6 @@ const notificationsData: NotificationItem[] = [
   {
     id: "1",
     type: "new_job",
-    icon: "📍",
     title: "Novo chamado próximo",
     description:
       "Garçom para Evento foi publicado a 1,5 km de você. Confira os detalhes.",
@@ -50,7 +56,6 @@ const notificationsData: NotificationItem[] = [
   {
     id: "2",
     type: "default",
-    icon: "📋",
     title: "Solicitação enviada",
     description:
       "Sua candidatura para Fotógrafo Profissional foi enviada para análise.",
@@ -62,7 +67,6 @@ const notificationsData: NotificationItem[] = [
   {
     id: "3",
     type: "request_accepted",
-    icon: "✅",
     title: "Solicitação aceita",
     description:
       "A empresa aceitou sua solicitação. Aguarde a confirmação do fluxo.",
@@ -74,7 +78,6 @@ const notificationsData: NotificationItem[] = [
   {
     id: "4",
     type: "chat_released",
-    icon: "💬",
     title: "Chat liberado",
     description:
       "O chat com TaskFlow Eventos já está disponível para combinar os detalhes.",
@@ -86,7 +89,6 @@ const notificationsData: NotificationItem[] = [
   {
     id: "5",
     type: "payment_confirmed",
-    icon: "💳",
     title: "Taxa confirmada",
     description:
       "O pagamento da taxa foi confirmado e o serviço está em andamento.",
@@ -98,7 +100,6 @@ const notificationsData: NotificationItem[] = [
   {
     id: "6",
     type: "review_received",
-    icon: "⭐",
     title: "Avaliação disponível",
     description:
       "O serviço foi concluído. Avalie sua experiência com a empresa.",
@@ -133,6 +134,30 @@ export default function NotificationsScreen() {
   const unreadCount = notifications.filter(
     (notification) => notification.unread
   ).length;
+
+  function renderNotificationIcon(type: NotificationDetailType) {
+    if (type === "new_job") {
+      return <LocationIcon width={24} height={24} />;
+    }
+
+    if (type === "request_accepted") {
+      return <CheckIcon width={24} height={24} />;
+    }
+
+    if (type === "payment_confirmed") {
+      return <CreditCardIcon width={24} height={24} />;
+    }
+
+    if (type === "chat_released" || type === "message") {
+      return <ChatIcon width={24} height={24} />;
+    }
+
+    if (type === "review_received") {
+      return <StarIcon width={24} height={24} />;
+    }
+
+    return <AssignmentIcon width={24} height={24} />;
+  }
 
   function handleNotificationPress(notification: NotificationItem) {
     setNotifications((currentNotifications) =>
@@ -242,7 +267,7 @@ export default function NotificationsScreen() {
       >
         {filteredNotifications.length === 0 ? (
           <View style={styles.emptyArea}>
-            <Text style={{ fontSize: 38 }}>🔔</Text>
+            <BellIcon width={38} height={38} />
 
             <Text style={styles.emptyTitle}>Nenhuma notificação</Text>
 
@@ -262,7 +287,7 @@ export default function NotificationsScreen() {
               onPress={() => handleNotificationPress(notification)}
             >
               <View style={styles.iconBox}>
-                <Text style={{ fontSize: 22 }}>{notification.icon}</Text>
+                {renderNotificationIcon(notification.type)}
               </View>
 
               <View style={styles.notificationContent}>

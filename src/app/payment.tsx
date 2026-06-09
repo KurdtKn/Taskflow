@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { useState } from "react";
 import {
   Pressable,
@@ -10,9 +11,47 @@ import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+import CreditCardIcon from "../../assets/icons/credit_card.svg";
+import WalletIcon from "../../assets/icons/wallet.svg";
+import SendIcon from "../../assets/icons/send.svg";
+
 import { styles } from "@/app/styles/payment";
 
 type PaymentMethod = "card" | "pix" | "wallet";
+
+type PaymentMethodOption = {
+  id: PaymentMethod;
+  title: string;
+  subtitle: string;
+  Icon: ComponentType<any>;
+};
+
+const paymentMethods: PaymentMethodOption[] = [
+  {
+    id: "pix",
+    title: "Pix",
+    subtitle: "Confirmação rápida e prática",
+    Icon: SendIcon,
+  },
+  {
+    id: "card",
+    title: "Cartão",
+    subtitle: "Crédito ou débito cadastrado",
+    Icon: CreditCardIcon,
+  },
+  {
+    id: "wallet",
+    title: "Carteira TaskFlow",
+    subtitle: "Use saldo disponível na plataforma",
+    Icon: WalletIcon,
+  },
+];
+
+const paymentMethodLabel: Record<PaymentMethod, string> = {
+  pix: "Pix",
+  card: "Cartão",
+  wallet: "Carteira TaskFlow",
+};
 
 export default function PaymentScreen() {
   const params = useLocalSearchParams<{
@@ -33,30 +72,24 @@ export default function PaymentScreen() {
 
   function handleConfirmPayment() {
     console.log({
-        jobTitle,
-        candidateName,
-        serviceValue,
-        platformFee,
-        totalValue,
-        selectedMethod,
-       });
-
-  const paymentMethodLabel = {
-    pix: "Pix",
-    card: "Cartão",
-    wallet: "Carteira TaskFlow",
-  };
-
-  router.push({
-    pathname: "/payment-success",
-    params: {
       jobTitle,
       candidateName,
+      serviceValue,
+      platformFee,
       totalValue,
-      paymentMethod: paymentMethodLabel[selectedMethod],
-    },
-  });
-}
+      selectedMethod,
+    });
+
+    router.push({
+      pathname: "/payment-success",
+      params: {
+        jobTitle,
+        candidateName,
+        totalValue,
+        paymentMethod: paymentMethodLabel[selectedMethod],
+      },
+    });
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -78,7 +111,7 @@ export default function PaymentScreen() {
       >
         <View style={styles.introCard}>
           <View style={styles.iconBox}>
-            <Text style={styles.iconText}>💳</Text>
+            <CreditCardIcon width={34} height={34} />
           </View>
 
           <Text style={styles.introTitle}>Pagamento da taxa</Text>
@@ -125,77 +158,39 @@ export default function PaymentScreen() {
           <Text style={styles.sectionTitle}>Forma de pagamento</Text>
 
           <View style={styles.methodsArea}>
-            <Pressable
-              style={[
-                styles.methodCard,
-                selectedMethod === "pix" && styles.methodCardActive,
-              ]}
-              onPress={() => setSelectedMethod("pix")}
-            >
-              <Text style={styles.methodIcon}>⚡</Text>
+            {paymentMethods.map((method) => {
+              const isSelected = selectedMethod === method.id;
+              const Icon = method.Icon;
 
-              <View style={styles.methodTextArea}>
-                <Text style={styles.methodTitle}>Pix</Text>
-                <Text style={styles.methodSubtitle}>
-                  Confirmação rápida e prática
-                </Text>
-              </View>
+              return (
+                <Pressable
+                  key={method.id}
+                  style={[
+                    styles.methodCard,
+                    isSelected && styles.methodCardActive,
+                  ]}
+                  onPress={() => setSelectedMethod(method.id)}
+                >
+                  <View style={styles.methodIconBox}>
+                    <Icon width={24} height={24} />
+                  </View>
 
-              <View
-                style={[
-                  styles.radio,
-                  selectedMethod === "pix" && styles.radioActive,
-                ]}
-              />
-            </Pressable>
+                  <View style={styles.methodTextArea}>
+                    <Text style={styles.methodTitle}>{method.title}</Text>
+                    <Text style={styles.methodSubtitle}>
+                      {method.subtitle}
+                    </Text>
+                  </View>
 
-            <Pressable
-              style={[
-                styles.methodCard,
-                selectedMethod === "card" && styles.methodCardActive,
-              ]}
-              onPress={() => setSelectedMethod("card")}
-            >
-              <Text style={styles.methodIcon}>💳</Text>
-
-              <View style={styles.methodTextArea}>
-                <Text style={styles.methodTitle}>Cartão</Text>
-                <Text style={styles.methodSubtitle}>
-                  Crédito ou débito cadastrado
-                </Text>
-              </View>
-
-              <View
-                style={[
-                  styles.radio,
-                  selectedMethod === "card" && styles.radioActive,
-                ]}
-              />
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.methodCard,
-                selectedMethod === "wallet" && styles.methodCardActive,
-              ]}
-              onPress={() => setSelectedMethod("wallet")}
-            >
-              <Text style={styles.methodIcon}>👛</Text>
-
-              <View style={styles.methodTextArea}>
-                <Text style={styles.methodTitle}>Carteira TaskFlow</Text>
-                <Text style={styles.methodSubtitle}>
-                  Use saldo disponível na plataforma
-                </Text>
-              </View>
-
-              <View
-                style={[
-                  styles.radio,
-                  selectedMethod === "wallet" && styles.radioActive,
-                ]}
-              />
-            </Pressable>
+                  <View
+                    style={[
+                      styles.radio,
+                      isSelected && styles.radioActive,
+                    ]}
+                  />
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 

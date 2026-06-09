@@ -165,8 +165,13 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(11,87,208,0.06)",
   },
 
-  channelIcon: {
-    fontSize: 24,
+  channelIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(11,87,208,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
 

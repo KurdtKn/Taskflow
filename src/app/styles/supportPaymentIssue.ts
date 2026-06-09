@@ -133,6 +133,16 @@ export const styles = StyleSheet.create({
     marginRight: 12,
   },
 
+  issueIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(11,87,208,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
   issueTextArea: {
     flex: 1,
   },

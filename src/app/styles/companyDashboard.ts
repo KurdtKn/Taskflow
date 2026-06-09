@@ -225,6 +225,14 @@ export const styles = StyleSheet.create({
     marginRight: 7,
   },
 
+  infoIconBox: {
+    width: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+  },
+
   infoText: {
     color: colors.gray,
     fontSize: 13,

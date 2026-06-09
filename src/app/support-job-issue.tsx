@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { useState } from "react";
 import {
   Alert,
@@ -19,38 +20,47 @@ import LocationIcon from "../../assets/icons/Location-check.svg";
 import CalendarIcon from "../../assets/icons/calendar.svg";
 import SendIcon from "../../assets/icons/send.svg";
 import SupportIcon from "../../assets/icons/support_agent.svg";
+import EditIcon from "../../assets/icons/edit.svg";
+import NotificationIcon from "../../assets/icons/notifications.svg";
 
 import { styles } from "@/app/styles/supportJobIssue";
 
-const issueTypes = [
+type IssueType = "cancelamento" | "candidato" | "informacoes" | "andamento";
+type PriorityType = "baixa" | "media" | "alta";
+
+type IssueOption = {
+  id: IssueType;
+  title: string;
+  subtitle: string;
+  Icon: ComponentType<any>;
+};
+
+const issueTypes: IssueOption[] = [
   {
     id: "cancelamento",
     title: "Cancelamento",
     subtitle: "Problemas para cancelar ou remarcar um chamado",
-    icon: "📅",
+    Icon: CalendarIcon,
   },
   {
     id: "candidato",
     title: "Candidato ou empresa",
     subtitle: "Dúvidas sobre aceite, recusa ou perfil",
-    icon: "👤",
+    Icon: SupportIcon,
   },
   {
     id: "informacoes",
     title: "Informações incorretas",
     subtitle: "Local, horário, valor ou descrição com erro",
-    icon: "📝",
+    Icon: EditIcon,
   },
   {
     id: "andamento",
     title: "Andamento do serviço",
     subtitle: "Problema durante a execução do chamado",
-    icon: "⚠️",
+    Icon: NotificationIcon,
   },
-] as const;
-
-type IssueType = (typeof issueTypes)[number]["id"];
-type PriorityType = "baixa" | "media" | "alta";
+];
 
 export default function SupportJobIssueScreen() {
   const [selectedIssue, setSelectedIssue] =
@@ -125,6 +135,7 @@ export default function SupportJobIssueScreen() {
             <View style={styles.issueList}>
               {issueTypes.map((issue) => {
                 const isSelected = selectedIssue === issue.id;
+                const Icon = issue.Icon;
 
                 return (
                   <Pressable
@@ -135,7 +146,9 @@ export default function SupportJobIssueScreen() {
                     ]}
                     onPress={() => setSelectedIssue(issue.id)}
                   >
-                    <Text style={styles.issueIcon}>{issue.icon}</Text>
+                    <View style={styles.issueIconBox}>
+                      <Icon width={24} height={24} />
+                    </View>
 
                     <View style={styles.issueTextArea}>
                       <Text

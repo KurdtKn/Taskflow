@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { useState } from "react";
 import {
   Alert,
@@ -18,31 +19,39 @@ import SupportIcon from "../../assets/icons/support_agent.svg";
 import ChatIcon from "../../assets/icons/chat.svg";
 import SendIcon from "../../assets/icons/send.svg";
 import TimeIcon from "../../assets/icons/access_time.svg";
+import NotificationIcon from "../../assets/icons/notifications.svg";
 
 import { styles } from "@/app/styles/supportContact";
 
 type SupportChannel = "chat" | "email" | "phone";
 
-const channels = [
+type ChannelOption = {
+  id: SupportChannel;
+  title: string;
+  subtitle: string;
+  Icon: ComponentType<any>;
+};
+
+const channels: ChannelOption[] = [
   {
     id: "chat",
     title: "Chat",
     subtitle: "Resposta mais rápida",
-    icon: "💬",
+    Icon: ChatIcon,
   },
   {
     id: "email",
     title: "E-mail",
     subtitle: "Para dúvidas detalhadas",
-    icon: "📧",
+    Icon: SendIcon,
   },
   {
     id: "phone",
     title: "Telefone",
     subtitle: "Atendimento comercial",
-    icon: "📞",
+    Icon: SupportIcon,
   },
-] as const;
+];
 
 export default function SupportContactScreen() {
   const [selectedChannel, setSelectedChannel] =
@@ -128,6 +137,7 @@ export default function SupportContactScreen() {
             <View style={styles.channelsList}>
               {channels.map((channel) => {
                 const isSelected = selectedChannel === channel.id;
+                const Icon = channel.Icon;
 
                 return (
                   <Pressable
@@ -138,7 +148,9 @@ export default function SupportContactScreen() {
                     ]}
                     onPress={() => setSelectedChannel(channel.id)}
                   >
-                    <Text style={styles.channelIcon}>{channel.icon}</Text>
+                    <View style={styles.channelIconBox}>
+                      <Icon width={24} height={24} />
+                    </View>
 
                     <View style={styles.channelTextArea}>
                       <Text
