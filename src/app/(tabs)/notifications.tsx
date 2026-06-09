@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import { styles } from "@/app/styles/notifications";
+import { colors } from "@/styles/colors";
 
 import LocationIcon from "../../../assets/icons/Location-check.svg";
 import AssignmentIcon from "../../../assets/icons/assignment.svg";
@@ -137,7 +138,7 @@ export default function NotificationsScreen() {
 
   function renderNotificationIcon(type: NotificationDetailType) {
     if (type === "new_job") {
-      return <LocationIcon width={24} height={24} />;
+      return <LocationIcon width={24} height={24} color={colors.location}/>;
     }
 
     if (type === "request_accepted") {
@@ -204,7 +205,7 @@ export default function NotificationsScreen() {
         </View>
 
         <Pressable style={styles.readButton} onPress={handleMarkAllAsRead}>
-          <Text style={styles.readButtonText}>Ler tudo</Text>
+          <Text style={styles.readButtonText}>Marcar tudo como lido</Text>
         </Pressable>
       </View>
 

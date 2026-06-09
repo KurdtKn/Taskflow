@@ -8,6 +8,7 @@ import SearchIcon from "../../../assets/icons/search.svg";
 import LocationIcon from "../../../assets/icons/Location-check.svg";
 import TimeIcon from "../../../assets/icons/access_time.svg";
 import { styles } from "@/app/styles/map";
+import { colors } from "@/styles/colors";
 
 type PercentValue = `${number}%`;
 
@@ -201,7 +202,7 @@ export default function MapScreen() {
         </View>
 
         <Pressable style={styles.currentLocationButton}>
-          <LocationIcon width={24} height={24} />
+          <LocationIcon width={24} height={24} color={colors.blue[300]}/>
         </Pressable>
       </View>
 
@@ -224,7 +225,7 @@ export default function MapScreen() {
           </View>
 
           <View style={styles.infoRow}>
-            <LocationIcon width={16} height={16} />
+            <LocationIcon width={16} height={16} color={colors.location}/>
 
             <Text style={styles.infoText}>
               {selectedService.distance} - {selectedService.location}

@@ -14,6 +14,7 @@ import LocationIcon from "../../assets/icons/Location-check.svg";
 import TimeIcon from "../../assets/icons/access_time.svg";
 
 import { styles } from "@/app/styles/requestConfirmation";
+import { colors } from "@/styles/colors";
 
 export default function RequestConfirmationScreen() {
   const params = useLocalSearchParams<{
@@ -62,7 +63,7 @@ export default function RequestConfirmationScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <LocationIcon width={18} height={18} />
+              <LocationIcon width={18} height={18} color={colors.location}/>
             </View>
 
             <Text style={styles.infoText}>{location}</Text>

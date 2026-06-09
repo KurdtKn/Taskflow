@@ -24,6 +24,7 @@ import SendIcon from "../../assets/icons/send.svg";
 import CheckIcon from "../../assets/icons/check.svg";
 
 import { styles } from "@/app/styles/companyProfile";
+import { colors } from "@/styles/colors";
 
 type MenuOption = {
   id: string;
@@ -182,7 +183,7 @@ export default function CompanyProfileScreen() {
 
           <View style={styles.contactRow}>
             <View style={styles.contactIconBox}>
-              <LocationIcon width={22} height={22} />
+              <LocationIcon width={22} height={22} color={colors.location}/>
             </View>
 
             <View style={styles.contactTextArea}>

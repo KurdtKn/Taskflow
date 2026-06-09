@@ -12,6 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { styles } from "../styles/home";
+import { colors } from "@/styles/colors";
 
 import BellIcon from "../../../assets/icons/notifications.svg";
 import SearchIcon from "../../../assets/icons/search.svg";
@@ -211,7 +212,7 @@ export default function HomeScreen() {
                 <Text style={styles.servicePrice}>{service.price}</Text>
 
                 <View style={styles.infoRow}>
-                  <LocationIcon width={15} height={15} />
+                  <LocationIcon width={15} height={15} color={colors.location}/>
                   <Text style={styles.infoText}>{service.distance}</Text>
                 </View>
 
