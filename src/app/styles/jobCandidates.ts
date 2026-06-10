@@ -117,22 +117,20 @@ export const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F1F1F1",
-    shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    borderColor: "rgba(15,23,42,0.08)",
+    marginBottom: 14,
+    elevation: 0,
   },
 
   candidateCardSelected: {
-    borderColor: "rgba(11,87,208,0.45)",
+    borderWidth: 1,
+    borderColor: "rgba(11,87,208,0.35)",
     backgroundColor: "rgba(11,87,208,0.025)",
   },
 
   candidateCardPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+    opacity: 0.96,
+    transform: [{ scale: 0.995 }],
   },
 
   candidateHeader: {
