@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -29,14 +29,61 @@ type SettingOption = {
   action: () => void;
 };
 
+type CompanySettings = {
+  pushNotifications: boolean;
+  emailNotifications: boolean;
+  candidateAlerts: boolean;
+  paymentAlerts: boolean;
+  showCompanyProfile: boolean;
+};
+
 export default function CompanySettingsScreen() {
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [candidateAlerts, setCandidateAlerts] = useState(true);
-  const [paymentAlerts, setPaymentAlerts] = useState(true);
-  const [showCompanyProfile, setShowCompanyProfile] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(false);
+  const [candidateAlerts, setCandidateAlerts] = useState(false);
+  const [paymentAlerts, setPaymentAlerts] = useState(false);
+  const [showCompanyProfile, setShowCompanyProfile] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { isDark, toggleTheme, theme } = useTheme();
+
+  useEffect(() => {
+    loadCompanySettings();
+  }, []);
+
+  async function loadCompanySettings() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Futuramente entra aqui a API para buscar as configurações
+        da empresa logada.
+
+        Exemplo:
+        const response = await companySettingsService.getMySettings();
+
+        setPushNotifications(response.pushNotifications);
+        setEmailNotifications(response.emailNotifications);
+        setCandidateAlerts(response.candidateAlerts);
+        setPaymentAlerts(response.paymentAlerts);
+        setShowCompanyProfile(response.showCompanyProfile);
+
+        A API deve identificar a empresa pelo token salvo depois do login.
+      */
+    } catch (error) {
+      console.log("Erro ao carregar configurações da empresa:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível carregar as configurações da empresa agora."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const settingOptions: SettingOption[] = [
     {
@@ -62,37 +109,125 @@ export default function CompanySettingsScreen() {
     },
   ];
 
-  function handleSaveSettings() {
-    console.log({
+  function getCurrentSettings(): CompanySettings {
+    return {
       pushNotifications,
       emailNotifications,
       candidateAlerts,
       paymentAlerts,
       showCompanyProfile,
-    });
-
-    router.back();
+    };
   }
 
-  function handleLogout() {
-    router.replace("/welcome");
+  async function handleSaveSettings() {
+    const settings = getCurrentSettings();
+
+    try {
+      setIsSaving(true);
+
+      /*
+        Futuramente entra aqui a API para salvar as configurações.
+
+        Exemplo:
+        await companySettingsService.updateMySettings(settings);
+
+        A API deve atualizar as preferências da empresa logada
+        usando o token salvo depois do login.
+      */
+
+      console.log("Configurações da empresa salvas:", settings);
+
+      Alert.alert(
+        "Configurações salvas",
+        "As preferências da empresa foram atualizadas.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ]
+      );
+    } catch (error) {
+      console.log("Erro ao salvar configurações da empresa:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível salvar as configurações agora. Tente novamente."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      /*
+        Futuramente:
+        await authService.logout();
+        await removeAuthToken();
+      */
+
+      router.replace("/welcome");
+    } catch (error) {
+      console.log("Erro ao sair da conta:", error);
+
+      Alert.alert("Erro", "Não foi possível sair da conta agora.");
+    }
   }
 
   function handleDeleteAccount() {
     Alert.alert(
-      "Excluir conta",
-      "Essa ação é apenas visual no protótipo. Na versão final, a conta seria removida após confirmação de segurança.",
+      "Excluir conta da empresa",
+      "Tem certeza que deseja excluir a conta da empresa? Essa ação não poderá ser desfeita.",
       [
         {
           text: "Cancelar",
           style: "cancel",
         },
         {
-          text: "Entendi",
+          text: "Excluir",
           style: "destructive",
+          onPress: confirmDeleteAccount,
         },
       ]
     );
+  }
+
+  async function confirmDeleteAccount() {
+    try {
+      setIsDeleting(true);
+
+      /*
+        Futuramente entra aqui a API para excluir a conta.
+
+        Exemplo:
+        await companyService.deleteMyCompanyAccount();
+        await authService.logout();
+
+        A API deve remover/desativar a conta da empresa logada
+        usando o token salvo depois do login.
+      */
+
+      Alert.alert(
+        "Conta excluída",
+        "A conta da empresa foi removida com sucesso.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/welcome"),
+          },
+        ]
+      );
+    } catch (error) {
+      console.log("Erro ao excluir conta da empresa:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível excluir a conta agora. Tente novamente."
+      );
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   return (
@@ -130,7 +265,7 @@ export default function CompanySettingsScreen() {
           ]}
         >
           <View>
-            <Text style={[styles.heroLabel, { color: theme.primary }]}>
+            <Text style={[styles.heroLabel, { color: colors.primary }]}>
               Conta empresarial
             </Text>
 
@@ -147,6 +282,26 @@ export default function CompanySettingsScreen() {
             <SettingsIcon width={34} height={34} />
           </View>
         </View>
+
+        {isLoading && (
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.infoTitle, { color: theme.text }]}>
+              Carregando configurações...
+            </Text>
+
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+              Buscando as preferências da empresa.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -167,7 +322,12 @@ export default function CompanySettingsScreen() {
                 Modo noturno
               </Text>
 
-              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.switchSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Ativar tema escuro no aplicativo.
               </Text>
             </View>
@@ -207,7 +367,12 @@ export default function CompanySettingsScreen() {
                 Notificações push
               </Text>
 
-              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.switchSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Receber alertas no celular sobre atividades importantes.
               </Text>
             </View>
@@ -237,7 +402,12 @@ export default function CompanySettingsScreen() {
                 Notificações por e-mail
               </Text>
 
-              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.switchSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Receber resumo de chamados, pagamentos e candidaturas por e-mail.
               </Text>
             </View>
@@ -267,7 +437,12 @@ export default function CompanySettingsScreen() {
                 Alertas de candidatos
               </Text>
 
-              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.switchSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Avisar quando um freelancer se candidatar a um chamado.
               </Text>
             </View>
@@ -297,7 +472,12 @@ export default function CompanySettingsScreen() {
                 Alertas de pagamento
               </Text>
 
-              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.switchSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Avisar quando uma taxa ou transação for confirmada.
               </Text>
             </View>
@@ -333,8 +513,14 @@ export default function CompanySettingsScreen() {
                 Perfil visível
               </Text>
 
-              <Text style={[styles.switchSubtitle, { color: theme.textSecondary }]}>
-                Permitir que freelancers visualizem informações básicas da empresa.
+              <Text
+                style={[
+                  styles.switchSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Permitir que freelancers visualizem informações básicas da
+                empresa.
               </Text>
             </View>
 
@@ -391,7 +577,12 @@ export default function CompanySettingsScreen() {
                     </Text>
                   </View>
 
-                  <Text style={[styles.optionArrow, { color: theme.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.optionArrow,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
                     ›
                   </Text>
                 </Pressable>
@@ -414,19 +605,23 @@ export default function CompanySettingsScreen() {
           </Text>
 
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            Na versão final, essa área poderá controlar permissões, dados da
-            empresa, exclusão de conta e preferências de privacidade.
+            As preferências de privacidade ajudam a empresa a controlar
+            notificações, visibilidade do perfil e segurança da conta.
           </Text>
         </View>
 
         <Pressable
+          disabled={isSaving}
           style={({ pressed }) => [
             styles.saveButton,
             pressed && styles.saveButtonPressed,
+            isSaving && { opacity: 0.7 },
           ]}
           onPress={handleSaveSettings}
         >
-          <Text style={styles.saveButtonText}>Salvar configurações</Text>
+          <Text style={styles.saveButtonText}>
+            {isSaving ? "Salvando..." : "Salvar configurações"}
+          </Text>
         </Pressable>
 
         <Pressable
@@ -440,13 +635,17 @@ export default function CompanySettingsScreen() {
         </Pressable>
 
         <Pressable
+          disabled={isDeleting}
           style={({ pressed }) => [
             styles.deleteButton,
             pressed && styles.deleteButtonPressed,
+            isDeleting && { opacity: 0.7 },
           ]}
           onPress={handleDeleteAccount}
         >
-          <Text style={styles.deleteText}>Excluir conta da empresa</Text>
+          <Text style={styles.deleteText}>
+            {isDeleting ? "Excluindo..." : "Excluir conta da empresa"}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

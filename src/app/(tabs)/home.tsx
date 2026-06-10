@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Image,
   Pressable,
@@ -21,52 +21,55 @@ import FilterIcon from "../../../assets/icons/filter.svg";
 import LocationIcon from "../../../assets/icons/Location-check.svg";
 import CalendarIcon from "../../../assets/icons/calendar.svg";
 
-const serviceImage = require("../../../assets/images/garcom.jpg");
-const serviceImage2 = require("../../../assets/images/Encanador.png");
-const serviceImage3 = require("../../../assets/images/fotografo.png");
-
-const services = [
-  {
-    id: "1",
-    title: "Garçom para Evento",
-    category: "Eventos",
-    price: "R$200,00",
-    distance: "1,5 km - Centro",
-    location: "Centro",
-    time: "Hoje, 18:00",
-    image: serviceImage,
-  },
-  {
-    id: "2",
-    title: "Reparo Hidráulico",
-    category: "Manutenção",
-    price: "R$150,00",
-    distance: "3,2 km - Jardim Paulista",
-    location: "Jardim Paulista",
-    time: "Amanhã, 9:00",
-    image: serviceImage2,
-  },
-  {
-    id: "3",
-    title: "Fotógrafo Profissional",
-    category: "Fotografia",
-    price: "R$300,00",
-    distance: "2,0 km - Moema",
-    location: "Moema",
-    time: "Sábado, 14:00",
-    image: serviceImage3,
-  },
-];
+type ServiceItem = {
+  id: string;
+  title: string;
+  category: string;
+  price: string;
+  distance: string;
+  location: string;
+  time: string;
+  imageUrl?: string;
+};
 
 export default function HomeScreen() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
 
   const [search, setSearch] = useState("");
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
 
   const hasActiveFilters =
     categoria || cidade || valorMin || valorMax || search;
+
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  async function loadServices() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Aqui futuramente entra a API.
+
+        Exemplo:
+        const response = await jobsService.getAvailableJobs();
+        setServices(response);
+
+        Por enquanto deixamos vazio para remover os dados forjados.
+      */
+
+      setServices([]);
+    } catch (error) {
+      console.log("Erro ao buscar chamados:", error);
+      setServices([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   function handleOpenFilters() {
     router.push({
@@ -85,42 +88,48 @@ export default function HomeScreen() {
     router.push("/(tabs)/home");
   }
 
-  const filteredServices = services.filter((service) => {
-    const filtroCategoria = String(categoria || "Todos");
-    const filtroCidade = String(cidade || "");
-    const filtroValorMin = String(valorMin || "");
-    const filtroValorMax = String(valorMax || "");
-    const filtroBusca = search.toLowerCase().trim();
+  function formatServicePriceToNumber(price: string) {
+    return Number(price.replace(/\D/g, "")) / 100;
+  }
 
-    const valorServico = Number(service.price.replace(/\D/g, "")) / 100;
+  const filteredServices = useMemo(() => {
+    return services.filter((service) => {
+      const filtroCategoria = String(categoria || "Todos");
+      const filtroCidade = String(cidade || "");
+      const filtroValorMin = String(valorMin || "");
+      const filtroValorMax = String(valorMax || "");
+      const filtroBusca = search.toLowerCase().trim();
 
-    const bateCategoria =
-      filtroCategoria === "Todos" ||
-      service.category.toLowerCase().includes(filtroCategoria.toLowerCase()) ||
-      service.title.toLowerCase().includes(filtroCategoria.toLowerCase());
+      const valorServico = formatServicePriceToNumber(service.price);
 
-    const bateCidade =
-      filtroCidade === "" ||
-      service.location.toLowerCase().includes(filtroCidade.toLowerCase()) ||
-      service.distance.toLowerCase().includes(filtroCidade.toLowerCase());
+      const bateCategoria =
+        filtroCategoria === "Todos" ||
+        service.category.toLowerCase().includes(filtroCategoria.toLowerCase()) ||
+        service.title.toLowerCase().includes(filtroCategoria.toLowerCase());
 
-    const bateValorMin =
-      filtroValorMin === "" || valorServico >= Number(filtroValorMin);
+      const bateCidade =
+        filtroCidade === "" ||
+        service.location.toLowerCase().includes(filtroCidade.toLowerCase()) ||
+        service.distance.toLowerCase().includes(filtroCidade.toLowerCase());
 
-    const bateValorMax =
-      filtroValorMax === "" || valorServico <= Number(filtroValorMax);
+      const bateValorMin =
+        filtroValorMin === "" || valorServico >= Number(filtroValorMin);
 
-    const bateBusca =
-      filtroBusca === "" ||
-      service.title.toLowerCase().includes(filtroBusca) ||
-      service.category.toLowerCase().includes(filtroBusca) ||
-      service.location.toLowerCase().includes(filtroBusca) ||
-      service.distance.toLowerCase().includes(filtroBusca);
+      const bateValorMax =
+        filtroValorMax === "" || valorServico <= Number(filtroValorMax);
 
-    return (
-      bateCategoria && bateCidade && bateValorMin && bateValorMax && bateBusca
-    );
-  });
+      const bateBusca =
+        filtroBusca === "" ||
+        service.title.toLowerCase().includes(filtroBusca) ||
+        service.category.toLowerCase().includes(filtroBusca) ||
+        service.location.toLowerCase().includes(filtroBusca) ||
+        service.distance.toLowerCase().includes(filtroBusca);
+
+      return (
+        bateCategoria && bateCidade && bateValorMin && bateValorMax && bateBusca
+      );
+    });
+  }, [services, categoria, cidade, valorMin, valorMax, search]);
 
   return (
     <SafeAreaView
@@ -226,68 +235,131 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.servicesList}>
-          {filteredServices.map((service) => (
-            <Pressable
-              key={service.id}
-              style={({ pressed }) => [
-                styles.serviceCard,
-                {
-                  backgroundColor: theme.card,
-                  borderColor: theme.border,
-                },
-                pressed && styles.serviceCardPressed,
-              ]}
-              onPress={() => {
-                router.push({
-                  pathname: "/job-details",
-                  params: {
-                    title: service.title,
-                    category: service.category,
-                    price: service.price,
-                    distance: service.distance,
-                    location: service.location,
-                    time: service.time,
-                  },
-                });
+        {isLoading ? (
+          <View style={{ paddingVertical: 32 }}>
+            <Text
+              style={{
+                color: theme.textSecondary,
+                textAlign: "center",
+                fontSize: 14,
+                fontWeight: "700",
               }}
             >
-              <View style={styles.serviceContent}>
-                <Text style={[styles.serviceTitle, { color: theme.text }]}>
-                  {service.title}
-                </Text>
+              Carregando chamados...
+            </Text>
+          </View>
+        ) : filteredServices.length === 0 ? (
+          <View
+            style={{
+              paddingVertical: 36,
+              paddingHorizontal: 18,
+              borderRadius: 18,
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                color: theme.text,
+                fontSize: 16,
+                fontWeight: "900",
+                marginBottom: 6,
+              }}
+            >
+              Nenhum chamado encontrado
+            </Text>
 
-                <Text style={styles.servicePrice}>{service.price}</Text>
-
-                <View style={styles.infoRow}>
-                  <LocationIcon width={15} height={15} color={colors.location}/>
-                  <Text style={styles.infoText}>{service.distance}</Text>
-                  <LocationIcon width={15} height={15} />
-
-                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                    {service.distance}
+            <Text
+              style={{
+                color: theme.textSecondary,
+                fontSize: 13,
+                lineHeight: 19,
+                textAlign: "center",
+              }}
+            >
+              Quando a API retornar chamados disponíveis, eles aparecerão aqui.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.servicesList}>
+            {filteredServices.map((service) => (
+              <Pressable
+                key={service.id}
+                style={({ pressed }) => [
+                  styles.serviceCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                  pressed && styles.serviceCardPressed,
+                ]}
+                onPress={() => {
+                  router.push({
+                    pathname: "/job-details",
+                    params: {
+                      title: service.title,
+                      category: service.category,
+                      price: service.price,
+                      distance: service.distance,
+                      location: service.location,
+                      time: service.time,
+                    },
+                  });
+                }}
+              >
+                <View style={styles.serviceContent}>
+                  <Text style={[styles.serviceTitle, { color: theme.text }]}>
+                    {service.title}
                   </Text>
+
+                  <Text style={styles.servicePrice}>{service.price}</Text>
+
+                  <View style={styles.infoRow}>
+                    <LocationIcon
+                      width={15}
+                      height={15}
+                      color={colors.location}
+                    />
+
+                    <Text
+                      style={[
+                        styles.infoText,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {service.distance}
+                    </Text>
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <CalendarIcon width={15} height={15} />
+
+                    <Text
+                      style={[
+                        styles.infoText,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {service.time}
+                    </Text>
+                  </View>
                 </View>
 
-                <View style={styles.infoRow}>
-                  <CalendarIcon width={15} height={15} />
-
-                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                    {service.time}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.serviceImageBox}>
-                <Image
-                  source={service.image}
-                  style={styles.serviceImage}
-                  resizeMode="cover"
-                />
-              </View>
-            </Pressable>
-          ))}
-        </View>
+                {service.imageUrl && (
+                  <View style={styles.serviceImageBox}>
+                    <Image
+                      source={{ uri: service.imageUrl }}
+                      style={styles.serviceImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

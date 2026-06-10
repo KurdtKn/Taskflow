@@ -30,34 +30,80 @@ export default function ChangePasswordScreen() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const { isDark, theme } = useTheme();
 
-  function handleChangePassword() {
-    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
-      Alert.alert("Campos obrigatórios", "Preencha todos os campos para continuar.");
+  async function handleChangePassword() {
+    const current = currentPassword.trim();
+    const newPass = newPassword.trim();
+    const confirm = confirmPassword.trim();
+
+    if (!current || !newPass || !confirm) {
+      Alert.alert(
+        "Campos obrigatórios",
+        "Preencha todos os campos para continuar."
+      );
       return;
     }
 
-    if (newPassword.length < 6) {
-      Alert.alert("Senha fraca", "A nova senha precisa ter pelo menos 6 caracteres.");
+    if (newPass.length < 6) {
+      Alert.alert(
+        "Senha fraca",
+        "A nova senha precisa ter pelo menos 6 caracteres."
+      );
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      Alert.alert("Senhas diferentes", "A confirmação precisa ser igual à nova senha.");
+    if (newPass !== confirm) {
+      Alert.alert(
+        "Senhas diferentes",
+        "A confirmação precisa ser igual à nova senha."
+      );
       return;
     }
 
-    Alert.alert(
-      "Senha alterada",
-      "Sua senha foi atualizada com sucesso.",
-      [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]
-    );
+    try {
+      setIsSaving(true);
+
+      /*
+        Aqui futuramente entra a API para alterar a senha.
+
+        Exemplo:
+        await authService.changePassword({
+          currentPassword: current,
+          newPassword: newPass,
+        });
+
+        A API vai identificar o usuário pelo token salvo após o login.
+        Então não precisa mandar ID do usuário aqui, só a senha atual e a nova.
+      */
+
+      console.log("Alterar senha:", {
+        currentPassword: current,
+        newPassword: newPass,
+      });
+
+      Alert.alert(
+        "Senha alterada",
+        "Sua senha foi atualizada com sucesso.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ]
+      );
+    } catch (error) {
+      console.log("Erro ao alterar senha:", error);
+
+      Alert.alert(
+        "Erro ao alterar senha",
+        "Não foi possível atualizar sua senha agora. Verifique a senha atual e tente novamente."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -88,6 +134,7 @@ export default function ChangePasswordScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
           <View
             style={[
@@ -133,15 +180,15 @@ export default function ChangePasswordScreen() {
                 ]}
               >
                 <TextInput
-                  style={[
-                    styles.input,
-                    { color: theme.text },
-                  ]}
+                  style={[styles.input, { color: theme.text }]}
                   placeholder="Digite sua senha atual"
                   placeholderTextColor={theme.textSecondary}
                   secureTextEntry={!showCurrentPassword}
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="password"
                 />
 
                 <Pressable
@@ -172,15 +219,15 @@ export default function ChangePasswordScreen() {
                 ]}
               >
                 <TextInput
-                  style={[
-                    styles.input,
-                    { color: theme.text },
-                  ]}
+                  style={[styles.input, { color: theme.text }]}
                   placeholder="Digite a nova senha"
                   placeholderTextColor={theme.textSecondary}
                   secureTextEntry={!showNewPassword}
                   value={newPassword}
                   onChangeText={setNewPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="newPassword"
                 />
 
                 <Pressable
@@ -211,15 +258,15 @@ export default function ChangePasswordScreen() {
                 ]}
               >
                 <TextInput
-                  style={[
-                    styles.input,
-                    { color: theme.text },
-                  ]}
+                  style={[styles.input, { color: theme.text }]}
                   placeholder="Confirme a nova senha"
                   placeholderTextColor={theme.textSecondary}
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="newPassword"
                 />
 
                 <Pressable
@@ -256,16 +303,21 @@ export default function ChangePasswordScreen() {
           </View>
 
           <Pressable
+            disabled={isSaving}
             style={({ pressed }) => [
               styles.saveButton,
               pressed && styles.buttonPressed,
+              isSaving && { opacity: 0.7 },
             ]}
             onPress={handleChangePassword}
           >
-            <Text style={styles.saveButtonText}>Salvar nova senha</Text>
+            <Text style={styles.saveButtonText}>
+              {isSaving ? "Salvando..." : "Salvar nova senha"}
+            </Text>
           </Pressable>
 
           <Pressable
+            disabled={isSaving}
             style={({ pressed }) => [
               styles.cancelButton,
               {
@@ -273,6 +325,7 @@ export default function ChangePasswordScreen() {
                 borderColor: theme.border,
               },
               pressed && styles.buttonPressed,
+              isSaving && { opacity: 0.7 },
             ]}
             onPress={() => router.back()}
           >
