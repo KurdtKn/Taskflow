@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -29,6 +29,15 @@ type SettingOption = {
   action: () => void;
 };
 
+type FreelancerSettings = {
+  availableForJobs: boolean;
+  pushNotifications: boolean;
+  newJobAlerts: boolean;
+  messageAlerts: boolean;
+  reviewAlerts: boolean;
+  profileVisible: boolean;
+};
+
 export default function FreelancerSettingsScreen() {
   const [availableForJobs, setAvailableForJobs] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -37,7 +46,45 @@ export default function FreelancerSettingsScreen() {
   const [reviewAlerts, setReviewAlerts] = useState(true);
   const [profileVisible, setProfileVisible] = useState(true);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const { isDark, toggleTheme, theme } = useTheme();
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  async function loadSettings() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Aqui futuramente entra a API para buscar configurações do usuário logado.
+
+        Exemplo:
+        const response = await userService.getFreelancerSettings();
+
+        setAvailableForJobs(response.availableForJobs);
+        setPushNotifications(response.pushNotifications);
+        setNewJobAlerts(response.newJobAlerts);
+        setMessageAlerts(response.messageAlerts);
+        setReviewAlerts(response.reviewAlerts);
+        setProfileVisible(response.profileVisible);
+
+        Por enquanto mantemos os valores padrão da tela.
+      */
+    } catch (error) {
+      console.log("Erro ao carregar configurações:", error);
+      Alert.alert(
+        "Erro",
+        "Não foi possível carregar suas configurações agora."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const settingOptions: SettingOption[] = [
     {
@@ -63,26 +110,46 @@ export default function FreelancerSettingsScreen() {
     },
   ];
 
-  function handleSaveSettings() {
-    console.log({
+  function getCurrentSettings(): FreelancerSettings {
+    return {
       availableForJobs,
       pushNotifications,
       newJobAlerts,
       messageAlerts,
       reviewAlerts,
       profileVisible,
-    });
+    };
+  }
 
-    Alert.alert(
-      "Configurações salvas",
-      "Suas preferências foram atualizadas no protótipo.",
-      [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]
-    );
+  async function handleSaveSettings() {
+    try {
+      setIsSaving(true);
+
+      const settings = getCurrentSettings();
+
+      /*
+        Aqui futuramente entra a API para salvar configurações.
+
+        Exemplo:
+        await userService.updateFreelancerSettings(settings);
+      */
+
+      console.log("Configurações salvas:", settings);
+
+      Alert.alert(
+        "Configurações salvas",
+        "Suas preferências foram atualizadas com sucesso."
+      );
+    } catch (error) {
+      console.log("Erro ao salvar configurações:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível salvar suas configurações agora."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function handleLogout() {
@@ -94,7 +161,25 @@ export default function FreelancerSettingsScreen() {
       {
         text: "Sair",
         style: "destructive",
-        onPress: () => router.replace("/welcome"),
+        onPress: async () => {
+          try {
+            /*
+              Aqui futuramente vamos limpar a sessão/token.
+
+              Exemplo:
+              await authService.logout();
+            */
+
+            router.replace("/welcome");
+          } catch (error) {
+            console.log("Erro ao desconectar:", error);
+
+            Alert.alert(
+              "Erro",
+              "Não foi possível sair da conta agora."
+            );
+          }
+        },
       },
     ]);
   }
@@ -102,15 +187,48 @@ export default function FreelancerSettingsScreen() {
   function handleDeleteAccount() {
     Alert.alert(
       "Excluir conta",
-      "Essa ação é apenas visual no protótipo. Na versão final, a exclusão seguiria regras de segurança e LGPD.",
+      "Tem certeza que deseja excluir sua conta? Essa ação não poderá ser desfeita.",
       [
         {
           text: "Cancelar",
           style: "cancel",
         },
         {
-          text: "Entendi",
+          text: "Excluir",
           style: "destructive",
+          onPress: async () => {
+            try {
+              setIsDeleting(true);
+
+              /*
+                Aqui futuramente entra a API para excluir conta.
+
+                Exemplo:
+                await userService.deleteMyAccount();
+                await authService.logout();
+              */
+
+              Alert.alert(
+                "Conta excluída",
+                "Sua conta foi removida com sucesso.",
+                [
+                  {
+                    text: "OK",
+                    onPress: () => router.replace("/welcome"),
+                  },
+                ]
+              );
+            } catch (error) {
+              console.log("Erro ao excluir conta:", error);
+
+              Alert.alert(
+                "Erro",
+                "Não foi possível excluir sua conta agora."
+              );
+            } finally {
+              setIsDeleting(false);
+            }
+          },
         },
       ]
     );
@@ -151,7 +269,7 @@ export default function FreelancerSettingsScreen() {
           ]}
         >
           <View style={styles.heroTextArea}>
-            <Text style={[styles.heroLabel, { color: theme.primary }]}>
+            <Text style={[styles.heroLabel, { color: colors.primary }]}>
               Conta freelancer
             </Text>
 
@@ -168,6 +286,26 @@ export default function FreelancerSettingsScreen() {
             <SettingsIcon width={34} height={34} />
           </View>
         </View>
+
+        {isLoading && (
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.infoTitle, { color: theme.text }]}>
+              Carregando configurações...
+            </Text>
+
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+              Buscando suas preferências de conta.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -457,33 +595,18 @@ export default function FreelancerSettingsScreen() {
           </View>
         </View>
 
-        <View
-          style={[
-            styles.infoBox,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Text style={[styles.infoTitle, { color: theme.text }]}>
-            Controle de dados
-          </Text>
-
-          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            Na versão final, essa área permitirá controlar dados pessoais,
-            permissões, privacidade e exclusão da conta conforme a LGPD.
-          </Text>
-        </View>
-
         <Pressable
+          disabled={isSaving}
           style={({ pressed }) => [
             styles.saveButton,
             pressed && styles.saveButtonPressed,
+            isSaving && { opacity: 0.7 },
           ]}
           onPress={handleSaveSettings}
         >
-          <Text style={styles.saveButtonText}>Salvar configurações</Text>
+          <Text style={styles.saveButtonText}>
+            {isSaving ? "Salvando..." : "Salvar configurações"}
+          </Text>
         </Pressable>
 
         <Pressable
@@ -497,13 +620,17 @@ export default function FreelancerSettingsScreen() {
         </Pressable>
 
         <Pressable
+          disabled={isDeleting}
           style={({ pressed }) => [
             styles.deleteButton,
             pressed && styles.deleteButtonPressed,
+            isDeleting && { opacity: 0.7 },
           ]}
           onPress={handleDeleteAccount}
         >
-          <Text style={styles.deleteText}>Excluir conta</Text>
+          <Text style={styles.deleteText}>
+            {isDeleting ? "Excluindo..." : "Excluir conta"}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

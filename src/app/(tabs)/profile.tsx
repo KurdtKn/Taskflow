@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   Pressable,
@@ -28,8 +29,53 @@ type MenuOption = {
   action: () => void;
 };
 
+type FreelancerProfile = {
+  id: string;
+  name: string;
+  userType: string;
+  photoUrl?: string;
+  rating?: number;
+  reviewsCount?: number;
+  completedServices?: number;
+  acceptanceRate?: number;
+  activeServices?: number;
+  about?: string;
+  tags?: string[];
+};
+
 export default function ProfileScreen() {
   const { isDark, theme } = useTheme();
+
+  const [profile, setProfile] = useState<FreelancerProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  async function loadProfile() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Aqui futuramente entra a API do usuário logado.
+
+        Exemplo:
+        const response = await userService.getMyFreelancerProfile();
+        setProfile(response);
+
+        A API deve identificar o usuário pelo token salvo no login.
+        Por enquanto deixamos null para remover dados forjados.
+      */
+
+      setProfile(null);
+    } catch (error) {
+      console.log("Erro ao carregar perfil:", error);
+      setProfile(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const menuOptions: MenuOption[] = [
     {
@@ -72,11 +118,18 @@ export default function ProfileScreen() {
       title: "Ajuda e suporte",
       subtitle: "Central de dúvidas e atendimento",
       Icon: HelpIcon,
-      action: () => router.push("/freelancer-support"),
+      action: () => router.push("/support-contact"),
     },
   ];
 
   function handleLogout() {
+    /*
+      Aqui futuramente vamos limpar o token/sessão.
+
+      Exemplo:
+      await authService.logout();
+    */
+
     router.replace("/welcome");
   }
 
@@ -117,163 +170,253 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <View
-          style={[
-            styles.profileCard,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <View style={styles.avatarArea}>
-            <Image
-              source={require("../../../assets/images/icon.png")}
-              style={styles.avatar}
-              resizeMode="contain"
-            />
-
-            <View style={styles.onlineBadge} />
-          </View>
-
-          <Text style={[styles.userName, { color: theme.text }]}>
-            Usuário TaskFlow
-          </Text>
-
-          <Text style={[styles.userType, { color: theme.textSecondary }]}>
-            Freelancer
-          </Text>
-
-          <View style={styles.ratingArea}>
-            <Text style={{ fontSize: 16 }}>⭐</Text>
-
-            <Text style={[styles.ratingText, { color: theme.text }]}>
-              4,8
-            </Text>
-
-            <Text style={[styles.ratingSubtext, { color: theme.textSecondary }]}>
-              • 24 avaliações
-            </Text>
-          </View>
-
+        {isLoading ? (
           <View
             style={[
-              styles.statsArea,
+              styles.profileCard,
               {
-                backgroundColor: theme.background,
+                backgroundColor: theme.card,
                 borderColor: theme.border,
               },
             ]}
           >
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.text }]}>
-                18
-              </Text>
+            <Text style={[styles.userName, { color: theme.text }]}>
+              Carregando perfil...
+            </Text>
 
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                Serviços
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.statDivider,
-                { backgroundColor: theme.border },
-              ]}
-            />
-
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.text }]}>
-                92%
-              </Text>
-
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                Aceitação
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.statDivider,
-                { backgroundColor: theme.border },
-              ]}
-            />
-
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.text }]}>
-                4
-              </Text>
-
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                Ativos
-              </Text>
-            </View>
+            <Text style={[styles.userType, { color: theme.textSecondary }]}>
+              Buscando dados da sua conta.
+            </Text>
           </View>
-        </View>
+        ) : !profile ? (
+          <View
+            style={[
+              styles.profileCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <View style={styles.avatarArea}>
+              <View
+                style={[
+                  styles.avatar,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: theme.textSecondary,
+                    fontSize: 28,
+                    fontWeight: "900",
+                  }}
+                >
+                  ?
+                </Text>
+              </View>
+            </View>
 
-        <View
-          style={[
-            styles.aboutCard,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Sobre
-          </Text>
+            <Text style={[styles.userName, { color: theme.text }]}>
+              Perfil não carregado
+            </Text>
 
-          <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
-            Profissional disponível para serviços sob demanda, eventos e
-            atividades rápidas. Perfil em desenvolvimento para o protótipo do
-            TaskFlow.
-          </Text>
-
-          <View style={styles.tagsArea}>
-            <View
+            <Text
               style={[
-                styles.tag,
+                styles.userType,
                 {
-                  backgroundColor: theme.background,
-                  borderColor: theme.border,
+                  color: theme.textSecondary,
+                  textAlign: "center",
+                  lineHeight: 20,
                 },
               ]}
             >
-              <Text style={[styles.tagText, { color: theme.text }]}>
-                Eventos
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.tag,
-                {
-                  backgroundColor: theme.background,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Text style={[styles.tagText, { color: theme.text }]}>
-                Serviços gerais
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.tag,
-                {
-                  backgroundColor: theme.background,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Text style={[styles.tagText, { color: theme.text }]}>
-                Disponível
-              </Text>
-            </View>
+              Quando a API retornar os dados do usuário logado, eles aparecerão
+              aqui.
+            </Text>
           </View>
-        </View>
+        ) : (
+          <>
+            <View
+              style={[
+                styles.profileCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <View style={styles.avatarArea}>
+                {profile.photoUrl ? (
+                  <Image
+                    source={{ uri: profile.photoUrl }}
+                    style={styles.avatar}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.avatar,
+                      {
+                        backgroundColor: theme.inputBackground,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: theme.text,
+                        fontSize: 28,
+                        fontWeight: "900",
+                      }}
+                    >
+                      {profile.name.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.onlineBadge} />
+              </View>
+
+              <Text style={[styles.userName, { color: theme.text }]}>
+                {profile.name}
+              </Text>
+
+              <Text style={[styles.userType, { color: theme.textSecondary }]}>
+                {profile.userType}
+              </Text>
+
+              {profile.rating !== undefined && (
+                <View style={styles.ratingArea}>
+                  <Text style={{ fontSize: 16 }}>⭐</Text>
+
+                  <Text style={[styles.ratingText, { color: theme.text }]}>
+                    {profile.rating.toFixed(1).replace(".", ",")}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.ratingSubtext,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    • {profile.reviewsCount ?? 0} avaliações
+                  </Text>
+                </View>
+              )}
+
+              <View
+                style={[
+                  styles.statsArea,
+                  {
+                    backgroundColor: theme.background,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: theme.text }]}>
+                    {profile.completedServices ?? 0}
+                  </Text>
+
+                  <Text
+                    style={[styles.statLabel, { color: theme.textSecondary }]}
+                  >
+                    Serviços
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.statDivider,
+                    { backgroundColor: theme.border },
+                  ]}
+                />
+
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: theme.text }]}>
+                    {profile.acceptanceRate ?? 0}%
+                  </Text>
+
+                  <Text
+                    style={[styles.statLabel, { color: theme.textSecondary }]}
+                  >
+                    Aceitação
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.statDivider,
+                    { backgroundColor: theme.border },
+                  ]}
+                />
+
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: theme.text }]}>
+                    {profile.activeServices ?? 0}
+                  </Text>
+
+                  <Text
+                    style={[styles.statLabel, { color: theme.textSecondary }]}
+                  >
+                    Ativos
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {(profile.about || profile.tags?.length) && (
+              <View
+                style={[
+                  styles.aboutCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                  Sobre
+                </Text>
+
+                {profile.about && (
+                  <Text
+                    style={[styles.aboutText, { color: theme.textSecondary }]}
+                  >
+                    {profile.about}
+                  </Text>
+                )}
+
+                {profile.tags && profile.tags.length > 0 && (
+                  <View style={styles.tagsArea}>
+                    {profile.tags.map((tag) => (
+                      <View
+                        key={tag}
+                        style={[
+                          styles.tag,
+                          {
+                            backgroundColor: theme.background,
+                            borderColor: theme.border,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.tagText, { color: theme.text }]}>
+                          {tag}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+          </>
+        )}
 
         <View style={styles.menuArea}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -310,7 +453,12 @@ export default function ProfileScreen() {
                   {option.title}
                 </Text>
 
-                <Text style={[styles.menuSubtitle, { color: theme.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.menuSubtitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   {option.subtitle}
                 </Text>
               </View>

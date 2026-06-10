@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+
 import { styles } from "@/app/styles/companyReviews";
 import { useTheme } from "@/app/context/ThemeContext";
 
@@ -25,78 +26,123 @@ type CompanyReview = {
   tags: string[];
 };
 
-const reviewsData: CompanyReview[] = [
-  {
-    id: "1",
-    freelancerName: "Usuário TaskFlow",
-    service: "Garçom para Evento",
-    rating: 5,
-    date: "Hoje",
-    comment:
-      "Empresa muito organizada, passou todas as informações do evento com clareza e manteve uma boa comunicação pelo chat.",
-    tags: ["Boa comunicação", "Organizada", "Pagamento correto"],
-  },
-  {
-    id: "2",
-    freelancerName: "Anna Clara",
-    service: "Fotógrafo Profissional",
-    rating: 5,
-    date: "2 dias atrás",
-    comment:
-      "Ótima experiência. A empresa explicou bem o serviço, respeitou o horário combinado e foi bem tranquila durante o atendimento.",
-    tags: ["Pontual", "Profissional", "Recomendo"],
-  },
-  {
-    id: "3",
-    freelancerName: "Carlos Oliveira",
-    service: "Reparo Hidráulico",
-    rating: 4,
-    date: "1 semana atrás",
-    comment:
-      "A contratação foi tranquila e a comunicação foi boa. Só faltaram alguns detalhes no chamado, mas tudo foi resolvido pelo chat.",
-    tags: ["Boa comunicação", "Serviço tranquilo"],
-  },
-  {
-    id: "4",
-    freelancerName: "Gabriel Santos",
-    service: "Apoio em Limpeza",
-    rating: 5,
-    date: "2 semanas atrás",
-    comment:
-      "Empresa confiável, atendimento respeitoso e informações bem organizadas. Trabalharia novamente sem problemas.",
-    tags: ["Confiável", "Respeitosa", "Recomendo"],
-  },
-];
+type CompanyReviewsSummary = {
+  averageRating: number;
+  totalReviews: number;
+  fiveStarReviews: number;
+  satisfactionRate: number;
+};
 
 export default function CompanyReviewsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<ReviewFilter>("all");
+  const [reviews, setReviews] = useState<CompanyReview[]>([]);
+  const [summary, setSummary] = useState<CompanyReviewsSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
 
+  useEffect(() => {
+    loadCompanyReviews();
+  }, []);
+
+  async function loadCompanyReviews() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Futuramente entra aqui a API.
+
+        Exemplo:
+        const response = await companyReviewsService.getMyCompanyReviews();
+
+        setReviews(response.reviews);
+        setSummary(response.summary);
+
+        A API deve retornar somente as avaliações da empresa logada,
+        usando o token salvo depois do login.
+
+        Formato esperado:
+        {
+          summary: {
+            averageRating: 4.8,
+            totalReviews: 32,
+            fiveStarReviews: 24,
+            satisfactionRate: 96
+          },
+          reviews: [
+            {
+              id: "1",
+              freelancerName: "Nome do freelancer",
+              service: "Nome do serviço",
+              rating: 5,
+              date: "Hoje",
+              comment: "Comentário recebido...",
+              tags: ["Boa comunicação", "Organizada"]
+            }
+          ]
+        }
+      */
+
+      setReviews([]);
+      setSummary(null);
+    } catch (error) {
+      console.log("Erro ao carregar avaliações da empresa:", error);
+
+      setReviews([]);
+      setSummary(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   const filteredReviews = useMemo(() => {
     if (selectedFilter === "positive") {
-      return reviewsData.filter((review) => review.rating >= 5);
+      return reviews.filter((review) => review.rating >= 4);
     }
 
     if (selectedFilter === "recent") {
-      return reviewsData.slice(0, 2);
+      return reviews.slice(0, 5);
     }
 
-    return reviewsData;
-  }, [selectedFilter]);
+    return reviews;
+  }, [selectedFilter, reviews]);
 
-  const averageRating =
-    reviewsData.reduce((total, review) => total + review.rating, 0) /
-    reviewsData.length;
+  const averageRating = useMemo(() => {
+    if (summary) {
+      return summary.averageRating;
+    }
 
-  const fiveStarReviews = reviewsData.filter(
-    (review) => review.rating === 5
-  ).length;
+    if (reviews.length === 0) {
+      return 0;
+    }
+
+    const total = reviews.reduce((sum, review) => sum + review.rating, 0);
+
+    return total / reviews.length;
+  }, [summary, reviews]);
+
+  const totalReviews = summary?.totalReviews ?? reviews.length;
+
+  const fiveStarReviews =
+    summary?.fiveStarReviews ??
+    reviews.filter((review) => review.rating === 5).length;
+
+  const satisfactionRate =
+    summary?.satisfactionRate ??
+    (reviews.length > 0
+      ? Math.round(
+          (reviews.filter((review) => review.rating >= 4).length /
+            reviews.length) *
+            100
+        )
+      : 0);
 
   function renderStars(rating: number) {
+    const safeRating = Math.max(0, Math.min(5, rating));
+
     return Array.from({ length: 5 }).map((_, index) => {
       const starValue = index + 1;
-      const isActive = starValue <= rating;
+      const isActive = starValue <= safeRating;
 
       return (
         <Text
@@ -110,6 +156,14 @@ export default function CompanyReviewsScreen() {
         </Text>
       );
     });
+  }
+
+  function getFreelancerInitial(name: string) {
+    if (!name) {
+      return "?";
+    }
+
+    return name.charAt(0).toUpperCase();
   }
 
   return (
@@ -162,8 +216,8 @@ export default function CompanyReviewsScreen() {
           </View>
 
           <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
-            Baseado em {reviewsData.length} avaliações feitas por freelancers
-            após serviços concluídos.
+            Baseado em {totalReviews} avaliações feitas por freelancers após
+            serviços concluídos.
           </Text>
         </View>
 
@@ -178,8 +232,9 @@ export default function CompanyReviewsScreen() {
             ]}
           >
             <Text style={[styles.statNumber, { color: theme.text }]}>
-              {reviewsData.length}
+              {totalReviews}
             </Text>
+
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Avaliações
             </Text>
@@ -197,6 +252,7 @@ export default function CompanyReviewsScreen() {
             <Text style={[styles.statNumber, { color: theme.text }]}>
               {fiveStarReviews}
             </Text>
+
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Nota 5
             </Text>
@@ -212,8 +268,9 @@ export default function CompanyReviewsScreen() {
             ]}
           >
             <Text style={[styles.statNumber, { color: theme.text }]}>
-              96%
+              {satisfactionRate}%
             </Text>
+
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Satisfação
             </Text>
@@ -299,70 +356,131 @@ export default function CompanyReviewsScreen() {
         </View>
 
         <View style={styles.reviewsList}>
-          {filteredReviews.map((review) => (
+          {isLoading ? (
             <View
-              key={review.id}
               style={[
-                styles.reviewCard,
+                styles.infoBox,
                 {
                   backgroundColor: theme.card,
                   borderColor: theme.border,
                 },
               ]}
             >
-              <View style={styles.reviewHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {review.freelancerName.charAt(0)}
-                  </Text>
-                </View>
-
-                <View style={styles.reviewHeaderText}>
-                  <Text style={[styles.freelancerName, { color: theme.text }]}>
-                    {review.freelancerName}
-                  </Text>
-
-                  <Text style={[styles.serviceName, { color: theme.textSecondary }]}>
-                    {review.service}
-                  </Text>
-                </View>
-
-                <Text style={[styles.reviewDate, { color: theme.textSecondary }]}>
-                  {review.date}
-                </Text>
-              </View>
-
-              <View style={styles.reviewStarsArea}>
-                {renderStars(review.rating)}
-                <Text style={[styles.reviewRatingText, { color: theme.text }]}>
-                  {review.rating},0
-                </Text>
-              </View>
-
-              <Text style={[styles.reviewComment, { color: theme.textSecondary }]}>
-                {review.comment}
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Carregando avaliações...
               </Text>
 
-              <View style={styles.tagsArea}>
-                {review.tags.map((tag) => (
-                  <View
-                    key={tag}
-                    style={[
-                      styles.tag,
-                      {
-                        backgroundColor: theme.background,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.tagText, { color: theme.text }]}>
-                      {tag}
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Buscando a reputação da empresa.
+              </Text>
+            </View>
+          ) : filteredReviews.length === 0 ? (
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Nenhuma avaliação encontrada
+              </Text>
+
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Quando freelancers avaliarem a empresa, os comentários
+                aparecerão aqui.
+              </Text>
+            </View>
+          ) : (
+            filteredReviews.map((review) => (
+              <View
+                key={review.id}
+                style={[
+                  styles.reviewCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <View style={styles.reviewHeader}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {getFreelancerInitial(review.freelancerName)}
                     </Text>
                   </View>
-                ))}
+
+                  <View style={styles.reviewHeaderText}>
+                    <Text
+                      style={[styles.freelancerName, { color: theme.text }]}
+                    >
+                      {review.freelancerName}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.serviceName,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {review.service}
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.reviewDate,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {review.date}
+                  </Text>
+                </View>
+
+                <View style={styles.reviewStarsArea}>
+                  {renderStars(review.rating)}
+
+                  <Text
+                    style={[styles.reviewRatingText, { color: theme.text }]}
+                  >
+                    {review.rating},0
+                  </Text>
+                </View>
+
+                <Text
+                  style={[
+                    styles.reviewComment,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  {review.comment}
+                </Text>
+
+                {review.tags.length > 0 && (
+                  <View style={styles.tagsArea}>
+                    {review.tags.map((tag) => (
+                      <View
+                        key={tag}
+                        style={[
+                          styles.tag,
+                          {
+                            backgroundColor: theme.background,
+                            borderColor: theme.border,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.tagText, { color: theme.text }]}>
+                          {tag}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
 
         <View

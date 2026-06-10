@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -39,87 +39,45 @@ type NotificationItem = {
   description: string;
   time: string;
   unread: boolean;
-  jobTitle: string;
-  companyName: string;
+  jobTitle?: string;
+  companyName?: string;
 };
-
-const notificationsData: NotificationItem[] = [
-  {
-    id: "1",
-    type: "new_job",
-    title: "Novo chamado próximo",
-    description:
-      "Garçom para Evento foi publicado a 1,5 km de você. Confira os detalhes.",
-    time: "Agora",
-    unread: true,
-    jobTitle: "Garçom para Evento",
-    companyName: "TaskFlow Eventos",
-  },
-  {
-    id: "2",
-    type: "default",
-    title: "Solicitação enviada",
-    description:
-      "Sua candidatura para Fotógrafo Profissional foi enviada para análise.",
-    time: "10 min",
-    unread: true,
-    jobTitle: "Fotógrafo Profissional",
-    companyName: "TaskFlow Eventos",
-  },
-  {
-    id: "3",
-    type: "request_accepted",
-    title: "Solicitação aceita",
-    description:
-      "A empresa aceitou sua solicitação. Aguarde a confirmação do fluxo.",
-    time: "35 min",
-    unread: false,
-    jobTitle: "Garçom para Evento",
-    companyName: "TaskFlow Eventos",
-  },
-  {
-    id: "4",
-    type: "chat_released",
-    title: "Chat liberado",
-    description:
-      "O chat com TaskFlow Eventos já está disponível para combinar os detalhes.",
-    time: "1 h",
-    unread: false,
-    jobTitle: "Garçom para Evento",
-    companyName: "TaskFlow Eventos",
-  },
-  {
-    id: "5",
-    type: "payment_confirmed",
-    title: "Taxa confirmada",
-    description:
-      "O pagamento da taxa foi confirmado e o serviço está em andamento.",
-    time: "2 h",
-    unread: false,
-    jobTitle: "Garçom para Evento",
-    companyName: "TaskFlow Eventos",
-  },
-  {
-    id: "6",
-    type: "review_received",
-    title: "Avaliação disponível",
-    description:
-      "O serviço foi concluído. Avalie sua experiência com a empresa.",
-    time: "Ontem",
-    unread: false,
-    jobTitle: "Garçom para Evento",
-    companyName: "TaskFlow Eventos",
-  },
-];
 
 export default function NotificationsScreen() {
   const [selectedFilter, setSelectedFilter] =
     useState<NotificationFilter>("all");
 
-  const [notifications, setNotifications] =
-    useState<NotificationItem[]>(notificationsData);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  async function loadNotifications() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Aqui futuramente entra a API.
+
+        Exemplo:
+        const response = await notificationsService.getFreelancerNotifications();
+        setNotifications(response);
+
+        Por enquanto deixamos vazio para remover os dados forjados.
+      */
+
+      setNotifications([]);
+    } catch (error) {
+      console.log("Erro ao buscar notificações:", error);
+      setNotifications([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const filteredNotifications = useMemo(() => {
     if (selectedFilter === "unread") {
@@ -141,7 +99,7 @@ export default function NotificationsScreen() {
 
   function renderNotificationIcon(type: NotificationDetailType) {
     if (type === "new_job") {
-      return <LocationIcon width={24} height={24} color={colors.location}/>;
+      return <LocationIcon width={24} height={24} color={colors.location} />;
     }
 
     if (type === "request_accepted") {
@@ -163,34 +121,56 @@ export default function NotificationsScreen() {
     return <AssignmentIcon width={24} height={24} />;
   }
 
-  function handleNotificationPress(notification: NotificationItem) {
-    setNotifications((currentNotifications) =>
-      currentNotifications.map((item) =>
-        item.id === notification.id ? { ...item, unread: false } : item
-      )
-    );
+  async function handleNotificationPress(notification: NotificationItem) {
+    try {
+      /*
+        Aqui futuramente entra a API para marcar uma notificação como lida.
 
-    router.push({
-      pathname: "/notification-details",
-      params: {
-        type: notification.type,
-        title: notification.title,
-        message: notification.description,
-        time: notification.time,
-        jobTitle: notification.jobTitle,
-        companyName: notification.companyName,
-        userType: "freelancer",
-      },
-    });
+        Exemplo:
+        await notificationsService.markAsRead(notification.id);
+      */
+
+      setNotifications((currentNotifications) =>
+        currentNotifications.map((item) =>
+          item.id === notification.id ? { ...item, unread: false } : item
+        )
+      );
+
+      router.push({
+        pathname: "/notification-details",
+        params: {
+          type: notification.type,
+          title: notification.title,
+          message: notification.description,
+          time: notification.time,
+          jobTitle: notification.jobTitle ?? "",
+          companyName: notification.companyName ?? "",
+          userType: "freelancer",
+        },
+      });
+    } catch (error) {
+      console.log("Erro ao abrir notificação:", error);
+    }
   }
 
-  function handleMarkAllAsRead() {
-    setNotifications((currentNotifications) =>
-      currentNotifications.map((notification) => ({
-        ...notification,
-        unread: false,
-      }))
-    );
+  async function handleMarkAllAsRead() {
+    try {
+      /*
+        Aqui futuramente entra a API para marcar todas como lidas.
+
+        Exemplo:
+        await notificationsService.markAllAsRead();
+      */
+
+      setNotifications((currentNotifications) =>
+        currentNotifications.map((notification) => ({
+          ...notification,
+          unread: false,
+        }))
+      );
+    } catch (error) {
+      console.log("Erro ao marcar notificações como lidas:", error);
+    }
   }
 
   return (
@@ -215,9 +195,11 @@ export default function NotificationsScreen() {
           </Text>
         </View>
 
-        <Pressable style={styles.readButton} onPress={handleMarkAllAsRead}>
-          <Text style={styles.readButtonText}>Marcar tudo como lido</Text>
-        </Pressable>
+        {notifications.length > 0 && (
+          <Pressable style={styles.readButton} onPress={handleMarkAllAsRead}>
+            <Text style={styles.readButtonText}>Marcar tudo como lido</Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.filtersArea}>
@@ -292,7 +274,27 @@ export default function NotificationsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.notificationsList}
       >
-        {filteredNotifications.length === 0 ? (
+        {isLoading ? (
+          <View
+            style={[
+              styles.emptyArea,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <BellIcon width={38} height={38} />
+
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              Carregando notificações...
+            </Text>
+
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              Buscando novidades na API.
+            </Text>
+          </View>
+        ) : filteredNotifications.length === 0 ? (
           <View
             style={[
               styles.emptyArea,
@@ -309,7 +311,7 @@ export default function NotificationsScreen() {
             </Text>
 
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-              Quando houver novidades, elas aparecerão aqui.
+              Quando a API retornar notificações, elas aparecerão aqui.
             </Text>
           </View>
         ) : (

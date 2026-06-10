@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -26,84 +26,98 @@ type ReviewItem = {
   date: string;
 };
 
-const reviewsData: ReviewItem[] = [
-  {
-    id: "1",
-    type: "received",
-    author: "TaskFlow Eventos",
-    target: "Usuário TaskFlow",
-    service: "Garçom para Evento",
-    rating: 5,
-    comment:
-      "Profissional pontual, educado e com ótimo atendimento durante o evento.",
-    date: "Hoje",
-  },
-  {
-    id: "2",
-    type: "received",
-    author: "Studio Prime",
-    target: "Usuário TaskFlow",
-    service: "Fotógrafo Profissional",
-    rating: 4,
-    comment:
-      "Boa comunicação e entrega organizada. Atendeu bem ao combinado.",
-    date: "Ontem",
-  },
-  {
-    id: "3",
-    type: "received",
-    author: "Empresa Alpha",
-    target: "Usuário TaskFlow",
-    service: "Apoio em Limpeza",
-    rating: 5,
-    comment:
-      "Serviço realizado com responsabilidade e dentro do horário solicitado.",
-    date: "2 dias atrás",
-  },
-  {
-    id: "4",
-    type: "sent",
-    author: "Usuário TaskFlow",
-    target: "TaskFlow Eventos",
-    service: "Garçom para Evento",
-    rating: 5,
-    comment:
-      "Empresa organizada, passou as informações corretamente e manteve boa comunicação.",
-    date: "Hoje",
-  },
-  {
-    id: "5",
-    type: "sent",
-    author: "Usuário TaskFlow",
-    target: "Studio Prime",
-    service: "Fotógrafo Profissional",
-    rating: 4,
-    comment:
-      "Boa experiência, local de trabalho organizado e pagamento conforme combinado.",
-    date: "Ontem",
-  },
-];
+type ReviewsSummary = {
+  averageRating: number;
+  totalReviews: number;
+  satisfactionRate: number;
+  completedServices: number;
+};
 
 function renderStars(rating: number) {
-  return "★".repeat(rating) + "☆".repeat(5 - rating);
+  const normalizedRating = Math.max(0, Math.min(5, rating));
+
+  return "★".repeat(normalizedRating) + "☆".repeat(5 - normalizedRating);
 }
 
 export default function ReviewsScreen() {
   const [selectedType, setSelectedType] = useState<ReviewType>("received");
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [summary, setSummary] = useState<ReviewsSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
 
+  useEffect(() => {
+    loadReviews();
+  }, []);
+
+  async function loadReviews() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Aqui futuramente entra a API.
+
+        Exemplo:
+        const response = await reviewsService.getMyReviews();
+
+        setReviews(response.reviews);
+        setSummary(response.summary);
+
+        A API vai identificar o usuário pelo token salvo no login.
+        Assim ela retorna as avaliações recebidas e enviadas daquele usuário.
+      */
+
+      setReviews([]);
+      setSummary(null);
+    } catch (error) {
+      console.log("Erro ao carregar avaliações:", error);
+
+      setReviews([]);
+      setSummary(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   const filteredReviews = useMemo(() => {
-    return reviewsData.filter((review) => review.type === selectedType);
-  }, [selectedType]);
+    return reviews.filter((review) => review.type === selectedType);
+  }, [reviews, selectedType]);
 
-  const receivedReviews = reviewsData.filter(
-    (review) => review.type === "received"
-  );
+  const receivedReviews = useMemo(() => {
+    return reviews.filter((review) => review.type === "received");
+  }, [reviews]);
 
-  const averageRating =
-    receivedReviews.reduce((total, review) => total + review.rating, 0) /
-    receivedReviews.length;
+  const averageRating = useMemo(() => {
+    if (summary) {
+      return summary.averageRating;
+    }
+
+    if (receivedReviews.length === 0) {
+      return 0;
+    }
+
+    const totalRating = receivedReviews.reduce(
+      (total, review) => total + review.rating,
+      0
+    );
+
+    return totalRating / receivedReviews.length;
+  }, [summary, receivedReviews]);
+
+  const totalReviews = summary?.totalReviews ?? receivedReviews.length;
+
+  const satisfactionRate =
+    summary?.satisfactionRate ??
+    (receivedReviews.length > 0
+      ? Math.round(
+          (receivedReviews.filter((review) => review.rating >= 4).length /
+            receivedReviews.length) *
+            100
+        )
+      : 0);
+
+  const completedServices = summary?.completedServices ?? 0;
 
   return (
     <SafeAreaView
@@ -141,7 +155,7 @@ export default function ReviewsScreen() {
         >
           <View style={styles.ratingCircle}>
             <Text style={styles.averageRating}>
-              {averageRating.toFixed(1)}
+              {averageRating.toFixed(1).replace(".", ",")}
             </Text>
           </View>
 
@@ -154,8 +168,13 @@ export default function ReviewsScreen() {
               {renderStars(Math.round(averageRating))}
             </Text>
 
-            <Text style={[styles.summarySubtitle, { color: theme.textSecondary }]}>
-              Baseado em {receivedReviews.length} avaliações recebidas
+            <Text
+              style={[
+                styles.summarySubtitle,
+                { color: theme.textSecondary },
+              ]}
+            >
+              Baseado em {totalReviews} avaliações recebidas
             </Text>
           </View>
         </View>
@@ -170,7 +189,10 @@ export default function ReviewsScreen() {
               },
             ]}
           >
-            <Text style={[styles.statNumber, { color: theme.text }]}>24</Text>
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {totalReviews}
+            </Text>
+
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Total
             </Text>
@@ -185,7 +207,10 @@ export default function ReviewsScreen() {
               },
             ]}
           >
-            <Text style={[styles.statNumber, { color: theme.text }]}>92%</Text>
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {satisfactionRate}%
+            </Text>
+
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Satisfação
             </Text>
@@ -200,7 +225,10 @@ export default function ReviewsScreen() {
               },
             ]}
           >
-            <Text style={[styles.statNumber, { color: theme.text }]}>18</Text>
+            <Text style={[styles.statNumber, { color: theme.text }]}>
+              {completedServices}
+            </Text>
+
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Serviços
             </Text>
@@ -254,53 +282,99 @@ export default function ReviewsScreen() {
         </View>
 
         <View style={styles.reviewsList}>
-          {filteredReviews.map((review) => (
+          {isLoading ? (
             <View
-              key={review.id}
               style={[
-                styles.reviewCard,
+                styles.infoBox,
                 {
                   backgroundColor: theme.card,
                   borderColor: theme.border,
                 },
               ]}
             >
-              <View style={styles.reviewHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {review.type === "received" ? "E" : "U"}
-                  </Text>
-                </View>
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Carregando avaliações...
+              </Text>
 
-                <View style={styles.reviewInfo}>
-                  <Text style={[styles.reviewAuthor, { color: theme.text }]}>
-                    {review.type === "received"
-                      ? review.author
-                      : `Para ${review.target}`}
-                  </Text>
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Buscando avaliações vinculadas à sua conta.
+              </Text>
+            </View>
+          ) : filteredReviews.length === 0 ? (
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Nenhuma avaliação encontrada
+              </Text>
+
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Quando a API retornar avaliações da sua conta, elas aparecerão
+                aqui.
+              </Text>
+            </View>
+          ) : (
+            filteredReviews.map((review) => (
+              <View
+                key={review.id}
+                style={[
+                  styles.reviewCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <View style={styles.reviewHeader}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {review.type === "received"
+                        ? review.author.charAt(0).toUpperCase()
+                        : review.target.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+
+                  <View style={styles.reviewInfo}>
+                    <Text style={[styles.reviewAuthor, { color: theme.text }]}>
+                      {review.type === "received"
+                        ? review.author
+                        : `Para ${review.target}`}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.reviewService,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {review.service}
+                    </Text>
+                  </View>
 
                   <Text
                     style={[
-                      styles.reviewService,
+                      styles.reviewDate,
                       { color: theme.textSecondary },
                     ]}
                   >
-                    {review.service}
+                    {review.date}
                   </Text>
                 </View>
 
-                <Text style={[styles.reviewDate, { color: theme.textSecondary }]}>
-                  {review.date}
+                <Text style={styles.stars}>{renderStars(review.rating)}</Text>
+
+                <Text style={[styles.comment, { color: theme.text }]}>
+                  {review.comment}
                 </Text>
               </View>
-
-              <Text style={styles.stars}>{renderStars(review.rating)}</Text>
-
-              <Text style={[styles.comment, { color: theme.text }]}>
-                {review.comment}
-              </Text>
-            </View>
-          ))}
+            ))
+          )}
         </View>
 
         <View
