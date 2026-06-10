@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -7,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import PlusIcon from "../../../assets/icons/Plus-icon.svg";
 import WalletIcon from "../../../assets/icons/wallet.svg";
@@ -18,6 +19,8 @@ import AssignmentIcon from "../../../assets/icons/assignment.svg";
 import { styles } from "@/app/styles/companyDashboard";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
+import { apiGet } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
 type JobStatus = "active" | "pending" | "finished";
 
@@ -31,6 +34,32 @@ type CompanyJob = {
   candidates: number;
   status: JobStatus;
 };
+
+type ChamadoApi = {
+  id: number;
+  empresaId: number;
+  categoriaId: number;
+  titulo: string;
+  descricao: string;
+  localServico?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  dataServico?: string | null;
+  horaServico?: string | null;
+  valorEstimado?: number | null;
+  status?: string | null;
+  quantidadeCandidatos?: number | null;
+  totalCandidatos?: number | null;
+  candidaturas?: unknown[];
+};
+
+type ChamadosResponse =
+  | ChamadoApi[]
+  | {
+      data?: ChamadoApi[];
+      dados?: ChamadoApi[];
+      chamados?: ChamadoApi[];
+    };
 
 const statusConfig = {
   active: {
@@ -50,58 +79,176 @@ const statusConfig = {
   },
 } as const;
 
+const categoryNameMap: Record<number, string> = {
+  1: "Eventos",
+  2: "Fotografia",
+  3: "Design",
+  4: "Marketing",
+  5: "Manutenção",
+  6: "Limpeza",
+};
+
+function getChamadosFromResponse(response: ChamadosResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.chamados ?? [];
+}
+
+function getCategoryName(categoryId: number) {
+  return categoryNameMap[categoryId] ?? `Categoria ${categoryId}`;
+}
+
+function formatCurrency(value?: number | null) {
+  if (value === null || value === undefined) {
+    return "Valor a combinar";
+  }
+
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatJobDate(date?: string | null, hour?: string | null) {
+  if (!date && !hour) {
+    return "Data não informada";
+  }
+
+  if (!date) {
+    return hour ?? "Data não informada";
+  }
+
+  const dateOnly = date.split("T")[0];
+  const dateParts = dateOnly.split("-");
+
+  if (dateParts.length === 3) {
+    const [year, month, day] = dateParts;
+    const formattedDate = `${day}/${month}/${year}`;
+
+    return hour ? `${formattedDate}, ${hour}` : formattedDate;
+  }
+
+  return hour ? `${date}, ${hour}` : date;
+}
+
+function getJobStatus(status?: string | null): JobStatus {
+  const normalizedStatus = status?.toLowerCase().trim();
+
+  if (
+    normalizedStatus === "finalizado" ||
+    normalizedStatus === "finished" ||
+    normalizedStatus === "concluido" ||
+    normalizedStatus === "concluído"
+  ) {
+    return "finished";
+  }
+
+  if (
+    normalizedStatus === "pendente" ||
+    normalizedStatus === "pending" ||
+    normalizedStatus === "em análise" ||
+    normalizedStatus === "em analise"
+  ) {
+    return "pending";
+  }
+
+  return "active";
+}
+
+function getCandidatesCount(chamado: ChamadoApi) {
+  if (typeof chamado.quantidadeCandidatos === "number") {
+    return chamado.quantidadeCandidatos;
+  }
+
+  if (typeof chamado.totalCandidatos === "number") {
+    return chamado.totalCandidatos;
+  }
+
+  if (Array.isArray(chamado.candidaturas)) {
+    return chamado.candidaturas.length;
+  }
+
+  return 0;
+}
+
 export default function CompanyDashboardScreen() {
   const { isDark, theme } = useTheme();
 
   const [companyJobs, setCompanyJobs] = useState<CompanyJob[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    loadCompanyJobs();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadCompanyJobs();
+    }, [])
+  );
 
   async function loadCompanyJobs() {
-    try {
-      setIsLoading(true);
+  try {
+    setIsLoading(true);
 
-      /*
-        Futuramente entra aqui a API.
+    const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        const response = await companyJobsService.getMyJobs();
-        setCompanyJobs(response);
-
-        A API deve retornar apenas os chamados da empresa logada,
-        usando o token salvo depois do login.
-
-        Formato esperado:
-        [
-          {
-            id: "1",
-            title: "Garçom para Evento",
-            category: "Eventos",
-            price: "R$200,00",
-            location: "Centro",
-            time: "Hoje, 18:00",
-            candidates: 6,
-            status: "active"
-          }
-        ]
-
-        Status aceitos nessa tela:
-        active   -> chamado ativo
-        pending  -> chamado em análise
-        finished -> chamado concluído
-      */
-
-      setCompanyJobs([]);
-    } catch (error) {
-      console.log("Erro ao carregar chamados da empresa:", error);
-      setCompanyJobs([]);
-    } finally {
-      setIsLoading(false);
+    if (!loggedUser) {
+      router.replace("/login");
+      return;
     }
+
+    const response = await apiGet<ChamadosResponse>("/api/Chamados");
+    const chamados = getChamadosFromResponse(response);
+
+    const companyProfileId = Number(loggedUser.perfilId);
+    const loggedUserId = Number(loggedUser.id);
+
+    console.log("Usuário logado:", loggedUser);
+    console.log("Empresa perfilId:", companyProfileId);
+    console.log("Usuário id:", loggedUserId);
+    console.log("Chamados retornados pela API:", chamados);
+
+    const companyChamados = chamados.filter((chamado) => {
+      const chamadoEmpresaId = Number(chamado.empresaId);
+
+      return (
+        chamadoEmpresaId === companyProfileId ||
+        chamadoEmpresaId === loggedUserId
+      );
+    });
+
+    const chamadosParaMostrar =
+      companyChamados.length > 0 ? companyChamados : chamados;
+
+    const formattedJobs: CompanyJob[] = chamadosParaMostrar
+      .sort((a, b) => Number(b.id) - Number(a.id))
+      .map((chamado) => ({
+        id: String(chamado.id),
+        title: chamado.titulo,
+        category: getCategoryName(chamado.categoriaId),
+        price: formatCurrency(chamado.valorEstimado),
+        location:
+          chamado.localServico ||
+          [chamado.cidade, chamado.estado].filter(Boolean).join(" - ") ||
+          "Local não informado",
+        time: formatJobDate(chamado.dataServico, chamado.horaServico),
+        candidates: getCandidatesCount(chamado),
+        status: getJobStatus(chamado.status),
+      }));
+
+    setCompanyJobs(formattedJobs);
+  } catch (error) {
+    console.log("Erro ao carregar chamados da empresa:", error);
+
+    setCompanyJobs([]);
+
+    Alert.alert(
+      "Erro",
+      "Não foi possível carregar os chamados da empresa agora."
+    );
+  } finally {
+    setIsLoading(false);
   }
+}
 
   const activeJobs = useMemo(() => {
     return companyJobs.filter((job) => job.status === "active").length;
