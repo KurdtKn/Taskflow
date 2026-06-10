@@ -45,11 +45,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     padding: 22,
     marginBottom: 24,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
+    elevation: 0,
   },
 
   iconBox: {
@@ -97,12 +93,8 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F1F1F1",
-    shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    borderColor: "rgba(15,23,42,0.08)",
+    elevation: 0,
   },
 
   jobTitle: {
@@ -171,19 +163,16 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#F1F1F1",
+    borderColor: "rgba(15,23,42,0.08)",
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    elevation: 0,
   },
 
   methodCardActive: {
-    borderColor: colors.primary,
-    backgroundColor: "rgba(11,87,208,0.035)",
+    borderWidth: 1,
+    borderColor: "rgba(11,87,208,0.35)",
+    backgroundColor: "rgba(11,87,208,0.025)",
   },
 
   methodIconBox: {
@@ -218,11 +207,12 @@ export const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.border,
   },
 
   radioActive: {
+    borderWidth: 1,
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
@@ -254,16 +244,12 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: colors.primary,
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
+    elevation: 0,
   },
 
   confirmButtonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.96,
+    transform: [{ scale: 0.995 }],
   },
 
   confirmButtonText: {
