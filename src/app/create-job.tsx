@@ -1,5 +1,8 @@
+import { apiPost } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 import { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -76,32 +79,117 @@ export default function CreateJobScreen() {
     isHourValid &&
     price.trim().length > 0;
 
-  function handlePublishJob() {
+  function getCategoryId(category: string) {
+    const categoryMap: Record<string, number> = {
+      Eventos: 1,
+      Fotografia: 2,
+      Manutenção: 5,
+      Limpeza: 6,
+      "Suporte técnico": 5,
+      "Serviços gerais": 1,
+    };
+
+    return categoryMap[category] ?? 1;
+  }
+
+  function getServiceDate() {
+    const [day, month] = date.split("/");
+    const currentYear = new Date().getFullYear();
+
+    return `${currentYear}-${month}-${day}T00:00:00`;
+  }
+
+  function getEstimatedValue() {
+    const numbersOnly = price.replace(/\D/g, "");
+
+    if (!numbersOnly) {
+      return null;
+    }
+
+    return Number(numbersOnly);
+  }
+
+  function getCityAndState() {
+    const [cityValue, stateValue] = location.split("-");
+
+    return {
+      city: cityValue?.trim() || null,
+      state: stateValue?.trim() || null,
+    };
+  }
+
+  async function handlePublishJob() {
     if (!isFormValid) {
-      console.log("Preencha os campos obrigatórios.");
+      Alert.alert(
+        "Campos obrigatórios",
+        "Preencha todos os campos obrigatórios.",
+      );
       return;
     }
 
-    console.log({
-      title,
-      selectedCategory,
-      description,
-      location,
-      date,
-      hour,
-      price,
-      professionals,
-    });
+    try {
+      const loggedUser = await getLoggedUser();
 
-    router.replace("/company-dashboard");
+      if (!loggedUser) {
+        Alert.alert("Sessão expirada", "Faça login novamente.");
+        router.replace("/login");
+        return;
+      }
+
+      if (loggedUser.tipoUsuario !== "empresa") {
+        Alert.alert(
+          "Acesso negado",
+          "Apenas empresas podem publicar chamados.",
+        );
+        return;
+      }
+
+      if (!loggedUser.perfilId) {
+        Alert.alert(
+          "Perfil da empresa não encontrado",
+          "Faça logout e entre novamente com a conta da empresa.",
+        );
+        return;
+      }
+
+      const { city, state } = getCityAndState();
+
+      const response = await apiPost("/api/Chamados", {
+        empresaId: Number(loggedUser.perfilId),
+        categoriaId: getCategoryId(selectedCategory),
+        titulo: title.trim(),
+        descricao: description.trim(),
+        localServico: location.trim(),
+        cidade: city,
+        estado: state,
+        dataServico: getServiceDate(),
+        horaServico: hour,
+        valorEstimado: getEstimatedValue(),
+      });
+
+      console.log("Chamado publicado:", response);
+
+      Alert.alert(
+        "Chamado publicado",
+        "Seu chamado foi publicado com sucesso.",
+      );
+
+      router.replace("/company-dashboard");
+    } catch (error) {
+      console.log("Erro ao publicar chamado:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível publicar o chamado agora.";
+
+      Alert.alert("Erro ao publicar", errorMessage);
+    }
   }
 
   return (
     <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: theme.background },
-      ]}
+      style={[styles.container, { backgroundColor: theme.background }]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
@@ -124,6 +212,7 @@ export default function CreateJobScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="always"
         >
           <View
             style={[
@@ -165,9 +254,7 @@ export default function CreateJobScreen() {
               maxLength={100}
             />
 
-            <Text style={[styles.label, { color: theme.text }]}>
-              Categoria
-            </Text>
+            <Text style={[styles.label, { color: theme.text }]}>Categoria</Text>
 
             <View style={styles.categoriesArea}>
               {categories.map((category) => {
@@ -245,9 +332,7 @@ export default function CreateJobScreen() {
 
             <View style={styles.doubleInputArea}>
               <View style={styles.doubleInputBox}>
-                <Text style={[styles.label, { color: theme.text }]}>
-                  Data
-                </Text>
+                <Text style={[styles.label, { color: theme.text }]}>Data</Text>
 
                 <TextInput
                   style={[
@@ -357,9 +442,9 @@ export default function CreateJobScreen() {
               </Text>
 
               <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                Após publicar o chamado, freelancers da região poderão visualizar
-                a demanda e enviar uma solicitação. Você poderá analisar os
-                candidatos antes de aceitar um profissional.
+                Após publicar o chamado, freelancers da região poderão
+                visualizar a demanda e enviar uma solicitação. Você poderá
+                analisar os candidatos antes de aceitar um profissional.
               </Text>
             </View>
 
