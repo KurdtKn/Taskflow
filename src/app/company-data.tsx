@@ -20,6 +20,11 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/companyData";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
+import {
+  getCompanyData,
+  getLoggedUser,
+  saveCompanyData,
+} from "@/services/storage";
 
 type ServiceArea = {
   id: string;
@@ -66,25 +71,32 @@ export default function CompanyDataScreen() {
     try {
       setIsLoading(true);
 
-      /*
-        Futuramente entra aqui a API para buscar os dados da empresa logada.
+      const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        const response = await companyService.getMyCompanyData();
+      if (!loggedUser) {
+        router.replace("/login");
+        return;
+      }
 
-        setCompanyName(response.companyName ?? "");
-        setCnpj(formatCnpj(response.cnpj ?? ""));
-        setEmail(response.email ?? "");
-        setPhone(formatPhone(response.phone ?? ""));
-        setCity(response.city ?? "");
-        setAddress(response.address ?? "");
-        setDescription(response.description ?? "");
-        setIsVerified(response.isVerified ?? false);
-        setSelectedAreas(response.serviceAreas ?? []);
-        setLogoUrl(response.logoUrl);
+      const savedCompanyData = await getCompanyData(loggedUser.id);
 
-        A API deve identificar a empresa pelo token salvo depois do login.
-      */
+      if (savedCompanyData) {
+        setCompanyName(savedCompanyData.name);
+        setCnpj(savedCompanyData.cnpj);
+        setEmail(savedCompanyData.email);
+        setPhone(savedCompanyData.phone);
+        setCity(savedCompanyData.location);
+        setAddress(savedCompanyData.address);
+        setDescription(savedCompanyData.about);
+        setIsVerified(savedCompanyData.isVerified);
+        setSelectedAreas(savedCompanyData.tags);
+        setLogoUrl(savedCompanyData.logoUrl);
+        return;
+      }
+
+      setCompanyName(loggedUser.nome);
+      setEmail(loggedUser.email);
+      setPhone(loggedUser.telefone ?? "");
     } catch (error) {
       console.log("Erro ao carregar dados da empresa:", error);
 
@@ -99,25 +111,22 @@ export default function CompanyDataScreen() {
 
   async function loadServiceAreas() {
     try {
-      /*
-        Futuramente entra aqui a API para buscar categorias/áreas de atuação.
-
-        Exemplo:
-        const response = await categoriesService.getCategories();
-        setServiceAreas(response);
-
-        Formato esperado:
-        [
-          { id: "1", name: "Eventos" },
-          { id: "2", name: "Fotografia" }
-        ]
-      */
-
-      setServiceAreas([]);
+      setServiceAreas([
+        { id: "1", name: "Eventos" },
+        { id: "2", name: "Fotografia" },
+        { id: "3", name: "Manutenção" },
+        { id: "4", name: "Limpeza" },
+        { id: "5", name: "Atendimento" },
+        { id: "6", name: "Serviços gerais" },
+      ]);
     } catch (error) {
       console.log("Erro ao carregar áreas de atuação:", error);
       setServiceAreas([]);
     }
+  }
+
+  function isValidEmail(value: string) {
+    return /\S+@\S+\.\S+/.test(value);
   }
 
   function formatCnpj(value: string) {
@@ -181,76 +190,62 @@ export default function CompanyDataScreen() {
   }
 
   async function handleSaveCompanyData() {
-    const companyData = getCurrentCompanyData();
+  console.log("Clicou em salvar dados da empresa");
 
-    if (!companyData.companyName) {
-      Alert.alert("Campo obrigatório", "Informe o nome da empresa.");
-      return;
-    }
+  const companyData = getCurrentCompanyData();
 
-    if (!companyData.cnpj) {
-      Alert.alert("Campo obrigatório", "Informe o CNPJ da empresa.");
-      return;
-    }
-
-    if (!companyData.email) {
-      Alert.alert("Campo obrigatório", "Informe o e-mail comercial.");
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-
-      /*
-        Futuramente entra aqui a API para salvar os dados no banco.
-
-        Exemplo:
-        await companyService.updateMyCompanyData({
-          companyName: companyData.companyName,
-          cnpj: companyData.cnpj.replace(/\D/g, ""),
-          email: companyData.email,
-          phone: companyData.phone.replace(/\D/g, ""),
-          city: companyData.city,
-          address: companyData.address,
-          description: companyData.description,
-          serviceAreas: companyData.selectedAreas,
-          logoUrl: companyData.logoUrl,
-        });
-
-        A API atualiza os dados da empresa logada pelo token.
-        O campo isVerified normalmente deve ser controlado pelo sistema/admin,
-        não pela própria empresa.
-      */
-
-      console.log("Dados da empresa salvos:", companyData);
-
-      Alert.alert("Dados atualizados", "As alterações foram salvas.", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
-    } catch (error) {
-      console.log("Erro ao salvar dados da empresa:", error);
-
-      Alert.alert(
-        "Erro",
-        "Não foi possível salvar os dados da empresa agora."
-      );
-    } finally {
-      setIsSaving(false);
-    }
+  if (!companyData.companyName) {
+    Alert.alert("Campo obrigatório", "Informe o nome da empresa.");
+    return;
   }
 
+  if (companyData.email && !isValidEmail(companyData.email)) {
+    Alert.alert("E-mail inválido", "Informe um e-mail comercial válido.");
+    return;
+  }
+
+  try {
+    setIsSaving(true);
+
+    const loggedUser = await getLoggedUser();
+
+    if (!loggedUser) {
+      Alert.alert("Sessão expirada", "Faça login novamente.");
+      router.replace("/login");
+      return;
+    }
+
+    await saveCompanyData(loggedUser.id, {
+      name: companyData.companyName,
+      cnpj: companyData.cnpj,
+      email: companyData.email || loggedUser.email,
+      phone: companyData.phone,
+      location: companyData.city,
+      address: companyData.address,
+      about: companyData.description,
+      isVerified: companyData.isVerified,
+      tags: companyData.selectedAreas,
+      logoUrl: companyData.logoUrl,
+    });
+
+    console.log("Dados da empresa salvos com sucesso:", companyData);
+
+    Alert.alert("Dados atualizados", "As alterações foram salvas.");
+
+    router.replace("/company-profile");
+  } catch (error) {
+    console.log("Erro ao salvar dados da empresa:", error);
+
+    Alert.alert(
+      "Erro",
+      "Não foi possível salvar os dados da empresa agora."
+    );
+  } finally {
+    setIsSaving(false);
+  }
+}
+
   function handleChangeLogo() {
-    /*
-      Futuramente entra aqui upload/seleção da logo.
-
-      Exemplo:
-      usar expo-image-picker para escolher a imagem
-      e enviar para a API ou storage.
-    */
-
     Alert.alert(
       "Alterar logo",
       "A seleção da logo será integrada depois com upload de imagem."
@@ -285,7 +280,7 @@ export default function CompanyDataScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
         >
           <View style={styles.logoSection}>
             <View style={styles.logoArea}>

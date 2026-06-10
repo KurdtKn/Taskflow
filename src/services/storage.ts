@@ -5,6 +5,20 @@ const USER_KEY = "@taskflow:user";
 const USER_ID_KEY = "@taskflow:user_id";
 const USER_TYPE_KEY = "@taskflow:user_type";
 const PROFILE_ID_KEY = "@taskflow:profile_id";
+const COMPANY_DATA_KEY = "@taskflow:company_data";
+
+export type StoredCompanyData = {
+  name: string;
+  cnpj: string;
+  email: string;
+  phone: string;
+  location: string;
+  address: string;
+  about: string;
+  isVerified: boolean;
+  tags: string[];
+  logoUrl?: string;
+};
 
 export async function saveLoggedUser(user: StoredUser) {
   await AsyncStorage.multiSet([
@@ -41,6 +55,25 @@ export async function getProfileId() {
   }
 
   return profileId;
+}
+
+export async function saveCompanyData(userId: string, data: StoredCompanyData) {
+  await AsyncStorage.setItem(
+    `${COMPANY_DATA_KEY}:${userId}`,
+    JSON.stringify(data)
+  );
+}
+
+export async function getCompanyData(userId: string) {
+  const companyDataJson = await AsyncStorage.getItem(
+    `${COMPANY_DATA_KEY}:${userId}`
+  );
+
+  if (!companyDataJson) {
+    return null;
+  }
+
+  return JSON.parse(companyDataJson) as StoredCompanyData;
 }
 
 export async function clearAuthStorage() {
