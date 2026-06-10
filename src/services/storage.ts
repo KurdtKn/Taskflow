@@ -1,0 +1,53 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { StoredUser, UserType } from "@/types/api";
+
+const USER_KEY = "@taskflow:user";
+const USER_ID_KEY = "@taskflow:user_id";
+const USER_TYPE_KEY = "@taskflow:user_type";
+const PROFILE_ID_KEY = "@taskflow:profile_id";
+
+export async function saveLoggedUser(user: StoredUser) {
+  await AsyncStorage.multiSet([
+    [USER_KEY, JSON.stringify(user)],
+    [USER_ID_KEY, user.id],
+    [USER_TYPE_KEY, user.tipoUsuario],
+    [PROFILE_ID_KEY, user.perfilId ?? ""],
+  ]);
+}
+
+export async function getLoggedUser() {
+  const userJson = await AsyncStorage.getItem(USER_KEY);
+
+  if (!userJson) {
+    return null;
+  }
+
+  return JSON.parse(userJson) as StoredUser;
+}
+
+export async function getUserId() {
+  return AsyncStorage.getItem(USER_ID_KEY);
+}
+
+export async function getUserType() {
+  return AsyncStorage.getItem(USER_TYPE_KEY) as Promise<UserType | null>;
+}
+
+export async function getProfileId() {
+  const profileId = await AsyncStorage.getItem(PROFILE_ID_KEY);
+
+  if (!profileId) {
+    return null;
+  }
+
+  return profileId;
+}
+
+export async function clearAuthStorage() {
+  await AsyncStorage.multiRemove([
+    USER_KEY,
+    USER_ID_KEY,
+    USER_TYPE_KEY,
+    PROFILE_ID_KEY,
+  ]);
+}
