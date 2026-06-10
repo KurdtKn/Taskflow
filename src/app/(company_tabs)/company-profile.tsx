@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   Pressable,
@@ -10,18 +11,14 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
-import ArrowBack from "../../assets/icons/arrow_back.svg";
-import BadgeIcon from "../../assets/icons/badge.svg";
-import AssignmentIcon from "../../assets/icons/assignment.svg";
-import CreditCardIcon from "../../assets/icons/credit_card.svg";
-import StarIcon from "../../assets/icons/star_border.svg";
-import NotificationIcon from "../../assets/icons/notifications.svg";
-import SettingsIcon from "../../assets/icons/settings.svg";
-import HelpIcon from "../../assets/icons/help_outline.svg";
-import LocationIcon from "../../assets/icons/Location-check.svg";
-import SupportIcon from "../../assets/icons/support_agent.svg";
-import SendIcon from "../../assets/icons/send.svg";
-import CheckIcon from "../../assets/icons/check.svg";
+import BadgeIcon from "../../../assets/icons/badge.svg";
+import StarIcon from "../../../assets/icons/star_border.svg";
+import SettingsIcon from "../../../assets/icons/settings.svg";
+import HelpIcon from "../../../assets/icons/help_outline.svg";
+import LocationIcon from "../../../assets/icons/Location-check.svg";
+import SupportIcon from "../../../assets/icons/support_agent.svg";
+import SendIcon from "../../../assets/icons/send.svg";
+import CheckIcon from "../../../assets/icons/check.svg";
 
 import { styles } from "@/app/styles/companyProfile";
 import { colors } from "@/styles/colors";
@@ -35,8 +32,76 @@ type MenuOption = {
   action: () => void;
 };
 
+type CompanyProfile = {
+  id: string;
+  name: string;
+  type: string;
+  logoUrl?: string;
+  isVerified: boolean;
+  rating?: number;
+  reviewsCount?: number;
+  totalJobs: number;
+  completedJobs: number;
+  satisfactionRate: number;
+  about?: string;
+  tags: string[];
+  location?: string;
+  phone?: string;
+  email?: string;
+};
+
 export default function CompanyProfileScreen() {
   const { isDark, theme } = useTheme();
+
+  const [company, setCompany] = useState<CompanyProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadCompanyProfile();
+  }, []);
+
+  async function loadCompanyProfile() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Futuramente entra aqui a API.
+
+        Exemplo:
+        const response = await companyService.getMyCompanyProfile();
+        setCompany(response);
+
+        A API deve retornar somente os dados da empresa logada,
+        usando o token salvo depois do login.
+
+        Formato esperado:
+        {
+          id: "1",
+          name: "Nome da empresa",
+          type: "Empresa contratante",
+          logoUrl: "https://...",
+          isVerified: true,
+          rating: 4.9,
+          reviewsCount: 32,
+          totalJobs: 12,
+          completedJobs: 8,
+          satisfactionRate: 96,
+          about: "Descrição da empresa...",
+          tags: ["Eventos", "Contratação rápida"],
+          location: "Sorocaba - SP",
+          phone: "(15) 99999-9999",
+          email: "empresa@email.com"
+        }
+      */
+
+      setCompany(null);
+    } catch (error) {
+      console.log("Erro ao carregar perfil da empresa:", error);
+      setCompany(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const menuOptions: MenuOption[] = [
     {
@@ -48,50 +113,60 @@ export default function CompanyProfileScreen() {
     },
     {
       id: "2",
-      title: "Chamados publicados",
-      subtitle: "Gerencie suas demandas abertas",
-      Icon: AssignmentIcon,
-      action: () => router.replace("/company-dashboard"),
-    },
-    {
-      id: "3",
-      title: "Pagamentos",
-      subtitle: "Taxas, histórico e transações",
-      Icon: CreditCardIcon,
-      action: () => router.push("/company-payments"),
-    },
-    {
-      id: "4",
       title: "Avaliações da empresa",
       subtitle: "Veja a reputação da sua empresa",
       Icon: StarIcon,
       action: () => router.push("/company-reviews"),
     },
     {
-      id: "5",
-      title: "Notificações",
-      subtitle: "Candidaturas, pagamentos e mensagens",
-      Icon: NotificationIcon,
-      action: () => router.push("/company-notifications"),
-    },
-    {
-      id: "6",
+      id: "3",
       title: "Configurações",
       subtitle: "Notificações, privacidade e segurança",
       Icon: SettingsIcon,
       action: () => router.push("/company-settings"),
     },
     {
-      id: "7",
+      id: "4",
       title: "Ajuda e suporte",
-      subtitle: "Central de dúvidas e atendimento",
+      subtitle: "E-mail e telefone de atendimento",
       Icon: HelpIcon,
-      action: () => router.push("/company-support"),
+      action: () => router.push("/support-contact"),
     },
   ];
 
   function handleLogout() {
+    /*
+      Futuramente:
+      await authService.logout();
+    */
+
     router.replace("/welcome");
+  }
+
+  function getCompanyInitial() {
+    if (!company?.name) {
+      return "?";
+    }
+
+    return company.name.charAt(0).toUpperCase();
+  }
+
+  function getRatingText() {
+    if (!company?.rating) {
+      return "Sem avaliações";
+    }
+
+    return company.rating.toFixed(1).replace(".", ",");
+  }
+
+  function getReviewsText() {
+    const reviewsCount = company?.reviewsCount ?? 0;
+
+    if (reviewsCount === 0) {
+      return "";
+    }
+
+    return `• ${reviewsCount} avaliações`;
   }
 
   return (
@@ -108,9 +183,7 @@ export default function CompanyProfileScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack width={28} height={28} />
-          </Pressable>
+          <View style={styles.headerPlaceholder} />
 
           <Text style={[styles.headerTitle, { color: theme.text }]}>
             Perfil da empresa
@@ -129,41 +202,75 @@ export default function CompanyProfileScreen() {
           ]}
         >
           <View style={styles.logoArea}>
-            <Image
-              source={require("../../assets/images/icon.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            {company?.logoUrl ? (
+              <Image
+                source={{ uri: company.logoUrl }}
+                style={styles.logo}
+                resizeMode="cover"
+              />
+            ) : (
+              <View
+                style={[
+                  styles.logo,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: theme.textSecondary,
+                    fontSize: 28,
+                    fontWeight: "900",
+                  }}
+                >
+                  {getCompanyInitial()}
+                </Text>
+              </View>
+            )}
 
-            <View style={styles.verifiedBadge}>
-              <CheckIcon width={13} height={13} />
-            </View>
+            {company?.isVerified && (
+              <View style={styles.verifiedBadge}>
+                <CheckIcon width={13} height={13} />
+              </View>
+            )}
           </View>
 
           <Text style={[styles.companyName, { color: theme.text }]}>
-            TaskFlow Eventos
+            {isLoading
+              ? "Carregando..."
+              : company?.name ?? "Perfil não carregado"}
           </Text>
 
           <Text style={[styles.companyType, { color: theme.textSecondary }]}>
-            Empresa contratante
+            {company?.type ?? "Empresa contratante"}
           </Text>
 
           <View style={styles.ratingArea}>
-            <Text style={{ fontSize: 15, marginRight: 5 }}>⭐</Text>
+            <StarIcon width={17} height={17} />
 
             <Text style={[styles.ratingText, { color: theme.text }]}>
-              4,9
+              {getRatingText()}
             </Text>
 
-            <Text style={[styles.ratingSubtext, { color: theme.textSecondary }]}>
-              • 32 avaliações
-            </Text>
+            {getReviewsText() !== "" && (
+              <Text
+                style={[
+                  styles.ratingSubtext,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                {getReviewsText()}
+              </Text>
+            )}
           </View>
 
           <View style={styles.statsArea}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
-                12
+                {company?.totalJobs ?? 0}
               </Text>
 
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
@@ -180,7 +287,7 @@ export default function CompanyProfileScreen() {
 
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
-                8
+                {company?.completedJobs ?? 0}
               </Text>
 
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
@@ -197,7 +304,7 @@ export default function CompanyProfileScreen() {
 
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
-                96%
+                {company?.satisfactionRate ?? 0}%
               </Text>
 
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
@@ -221,54 +328,30 @@ export default function CompanyProfileScreen() {
           </Text>
 
           <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
-            Empresa focada na organização de eventos, contratação de profissionais
-            temporários e serviços sob demanda. Utiliza o TaskFlow para encontrar
-            freelancers qualificados de forma rápida, segura e organizada.
+            {company?.about ??
+              "Quando a empresa preencher a descrição, ela aparecerá aqui."}
           </Text>
 
-          <View style={styles.tagsArea}>
-            <View
-              style={[
-                styles.tag,
-                {
-                  backgroundColor: theme.background,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Text style={[styles.tagText, { color: theme.text }]}>
-                Eventos
-              </Text>
+          {company?.tags && company.tags.length > 0 && (
+            <View style={styles.tagsArea}>
+              {company.tags.map((tag) => (
+                <View
+                  key={tag}
+                  style={[
+                    styles.tag,
+                    {
+                      backgroundColor: theme.background,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.tagText, { color: theme.text }]}>
+                    {tag}
+                  </Text>
+                </View>
+              ))}
             </View>
-
-            <View
-              style={[
-                styles.tag,
-                {
-                  backgroundColor: theme.background,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Text style={[styles.tagText, { color: theme.text }]}>
-                Contratação rápida
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.tag,
-                {
-                  backgroundColor: theme.background,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Text style={[styles.tagText, { color: theme.text }]}>
-                Empresa verificada
-              </Text>
-            </View>
-          </View>
+          )}
         </View>
 
         <View
@@ -286,16 +369,21 @@ export default function CompanyProfileScreen() {
 
           <View style={styles.contactRow}>
             <View style={styles.contactIconBox}>
-              <LocationIcon width={22} height={22} color={colors.location}/>
+              <LocationIcon width={22} height={22} color={colors.location} />
             </View>
 
             <View style={styles.contactTextArea}>
-              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.contactLabel,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Localização
               </Text>
 
               <Text style={[styles.contactValue, { color: theme.text }]}>
-                Sorocaba - SP
+                {company?.location ?? "Não informado"}
               </Text>
             </View>
           </View>
@@ -313,12 +401,17 @@ export default function CompanyProfileScreen() {
             </View>
 
             <View style={styles.contactTextArea}>
-              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.contactLabel,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Telefone
               </Text>
 
               <Text style={[styles.contactValue, { color: theme.text }]}>
-                (15) 99999-9999
+                {company?.phone ?? "Não informado"}
               </Text>
             </View>
           </View>
@@ -336,12 +429,17 @@ export default function CompanyProfileScreen() {
             </View>
 
             <View style={styles.contactTextArea}>
-              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.contactLabel,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 E-mail
               </Text>
 
               <Text style={[styles.contactValue, { color: theme.text }]}>
-                empresa@taskflow.com
+                {company?.email ?? "Não informado"}
               </Text>
             </View>
           </View>
@@ -374,7 +472,12 @@ export default function CompanyProfileScreen() {
                   {option.title}
                 </Text>
 
-                <Text style={[styles.menuSubtitle, { color: theme.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.menuSubtitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   {option.subtitle}
                 </Text>
               </View>

@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -10,12 +10,11 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
-import ArrowBack from "../../assets/icons/arrow_back.svg";
-import NotificationIcon from "../../assets/icons/notifications.svg";
-import SupportIcon from "../../assets/icons/support_agent.svg";
-import CreditCardIcon from "../../assets/icons/credit_card.svg";
-import ChatIcon from "../../assets/icons/chat.svg";
-import CheckIcon from "../../assets/icons/check.svg";
+import NotificationIcon from "../../../assets/icons/notifications.svg";
+import SupportIcon from "../../../assets/icons/support_agent.svg";
+import CreditCardIcon from "../../../assets/icons/credit_card.svg";
+import ChatIcon from "../../../assets/icons/chat.svg";
+import CheckIcon from "../../../assets/icons/check.svg";
 
 import { styles } from "@/app/styles/companyNotifications";
 import { colors } from "@/styles/colors";
@@ -31,6 +30,9 @@ type CompanyNotification = {
   description: string;
   time: string;
   isRead: boolean;
+  jobId?: string;
+  chatId?: string;
+  candidateId?: string;
 };
 
 type NotificationTypeConfig = {
@@ -39,54 +41,6 @@ type NotificationTypeConfig = {
   color: string;
   backgroundColor: string;
 };
-
-const notificationsData: CompanyNotification[] = [
-  {
-    id: "1",
-    type: "candidate",
-    title: "Novo candidato no chamado",
-    description:
-      "Um freelancer se candidatou para o chamado Garçom para Evento.",
-    time: "Agora",
-    isRead: false,
-  },
-  {
-    id: "2",
-    type: "payment",
-    title: "Pagamento confirmado",
-    description:
-      "A taxa da plataforma foi confirmada e o chat já está liberado.",
-    time: "15 min",
-    isRead: false,
-  },
-  {
-    id: "3",
-    type: "message",
-    title: "Nova mensagem recebida",
-    description:
-      "O freelancer enviou uma mensagem sobre os detalhes do serviço.",
-    time: "32 min",
-    isRead: true,
-  },
-  {
-    id: "4",
-    type: "service",
-    title: "Serviço aguardando conclusão",
-    description:
-      "Confirme a finalização do chamado após a realização do serviço.",
-    time: "1 h",
-    isRead: true,
-  },
-  {
-    id: "5",
-    type: "candidate",
-    title: "Candidatura atualizada",
-    description:
-      "Um candidato atualizou as informações do perfil profissional.",
-    time: "Ontem",
-    isRead: true,
-  },
-];
 
 const typeConfig: Record<NotificationType, NotificationTypeConfig> = {
   candidate: {
@@ -119,14 +73,62 @@ export default function CompanyNotificationsScreen() {
   const [selectedFilter, setSelectedFilter] =
     useState<NotificationFilter>("all");
 
-  const [notifications, setNotifications] =
-    useState<CompanyNotification[]>(notificationsData);
+  const [notifications, setNotifications] = useState<CompanyNotification[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
 
-  const unreadCount = notifications.filter(
-    (notification) => !notification.isRead
-  ).length;
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  async function loadNotifications() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Futuramente entra aqui a API.
+
+        Exemplo:
+        const response = await companyNotificationsService.getMyNotifications();
+        setNotifications(response);
+
+        A API deve retornar somente as notificações da empresa logada,
+        usando o token salvo depois do login.
+
+        Formato esperado:
+        [
+          {
+            id: "1",
+            type: "candidate",
+            title: "Novo candidato no chamado",
+            description: "Um freelancer se candidatou ao chamado.",
+            time: "Agora",
+            isRead: false,
+            jobId: "10",
+            candidateId: "5"
+          }
+        ]
+
+        Tipos aceitos:
+        candidate -> leva para candidatos do chamado
+        payment   -> leva para pagamentos
+        message   -> leva para chat
+        service   -> leva para conclusão/andamento do serviço
+      */
+
+      setNotifications([]);
+    } catch (error) {
+      console.log("Erro ao carregar notificações da empresa:", error);
+      setNotifications([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter((notification) => !notification.isRead).length;
+  }, [notifications]);
 
   const filteredNotifications = useMemo(() => {
     if (selectedFilter === "all") {
@@ -143,6 +145,11 @@ export default function CompanyNotificationsScreen() {
   }, [selectedFilter, notifications]);
 
   function markAsRead(notificationId: string) {
+    /*
+      Futuramente:
+      await companyNotificationsService.markAsRead(notificationId);
+    */
+
     setNotifications((currentNotifications) =>
       currentNotifications.map((notification) => {
         if (notification.id === notificationId) {
@@ -157,11 +164,32 @@ export default function CompanyNotificationsScreen() {
     );
   }
 
+  function markAllAsRead() {
+    /*
+      Futuramente:
+      await companyNotificationsService.markAllAsRead();
+    */
+
+    setNotifications((currentNotifications) =>
+      currentNotifications.map((notification) => ({
+        ...notification,
+        isRead: true,
+      }))
+    );
+  }
+
   function handleOpenNotification(notification: CompanyNotification) {
     markAsRead(notification.id);
 
     if (notification.type === "candidate") {
-      router.push("/job-candidates");
+      router.push({
+        pathname: "/job-candidates",
+        params: {
+          jobId: notification.jobId ?? "",
+          candidateId: notification.candidateId ?? "",
+        },
+      });
+
       return;
     }
 
@@ -171,22 +199,26 @@ export default function CompanyNotificationsScreen() {
     }
 
     if (notification.type === "message") {
-      router.push("/chat");
+      router.push({
+        pathname: "/chat",
+        params: {
+          chatId: notification.chatId ?? "",
+          jobId: notification.jobId ?? "",
+          userType: "company",
+        },
+      });
+
       return;
     }
 
     if (notification.type === "service") {
-      router.push("/service-completion");
+      router.push({
+        pathname: "/service-completion",
+        params: {
+          jobId: notification.jobId ?? "",
+        },
+      });
     }
-  }
-
-  function markAllAsRead() {
-    setNotifications((currentNotifications) =>
-      currentNotifications.map((notification) => ({
-        ...notification,
-        isRead: true,
-      }))
-    );
   }
 
   return (
@@ -199,10 +231,6 @@ export default function CompanyNotificationsScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} />
-        </Pressable>
-
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           Notificações
         </Text>
@@ -226,7 +254,7 @@ export default function CompanyNotificationsScreen() {
           ]}
         >
           <View>
-            <Text style={[styles.summaryLabel, { color: theme.primary }]}>
+            <Text style={[styles.summaryLabel, { color: colors.primary }]}>
               Central da empresa
             </Text>
 
@@ -348,81 +376,127 @@ export default function CompanyNotificationsScreen() {
         </View>
 
         <View style={styles.notificationsList}>
-          {filteredNotifications.map((notification) => {
-            const currentType = typeConfig[notification.type];
-            const Icon = currentType.Icon;
+          {isLoading ? (
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Carregando notificações...
+              </Text>
 
-            return (
-              <Pressable
-                key={notification.id}
-                style={({ pressed }) => [
-                  styles.notificationCard,
-                  {
-                    backgroundColor: theme.card,
-                    borderColor: theme.border,
-                  },
-                  !notification.isRead && styles.notificationCardUnread,
-                  pressed && styles.notificationCardPressed,
-                ]}
-                onPress={() => handleOpenNotification(notification)}
-              >
-                <View
-                  style={[
-                    styles.iconBox,
-                    { backgroundColor: currentType.backgroundColor },
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Buscando as atividades recentes da empresa.
+              </Text>
+            </View>
+          ) : filteredNotifications.length === 0 ? (
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Nenhuma notificação encontrada
+              </Text>
+
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Quando houver candidaturas, pagamentos ou mensagens, elas
+                aparecerão aqui.
+              </Text>
+            </View>
+          ) : (
+            filteredNotifications.map((notification) => {
+              const currentType = typeConfig[notification.type];
+              const Icon = currentType.Icon;
+
+              return (
+                <Pressable
+                  key={notification.id}
+                  style={({ pressed }) => [
+                    styles.notificationCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                    !notification.isRead && styles.notificationCardUnread,
+                    pressed && styles.notificationCardPressed,
                   ]}
+                  onPress={() => handleOpenNotification(notification)}
                 >
-                  <Icon width={24} height={24} />
-                </View>
-
-                <View style={styles.notificationContent}>
-                  <View style={styles.notificationTop}>
-                    <Text
-                      style={[
-                        styles.notificationTitle,
-                        { color: theme.text },
-                      ]}
-                    >
-                      {notification.title}
-                    </Text>
-
-                    {!notification.isRead && <View style={styles.unreadDot} />}
-                  </View>
-
-                  <Text
+                  <View
                     style={[
-                      styles.notificationDescription,
-                      { color: theme.textSecondary },
+                      styles.iconBox,
+                      { backgroundColor: currentType.backgroundColor },
                     ]}
                   >
-                    {notification.description}
-                  </Text>
+                    <Icon width={24} height={24} />
+                  </View>
 
-                  <View style={styles.notificationFooter}>
-                    <View
-                      style={[
-                        styles.typeBadge,
-                        { backgroundColor: currentType.backgroundColor },
-                      ]}
-                    >
+                  <View style={styles.notificationContent}>
+                    <View style={styles.notificationTop}>
                       <Text
                         style={[
-                          styles.typeBadgeText,
-                          { color: currentType.color },
+                          styles.notificationTitle,
+                          { color: theme.text },
                         ]}
                       >
-                        {currentType.label}
+                        {notification.title}
                       </Text>
+
+                      {!notification.isRead && (
+                        <View style={styles.unreadDot} />
+                      )}
                     </View>
 
-                    <Text style={[styles.timeText, { color: theme.textSecondary }]}>
-                      {notification.time}
+                    <Text
+                      style={[
+                        styles.notificationDescription,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {notification.description}
                     </Text>
+
+                    <View style={styles.notificationFooter}>
+                      <View
+                        style={[
+                          styles.typeBadge,
+                          { backgroundColor: currentType.backgroundColor },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.typeBadgeText,
+                            { color: currentType.color },
+                          ]}
+                        >
+                          {currentType.label}
+                        </Text>
+                      </View>
+
+                      <Text
+                        style={[
+                          styles.timeText,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        {notification.time}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              </Pressable>
-            );
-          })}
+                </Pressable>
+              );
+            })
+          )}
         </View>
 
         <View
@@ -439,8 +513,8 @@ export default function CompanyNotificationsScreen() {
           </Text>
 
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            No app real, essa tela será integrada com notificações no celular,
-            avisando a empresa sobre candidatos, pagamentos e mensagens.
+            As notificações ajudam a empresa a acompanhar novas candidaturas,
+            pagamentos confirmados e mensagens importantes.
           </Text>
         </View>
       </ScrollView>

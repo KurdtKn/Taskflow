@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -15,37 +16,109 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+
 import { styles } from "@/app/styles/companyData";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
 
-const serviceAreas = [
-  "Eventos",
-  "Contratação rápida",
-  "Serviços gerais",
-  "Fotografia",
-  "Manutenção",
-  "Limpeza",
-];
+type ServiceArea = {
+  id: string;
+  name: string;
+};
+
+type CompanyDataForm = {
+  companyName: string;
+  cnpj: string;
+  email: string;
+  phone: string;
+  city: string;
+  address: string;
+  description: string;
+  isVerified: boolean;
+  selectedAreas: string[];
+  logoUrl?: string;
+};
 
 export default function CompanyDataScreen() {
-  const [companyName, setCompanyName] = useState("TaskFlow Eventos");
-  const [cnpj, setCnpj] = useState("12.345.678/0001-90");
-  const [email, setEmail] = useState("empresa@taskflow.com");
-  const [phone, setPhone] = useState("(15) 99999-9999");
-  const [city, setCity] = useState("Sorocaba - SP");
-  const [address, setAddress] = useState("Rua Exemplo, 123 - Centro");
-  const [description, setDescription] = useState(
-    "Empresa focada na organização de eventos, contratação de profissionais temporários e serviços sob demanda."
-  );
-  const [isVerified, setIsVerified] = useState(true);
-  const [selectedAreas, setSelectedAreas] = useState<string[]>([
-    "Eventos",
-    "Contratação rápida",
-    "Serviços gerais",
-  ]);
+  const [companyName, setCompanyName] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [address, setAddress] = useState("");
+  const [description, setDescription] = useState("");
+  const [isVerified, setIsVerified] = useState(false);
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
+  const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  useEffect(() => {
+    loadCompanyData();
+    loadServiceAreas();
+  }, []);
+
+  async function loadCompanyData() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Futuramente entra aqui a API para buscar os dados da empresa logada.
+
+        Exemplo:
+        const response = await companyService.getMyCompanyData();
+
+        setCompanyName(response.companyName ?? "");
+        setCnpj(formatCnpj(response.cnpj ?? ""));
+        setEmail(response.email ?? "");
+        setPhone(formatPhone(response.phone ?? ""));
+        setCity(response.city ?? "");
+        setAddress(response.address ?? "");
+        setDescription(response.description ?? "");
+        setIsVerified(response.isVerified ?? false);
+        setSelectedAreas(response.serviceAreas ?? []);
+        setLogoUrl(response.logoUrl);
+
+        A API deve identificar a empresa pelo token salvo depois do login.
+      */
+    } catch (error) {
+      console.log("Erro ao carregar dados da empresa:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível carregar os dados da empresa agora."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function loadServiceAreas() {
+    try {
+      /*
+        Futuramente entra aqui a API para buscar categorias/áreas de atuação.
+
+        Exemplo:
+        const response = await categoriesService.getCategories();
+        setServiceAreas(response);
+
+        Formato esperado:
+        [
+          { id: "1", name: "Eventos" },
+          { id: "2", name: "Fotografia" }
+        ]
+      */
+
+      setServiceAreas([]);
+    } catch (error) {
+      console.log("Erro ao carregar áreas de atuação:", error);
+      setServiceAreas([]);
+    }
+  }
 
   function formatCnpj(value: string) {
     const numbersOnly = value.replace(/\D/g, "").slice(0, 14);
@@ -92,20 +165,96 @@ export default function CompanyDataScreen() {
     });
   }
 
-  function handleSaveCompanyData() {
-    console.log({
-      companyName,
-      cnpj,
-      email,
-      phone,
-      city,
-      address,
-      description,
+  function getCurrentCompanyData(): CompanyDataForm {
+    return {
+      companyName: companyName.trim(),
+      cnpj: cnpj.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      city: city.trim(),
+      address: address.trim(),
+      description: description.trim(),
       isVerified,
       selectedAreas,
-    });
+      logoUrl,
+    };
+  }
 
-    router.back();
+  async function handleSaveCompanyData() {
+    const companyData = getCurrentCompanyData();
+
+    if (!companyData.companyName) {
+      Alert.alert("Campo obrigatório", "Informe o nome da empresa.");
+      return;
+    }
+
+    if (!companyData.cnpj) {
+      Alert.alert("Campo obrigatório", "Informe o CNPJ da empresa.");
+      return;
+    }
+
+    if (!companyData.email) {
+      Alert.alert("Campo obrigatório", "Informe o e-mail comercial.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      /*
+        Futuramente entra aqui a API para salvar os dados no banco.
+
+        Exemplo:
+        await companyService.updateMyCompanyData({
+          companyName: companyData.companyName,
+          cnpj: companyData.cnpj.replace(/\D/g, ""),
+          email: companyData.email,
+          phone: companyData.phone.replace(/\D/g, ""),
+          city: companyData.city,
+          address: companyData.address,
+          description: companyData.description,
+          serviceAreas: companyData.selectedAreas,
+          logoUrl: companyData.logoUrl,
+        });
+
+        A API atualiza os dados da empresa logada pelo token.
+        O campo isVerified normalmente deve ser controlado pelo sistema/admin,
+        não pela própria empresa.
+      */
+
+      console.log("Dados da empresa salvos:", companyData);
+
+      Alert.alert("Dados atualizados", "As alterações foram salvas.", [
+        {
+          text: "OK",
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (error) {
+      console.log("Erro ao salvar dados da empresa:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível salvar os dados da empresa agora."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleChangeLogo() {
+    /*
+      Futuramente entra aqui upload/seleção da logo.
+
+      Exemplo:
+      usar expo-image-picker para escolher a imagem
+      e enviar para a API ou storage.
+    */
+
+    Alert.alert(
+      "Alterar logo",
+      "A seleção da logo será integrada depois com upload de imagem."
+    );
   }
 
   return (
@@ -136,16 +285,43 @@ export default function CompanyDataScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.logoSection}>
             <View style={styles.logoArea}>
-              <Image
-                source={require("../../assets/images/icon.png")}
-                style={styles.logo}
-                resizeMode="contain"
-              />
+              {logoUrl ? (
+                <Image
+                  source={{ uri: logoUrl }}
+                  style={styles.logo}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.logo,
+                    {
+                      backgroundColor: theme.inputBackground,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: theme.textSecondary,
+                      fontSize: 28,
+                      fontWeight: "900",
+                    }}
+                  >
+                    {companyName ? companyName.charAt(0).toUpperCase() : "?"}
+                  </Text>
+                </View>
+              )}
 
-              <Pressable style={styles.editLogoButton}>
+              <Pressable
+                style={styles.editLogoButton}
+                onPress={handleChangeLogo}
+              >
                 <Text style={styles.editLogoIcon}>✎</Text>
               </Pressable>
             </View>
@@ -154,6 +330,26 @@ export default function CompanyDataScreen() {
               Alterar logo da empresa
             </Text>
           </View>
+
+          {isLoading && (
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Carregando dados...
+              </Text>
+
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Buscando as informações da empresa.
+              </Text>
+            </View>
+          )}
 
           <View style={styles.form}>
             <Text style={[styles.label, { color: theme.text }]}>
@@ -214,6 +410,7 @@ export default function CompanyDataScreen() {
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="email-address"
             />
 
@@ -318,13 +515,14 @@ export default function CompanyDataScreen() {
                     { color: theme.textSecondary },
                   ]}
                 >
-                  Indica que os dados principais foram conferidos.
+                  Indica que os dados principais foram conferidos pela
+                  plataforma.
                 </Text>
               </View>
 
               <Switch
                 value={isVerified}
-                onValueChange={setIsVerified}
+                disabled
                 trackColor={{
                   false: colors.border,
                   true: "rgba(0,176,80,0.35)",
@@ -347,36 +545,56 @@ export default function CompanyDataScreen() {
                 Selecione as categorias em que sua empresa costuma contratar.
               </Text>
 
-              <View style={styles.areasArea}>
-                {serviceAreas.map((area) => {
-                  const isSelected = selectedAreas.includes(area);
+              {serviceAreas.length === 0 ? (
+                <View
+                  style={[
+                    styles.infoBox,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.infoTitle, { color: theme.text }]}>
+                    Nenhuma área carregada
+                  </Text>
 
-                  return (
-                    <Pressable
-                      key={area}
-                      style={[
-                        styles.areaChip,
-                        {
-                          backgroundColor: theme.card,
-                          borderColor: theme.border,
-                        },
-                        isSelected && styles.areaChipActive,
-                      ]}
-                      onPress={() => toggleArea(area)}
-                    >
-                      <Text
+                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                    Quando a API retornar categorias, elas aparecerão aqui.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.areasArea}>
+                  {serviceAreas.map((area) => {
+                    const isSelected = selectedAreas.includes(area.name);
+
+                    return (
+                      <Pressable
+                        key={area.id}
                         style={[
-                          styles.areaText,
-                          { color: theme.textSecondary },
-                          isSelected && styles.areaTextActive,
+                          styles.areaChip,
+                          {
+                            backgroundColor: theme.card,
+                            borderColor: theme.border,
+                          },
+                          isSelected && styles.areaChipActive,
                         ]}
+                        onPress={() => toggleArea(area.name)}
                       >
-                        {area}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+                        <Text
+                          style={[
+                            styles.areaText,
+                            { color: theme.textSecondary },
+                            isSelected && styles.areaTextActive,
+                          ]}
+                        >
+                          {area.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
             </View>
 
             <View
@@ -399,13 +617,17 @@ export default function CompanyDataScreen() {
             </View>
 
             <Pressable
+              disabled={isSaving}
               style={({ pressed }) => [
                 styles.saveButton,
                 pressed && styles.saveButtonPressed,
+                isSaving && { opacity: 0.7 },
               ]}
               onPress={handleSaveCompanyData}
             >
-              <Text style={styles.saveButtonText}>Salvar alterações</Text>
+              <Text style={styles.saveButtonText}>
+                {isSaving ? "Salvando..." : "Salvar alterações"}
+              </Text>
             </Pressable>
           </View>
         </ScrollView>

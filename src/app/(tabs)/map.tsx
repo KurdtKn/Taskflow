@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, SafeAreaView, Text, TextInput, View } from "react-native";
 
@@ -7,6 +7,7 @@ import FilterIcon from "../../../assets/icons/filter.svg";
 import SearchIcon from "../../../assets/icons/search.svg";
 import LocationIcon from "../../../assets/icons/Location-check.svg";
 import TimeIcon from "../../../assets/icons/access_time.svg";
+
 import { styles } from "@/app/styles/map";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
@@ -27,58 +28,69 @@ type MapService = {
   };
 };
 
-const mapServices: MapService[] = [
-  {
-    id: "1",
-    title: "Garçom para Evento",
-    category: "Evento",
-    price: "R$200,00",
-    distance: "1,5 km",
-    location: "Centro",
-    time: "Hoje, 18:00",
-    position: {
-      top: "28%",
-      left: "58%",
-    },
-  },
-  {
-    id: "2",
-    title: "Reparo Hidráulico",
-    category: "Manutenção",
-    price: "R$150,00",
-    distance: "3,2 km",
-    location: "Jardim Paulista",
-    time: "Amanhã, 9:00",
-    position: {
-      top: "48%",
-      left: "32%",
-    },
-  },
-  {
-    id: "3",
-    title: "Fotógrafo Profissional",
-    category: "Fotografia",
-    price: "R$300,00",
-    distance: "2,0 km",
-    location: "Moema",
-    time: "Sábado, 14:00",
-    position: {
-      top: "62%",
-      left: "70%",
-    },
-  },
-];
-
 export default function MapScreen() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
 
-  const [selectedService, setSelectedService] = useState<MapService>(
-    mapServices[0]
+  const [services, setServices] = useState<MapService[]>([]);
+  const [selectedService, setSelectedService] = useState<MapService | null>(
+    null
   );
-
   const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  useEffect(() => {
+    loadMapServices();
+  }, []);
+
+  async function loadMapServices() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Futuramente entra aqui a busca dos chamados disponíveis no mapa.
+
+        Exemplo:
+        const response = await jobsService.getMapJobs({
+          categoria,
+          cidade,
+          valorMin,
+          valorMax,
+          search,
+        });
+
+        setServices(response);
+
+        A API ou o back-end deve retornar os chamados reais disponíveis,
+        já com dados como título, categoria, valor, local, horário e posição.
+
+        Formato esperado:
+        [
+          {
+            id: "1",
+            title: "Título do chamado",
+            category: "Categoria",
+            price: "R$200,00",
+            distance: "1,5 km",
+            location: "Centro",
+            time: "Hoje, 18:00",
+            position: {
+              top: "28%",
+              left: "58%"
+            }
+          }
+        ]
+      */
+
+      setServices([]);
+    } catch (error) {
+      console.log("Erro ao carregar chamados do mapa:", error);
+      setServices([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   function handleOpenFilters() {
     router.push({
@@ -92,52 +104,86 @@ export default function MapScreen() {
     });
   }
 
-  const filteredServices = mapServices.filter((service) => {
-    const filtroCategoria = String(categoria || "Todos");
-    const filtroCidade = String(cidade || "");
-    const filtroValorMin = String(valorMin || "");
-    const filtroValorMax = String(valorMax || "");
-    const filtroBusca = search.toLowerCase().trim();
+  function getServiceValue(price: string) {
+    const value = Number(price.replace(/\D/g, "")) / 100;
 
-    const valorServico = Number(service.price.replace(/\D/g, "")) / 100;
+    if (Number.isNaN(value)) {
+      return 0;
+    }
 
-    const bateCategoria =
-      filtroCategoria === "Todos" ||
-      service.category.toLowerCase().includes(filtroCategoria.toLowerCase()) ||
-      service.title.toLowerCase().includes(filtroCategoria.toLowerCase());
+    return value;
+  }
 
-    const bateCidade =
-      filtroCidade === "" ||
-      service.location.toLowerCase().includes(filtroCidade.toLowerCase()) ||
-      service.distance.toLowerCase().includes(filtroCidade.toLowerCase());
+  const filteredServices = useMemo(() => {
+    return services.filter((service) => {
+      const filtroCategoria = String(categoria || "Todos");
+      const filtroCidade = String(cidade || "");
+      const filtroValorMin = String(valorMin || "");
+      const filtroValorMax = String(valorMax || "");
+      const filtroBusca = search.toLowerCase().trim();
 
-    const bateValorMin =
-      filtroValorMin === "" || valorServico >= Number(filtroValorMin);
+      const valorServico = getServiceValue(service.price);
 
-    const bateValorMax =
-      filtroValorMax === "" || valorServico <= Number(filtroValorMax);
+      const bateCategoria =
+        filtroCategoria === "Todos" ||
+        service.category.toLowerCase().includes(filtroCategoria.toLowerCase()) ||
+        service.title.toLowerCase().includes(filtroCategoria.toLowerCase());
 
-    const bateBusca =
-      filtroBusca === "" ||
-      service.title.toLowerCase().includes(filtroBusca) ||
-      service.category.toLowerCase().includes(filtroBusca) ||
-      service.location.toLowerCase().includes(filtroBusca) ||
-      service.distance.toLowerCase().includes(filtroBusca);
+      const bateCidade =
+        filtroCidade === "" ||
+        service.location.toLowerCase().includes(filtroCidade.toLowerCase()) ||
+        service.distance.toLowerCase().includes(filtroCidade.toLowerCase());
 
-    return (
-      bateCategoria &&
-      bateCidade &&
-      bateValorMin &&
-      bateValorMax &&
-      bateBusca
-    );
-  });
+      const bateValorMin =
+        filtroValorMin === "" || valorServico >= Number(filtroValorMin);
+
+      const bateValorMax =
+        filtroValorMax === "" || valorServico <= Number(filtroValorMax);
+
+      const bateBusca =
+        filtroBusca === "" ||
+        service.title.toLowerCase().includes(filtroBusca) ||
+        service.category.toLowerCase().includes(filtroBusca) ||
+        service.location.toLowerCase().includes(filtroBusca) ||
+        service.distance.toLowerCase().includes(filtroBusca);
+
+      return (
+        bateCategoria &&
+        bateCidade &&
+        bateValorMin &&
+        bateValorMax &&
+        bateBusca
+      );
+    });
+  }, [services, categoria, cidade, valorMin, valorMax, search]);
 
   useEffect(() => {
     if (filteredServices.length > 0) {
       setSelectedService(filteredServices[0]);
+      return;
     }
-  }, [categoria, cidade, valorMin, valorMax, search]);
+
+    setSelectedService(null);
+  }, [filteredServices]);
+
+  function handleOpenDetails() {
+    if (!selectedService) {
+      return;
+    }
+
+    router.push({
+      pathname: "/job-details",
+      params: {
+        id: selectedService.id,
+        title: selectedService.title,
+        category: selectedService.category,
+        price: selectedService.price,
+        distance: selectedService.distance,
+        location: selectedService.location,
+        time: selectedService.time,
+      },
+    });
+  }
 
   return (
     <SafeAreaView
@@ -219,38 +265,8 @@ export default function MapScreen() {
           <View style={[styles.road, styles.roadVerticalOne]} />
           <View style={[styles.road, styles.roadVerticalTwo]} />
 
-          <Text
-            style={[
-              styles.mapLabel,
-              styles.mapLabelOne,
-              { color: theme.textSecondary },
-            ]}
-          >
-            Centro
-          </Text>
-
-          <Text
-            style={[
-              styles.mapLabel,
-              styles.mapLabelTwo,
-              { color: theme.textSecondary },
-            ]}
-          >
-            Jardim
-          </Text>
-
-          <Text
-            style={[
-              styles.mapLabel,
-              styles.mapLabelThree,
-              { color: theme.textSecondary },
-            ]}
-          >
-            Moema
-          </Text>
-
           {filteredServices.map((service) => {
-            const isSelected = selectedService.id === service.id;
+            const isSelected = selectedService?.id === service.id;
 
             return (
               <Pressable
@@ -283,7 +299,25 @@ export default function MapScreen() {
         </Pressable>
       </View>
 
-      {filteredServices.length === 0 ? (
+      {isLoading ? (
+        <View
+          style={[
+            styles.serviceCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: theme.text }]}>
+            Carregando chamados...
+          </Text>
+
+          <Text style={[styles.cardCategory, { color: theme.textSecondary }]}>
+            Buscando serviços disponíveis para exibir no mapa.
+          </Text>
+        </View>
+      ) : filteredServices.length === 0 || !selectedService ? (
         <View
           style={[
             styles.serviceCard,
@@ -298,7 +332,7 @@ export default function MapScreen() {
           </Text>
 
           <Text style={[styles.cardCategory, { color: theme.textSecondary }]}>
-            Tente alterar a busca ou os filtros aplicados.
+            Quando houver chamados disponíveis, eles aparecerão aqui no mapa.
           </Text>
         </View>
       ) : (
@@ -346,19 +380,7 @@ export default function MapScreen() {
               styles.detailsButton,
               pressed && styles.detailsButtonPressed,
             ]}
-            onPress={() => {
-              router.push({
-                pathname: "/job-details",
-                params: {
-                  title: selectedService.title,
-                  category: selectedService.category,
-                  price: selectedService.price,
-                  distance: selectedService.distance,
-                  location: selectedService.location,
-                  time: selectedService.time,
-                },
-              });
-            }}
+            onPress={handleOpenDetails}
           >
             <Text style={styles.detailsButtonText}>Ver detalhes</Text>
           </Pressable>

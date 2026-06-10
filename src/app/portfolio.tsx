@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   Pressable,
@@ -21,56 +22,98 @@ import { styles } from "@/app/styles/portfolio";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
 
+type PortfolioProfile = {
+  id: string;
+  name: string;
+  userRole: string;
+  photoUrl?: string;
+  rating?: number;
+  reviewsCount?: number;
+  professionalSummary?: string;
+  skills: string[];
+};
+
 type PortfolioItem = {
   id: string;
   title: string;
   category: string;
   description: string;
-  Icon: ComponentType<any>;
   date: string;
 };
 
-const portfolioItems: PortfolioItem[] = [
-  {
-    id: "1",
-    title: "Atendimento em evento corporativo",
-    category: "Eventos",
-    description:
-      "Atuação como garçom em evento empresarial, auxiliando na recepção, organização e atendimento aos convidados.",
-    Icon: AssignmentIcon,
-    date: "Março de 2026",
-  },
-  {
-    id: "2",
-    title: "Apoio em serviço rápido",
-    category: "Serviços gerais",
-    description:
-      "Suporte em atividade pontual com foco em organização, agilidade e comunicação com o contratante.",
-    Icon: SettingsIcon,
-    date: "Fevereiro de 2026",
-  },
-  {
-    id: "3",
-    title: "Cobertura fotográfica simples",
-    category: "Fotografia",
-    description:
-      "Registro de fotos para evento pequeno, com entrega organizada das imagens ao contratante.",
-    Icon: BadgeIcon,
-    date: "Janeiro de 2026",
-  },
-];
-
-const skills = [
-  "Eventos",
-  "Garçom",
-  "Atendimento",
-  "Organização",
-  "Serviços gerais",
-  "Comunicação",
-];
-
 export default function PortfolioScreen() {
   const { isDark, theme } = useTheme();
+
+  const [profile, setProfile] = useState<PortfolioProfile | null>(null);
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadPortfolio();
+  }, []);
+
+  async function loadPortfolio() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Aqui futuramente entra a API.
+
+        Exemplo:
+        const response = await portfolioService.getMyPortfolio();
+
+        setProfile(response.profile);
+        setPortfolioItems(response.items);
+
+        A API vai identificar o usuário pelo token salvo após o login.
+      */
+
+      setProfile(null);
+      setPortfolioItems([]);
+    } catch (error) {
+      console.log("Erro ao carregar portfólio:", error);
+
+      setProfile(null);
+      setPortfolioItems([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function getPortfolioIcon(category: string): ComponentType<any> {
+    const normalizedCategory = category.toLowerCase();
+
+    if (normalizedCategory.includes("evento")) {
+      return AssignmentIcon;
+    }
+
+    if (
+      normalizedCategory.includes("serviço") ||
+      normalizedCategory.includes("manutenção")
+    ) {
+      return SettingsIcon;
+    }
+
+    if (
+      normalizedCategory.includes("foto") ||
+      normalizedCategory.includes("portfólio")
+    ) {
+      return BadgeIcon;
+    }
+
+    return AssignmentIcon;
+  }
+
+  function formatRating() {
+    if (!profile?.rating) {
+      return "Sem avaliações";
+    }
+
+    const rating = profile.rating.toFixed(1).replace(".", ",");
+    const reviewsCount = profile.reviewsCount ?? 0;
+
+    return `${rating} • ${reviewsCount} avaliações`;
+  }
 
   return (
     <SafeAreaView
@@ -97,39 +140,84 @@ export default function PortfolioScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View
-          style={[
-            styles.profileSummaryCard,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Image
-            source={require("../../assets/images/icon.png")}
-            style={styles.avatar}
-            resizeMode="contain"
-          />
+        {isLoading ? (
+          <View
+            style={[
+              styles.profileSummaryCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <View style={styles.profileInfo}>
+              <Text style={[styles.userName, { color: theme.text }]}>
+                Carregando portfólio...
+              </Text>
 
-          <View style={styles.profileInfo}>
-            <Text style={[styles.userName, { color: theme.text }]}>
-              Usuário TaskFlow
-            </Text>
-
-            <Text style={[styles.userRole, { color: theme.textSecondary }]}>
-              Freelancer
-            </Text>
-
-            <View style={styles.ratingArea}>
-              <StarIcon width={18} height={18} />
-
-              <Text style={[styles.ratingText, { color: theme.textSecondary }]}>
-                4,8 • 24 avaliações
+              <Text style={[styles.userRole, { color: theme.textSecondary }]}>
+                Buscando dados da sua conta.
               </Text>
             </View>
           </View>
-        </View>
+        ) : (
+          <View
+            style={[
+              styles.profileSummaryCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            {profile?.photoUrl ? (
+              <Image
+                source={{ uri: profile.photoUrl }}
+                style={styles.avatar}
+                resizeMode="cover"
+              />
+            ) : (
+              <View
+                style={[
+                  styles.avatar,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: theme.textSecondary,
+                    fontSize: 28,
+                    fontWeight: "900",
+                  }}
+                >
+                  {profile?.name ? profile.name.charAt(0).toUpperCase() : "?"}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.profileInfo}>
+              <Text style={[styles.userName, { color: theme.text }]}>
+                {profile?.name ?? "Perfil não carregado"}
+              </Text>
+
+              <Text style={[styles.userRole, { color: theme.textSecondary }]}>
+                {profile?.userRole ?? "Freelancer"}
+              </Text>
+
+              <View style={styles.ratingArea}>
+                <StarIcon width={18} height={18} />
+
+                <Text style={[styles.ratingText, { color: theme.textSecondary }]}>
+                  {formatRating()}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -137,10 +225,8 @@ export default function PortfolioScreen() {
           </Text>
 
           <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
-            Profissional disponível para serviços sob demanda, com experiência em
-            atendimento ao público, eventos, organização e atividades rápidas.
-            Busca entregar serviços com responsabilidade, pontualidade e boa
-            comunicação.
+            {profile?.professionalSummary ??
+              "Quando a API retornar o resumo profissional do usuário, ele aparecerá aqui."}
           </Text>
         </View>
 
@@ -149,24 +235,44 @@ export default function PortfolioScreen() {
             Habilidades
           </Text>
 
-          <View style={styles.skillsArea}>
-            {skills.map((skill) => (
-              <View
-                key={skill}
-                style={[
-                  styles.skillChip,
-                  {
-                    backgroundColor: theme.card,
-                    borderColor: theme.border,
-                  },
-                ]}
-              >
-                <Text style={[styles.skillText, { color: theme.text }]}>
-                  {skill}
-                </Text>
-              </View>
-            ))}
-          </View>
+          {profile?.skills && profile.skills.length > 0 ? (
+            <View style={styles.skillsArea}>
+              {profile.skills.map((skill) => (
+                <View
+                  key={skill}
+                  style={[
+                    styles.skillChip,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.skillText, { color: theme.text }]}>
+                    {skill}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Nenhuma habilidade cadastrada
+              </Text>
+
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Quando o usuário cadastrar habilidades, elas aparecerão aqui.
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.sectionHeader}>
@@ -181,57 +287,94 @@ export default function PortfolioScreen() {
             ]}
             onPress={() => router.push("/add-portfolio-item")}
           >
-            <PlusIcon width={16} height={16} color={colors.plus}/>
+            <PlusIcon width={16} height={16} color={colors.plus} />
             <Text style={styles.addButtonText}>Adicionar</Text>
           </Pressable>
         </View>
 
         <View style={styles.portfolioList}>
-          {portfolioItems.map((item) => (
-            <Pressable
-              key={item.id}
-              style={({ pressed }) => [
-                styles.portfolioCard,
+          {portfolioItems.length === 0 ? (
+            <View
+              style={[
+                styles.infoBox,
                 {
                   backgroundColor: theme.card,
                   borderColor: theme.border,
                 },
-                pressed && styles.portfolioCardPressed,
               ]}
-              onPress={() => {
-                console.log("Portfolio selecionado:", item.title);
-              }}
             >
-              <View style={styles.itemIconBox}>
-                <item.Icon width={24} height={24} />
-              </View>
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Nenhum trabalho cadastrado
+              </Text>
 
-              <View style={styles.itemContent}>
-                <View style={styles.itemHeader}>
-                  <Text style={[styles.itemTitle, { color: theme.text }]}>
-                    {item.title}
-                  </Text>
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Quando houver trabalhos cadastrados na API, eles aparecerão aqui.
+              </Text>
+            </View>
+          ) : (
+            portfolioItems.map((item) => {
+              const Icon = getPortfolioIcon(item.category);
 
-                  <Text style={[styles.itemDate, { color: theme.textSecondary }]}>
-                    {item.date}
-                  </Text>
-                </View>
-
-                <Text style={[styles.itemCategory, { color: theme.primary }]}>
-                  {item.category}
-                </Text>
-
-                <Text
-                  style={[
-                    styles.itemDescription,
-                    { color: theme.textSecondary },
+              return (
+                <Pressable
+                  key={item.id}
+                  style={({ pressed }) => [
+                    styles.portfolioCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                    pressed && styles.portfolioCardPressed,
                   ]}
+                  onPress={() => {
+                    /*
+                      Aqui futuramente podemos abrir detalhes do item.
+
+                      Exemplo:
+                      router.push({
+                        pathname: "/portfolio-item-details",
+                        params: { id: item.id },
+                      });
+                    */
+                  }}
                 >
-                  {item.description}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
+                  <View style={styles.itemIconBox}>
+                    <Icon width={24} height={24} />
+                  </View>
+
+                  <View style={styles.itemContent}>
+                    <View style={styles.itemHeader}>
+                      <Text style={[styles.itemTitle, { color: theme.text }]}>
+                        {item.title}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.itemDate,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        {item.date}
+                      </Text>
+                    </View>
+
+                    <Text style={[styles.itemCategory, { color: colors.primary }]}>
+                      {item.category}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.itemDescription,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {item.description}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
         </View>
 
         <View
