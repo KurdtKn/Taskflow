@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -54,11 +54,40 @@ const paymentMethodLabel: Record<PaymentMethod, string> = {
   wallet: "Carteira TaskFlow",
 };
 
+function parseCurrency(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const numbersOnly = value.replace(/\D/g, "");
+
+  if (!numbersOnly) {
+    return null;
+  }
+
+  return Number(numbersOnly) / 100;
+}
+
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
 export default function PaymentScreen() {
   const params = useLocalSearchParams<{
+    jobId?: string;
+    candidaturaId?: string;
+    freelancerId?: string;
+
     jobTitle?: string;
     candidateName?: string;
+
     serviceValue?: string;
+    candidatePrice?: string;
+    jobPrice?: string;
+
     platformFee?: string;
     totalValue?: string;
   }>();
@@ -67,14 +96,44 @@ export default function PaymentScreen() {
 
   const { isDark, theme } = useTheme();
 
-  const jobTitle = params.jobTitle ?? "Garçom para Evento";
-  const candidateName = params.candidateName ?? "Usuário TaskFlow";
-  const serviceValue = params.serviceValue ?? "R$200,00";
-  const platformFee = params.platformFee ?? "R$20,00";
-  const totalValue = params.totalValue ?? "R$220,00";
+  const jobTitle = params.jobTitle ?? "Chamado";
+  const candidateName = params.candidateName ?? "Freelancer selecionado";
+
+  const receivedServiceValue =
+    params.serviceValue ?? params.candidatePrice ?? params.jobPrice ?? "";
+
+  const paymentValues = useMemo(() => {
+    const serviceAmount = parseCurrency(receivedServiceValue);
+    const receivedPlatformFee = parseCurrency(params.platformFee);
+    const receivedTotalValue = parseCurrency(params.totalValue);
+
+    if (serviceAmount === null) {
+      return {
+        serviceValue: receivedServiceValue || "Valor a combinar",
+        platformFee: params.platformFee ?? "A calcular",
+        totalValue: params.totalValue ?? (receivedServiceValue || "A calcular"),
+      };
+    }
+
+    const platformFeeAmount = receivedPlatformFee ?? serviceAmount * 0.1;
+    const totalAmount = receivedTotalValue ?? serviceAmount + platformFeeAmount;
+
+    return {
+      serviceValue: formatCurrency(serviceAmount),
+      platformFee: formatCurrency(platformFeeAmount),
+      totalValue: formatCurrency(totalAmount),
+    };
+  }, [receivedServiceValue, params.platformFee, params.totalValue]);
+
+  const serviceValue = paymentValues.serviceValue;
+  const platformFee = paymentValues.platformFee;
+  const totalValue = paymentValues.totalValue;
 
   function handleConfirmPayment() {
     console.log({
+      jobId: params.jobId,
+      candidaturaId: params.candidaturaId,
+      freelancerId: params.freelancerId,
       jobTitle,
       candidateName,
       serviceValue,
@@ -86,8 +145,13 @@ export default function PaymentScreen() {
     router.push({
       pathname: "/payment-success",
       params: {
+        jobId: params.jobId ?? "",
+        candidaturaId: params.candidaturaId ?? "",
+        freelancerId: params.freelancerId ?? "",
         jobTitle,
         candidateName,
+        serviceValue,
+        platformFee,
         totalValue,
         paymentMethod: paymentMethodLabel[selectedMethod],
       },

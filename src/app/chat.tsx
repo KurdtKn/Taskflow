@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,62 +11,120 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+
 import { styles } from "@/app/styles/chat";
 import { useTheme } from "@/app/context/ThemeContext";
+import { getLoggedUser } from "@/services/storage";
+
+type MessageSender = "company" | "freelancer" | "system";
 
 type Message = {
   id: string;
-  sender: "company" | "freelancer" | "system";
+  sender: MessageSender;
   text: string;
   time: string;
+  createdAt: string;
 };
 
-const initialMessages: Message[] = [
-  {
-    id: "1",
-    sender: "system",
-    text: "Chat liberado após confirmação do pagamento da taxa.",
-    time: "Agora",
-  },
-  {
-    id: "2",
-    sender: "company",
-    text: "Olá! Tudo certo para o serviço combinado?",
-    time: "18:02",
-  },
-  {
-    id: "3",
-    sender: "freelancer",
-    text: "Olá! Tudo certo sim. Pode me passar os últimos detalhes do local?",
-    time: "18:03",
-  },
-  {
-    id: "4",
-    sender: "company",
-    text: "Claro. O evento será no salão principal, no endereço informado no chamado.",
-    time: "18:05",
-  },
-];
+const CHAT_STORAGE_KEY = "@taskflow:chat";
+
+function getCurrentTime() {
+  return new Date().toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function ChatScreen() {
   const params = useLocalSearchParams<{
+    jobId?: string;
+    candidaturaId?: string;
+    freelancerId?: string;
     jobTitle?: string;
     candidateName?: string;
   }>();
 
-  const jobTitle = params.jobTitle ?? "Garçom para Evento";
-  const candidateName = params.candidateName ?? "Usuário TaskFlow";
+  const jobId = params.jobId ?? "";
+  const candidaturaId = params.candidaturaId ?? "";
+  const freelancerId = params.freelancerId ?? "";
+  const jobTitle = params.jobTitle ?? "Chamado";
+  const candidateName = params.candidateName ?? "Freelancer selecionado";
 
   const scrollRef = useRef<ScrollView>(null);
 
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState("");
+  const [currentSender, setCurrentSender] = useState<MessageSender>("company");
+  const [isLoading, setIsLoading] = useState(true);
 
   const { isDark, theme } = useTheme();
 
-  function handleSendMessage() {
+  const chatKey = `${CHAT_STORAGE_KEY}:${jobId || "sem-chamado"}:${
+    candidaturaId || freelancerId || "sem-candidatura"
+  }`;
+
+  const systemMessage: Message = {
+    id: "system-message",
+    sender: "system",
+    text: "Chat liberado para combinar os detalhes finais do serviço.",
+    time: "Agora",
+    createdAt: new Date().toISOString(),
+  };
+
+  useEffect(() => {
+    loadChat();
+  }, [chatKey]);
+
+  async function loadChat() {
+    try {
+      setIsLoading(true);
+
+      const loggedUser = await getLoggedUser();
+
+      if (!loggedUser) {
+        router.replace("/login");
+        return;
+      }
+
+      if (loggedUser.tipoUsuario === "freelancer") {
+        setCurrentSender("freelancer");
+      } else {
+        setCurrentSender("company");
+      }
+
+      const storedMessages = await AsyncStorage.getItem(chatKey);
+
+      if (!storedMessages) {
+        setMessages([]);
+        return;
+      }
+
+      const parsedMessages = JSON.parse(storedMessages) as Message[];
+      setMessages(parsedMessages);
+    } catch (error) {
+      console.log("Erro ao carregar mensagens do chat:", error);
+      setMessages([]);
+    } finally {
+      setIsLoading(false);
+
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: false });
+      }, 100);
+    }
+  }
+
+  async function saveMessages(updatedMessages: Message[]) {
+    try {
+      await AsyncStorage.setItem(chatKey, JSON.stringify(updatedMessages));
+    } catch (error) {
+      console.log("Erro ao salvar mensagens do chat:", error);
+    }
+  }
+
+  async function handleSendMessage() {
     const trimmedMessage = messageText.trim();
 
     if (!trimmedMessage) {
@@ -75,13 +133,18 @@ export default function ChatScreen() {
 
     const newMessage: Message = {
       id: String(Date.now()),
-      sender: "company",
+      sender: currentSender,
       text: trimmedMessage,
-      time: "Agora",
+      time: getCurrentTime(),
+      createdAt: new Date().toISOString(),
     };
 
-    setMessages((currentMessages) => [...currentMessages, newMessage]);
+    const updatedMessages = [...messages, newMessage];
+
+    setMessages(updatedMessages);
     setMessageText("");
+
+    await saveMessages(updatedMessages);
 
     setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
@@ -92,11 +155,16 @@ export default function ChatScreen() {
     router.push({
       pathname: "/service-completion",
       params: {
+        jobId,
+        candidaturaId,
+        freelancerId,
         jobTitle,
         candidateName,
       },
     });
   }
+
+  const visibleMessages = [systemMessage, ...messages];
 
   return (
     <SafeAreaView
@@ -130,7 +198,7 @@ export default function ChatScreen() {
             </Text>
 
             <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-              Online agora
+              Chat do chamado
             </Text>
           </View>
 
@@ -165,90 +233,127 @@ export default function ChatScreen() {
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.messagesContent}
+          keyboardShouldPersistTaps="always"
           onContentSizeChange={() =>
             scrollRef.current?.scrollToEnd({ animated: true })
           }
         >
-          {messages.map((message) => {
-            const isCompany = message.sender === "company";
-            const isFreelancer = message.sender === "freelancer";
-            const isSystem = message.sender === "system";
-
-            if (isSystem) {
-              return (
-                <View
-                  key={message.id}
-                  style={[
-                    styles.systemMessage,
-                    {
-                      backgroundColor: theme.card,
-                      borderColor: theme.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.systemMessageText,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    {message.text}
-                  </Text>
-                </View>
-              );
-            }
-
-            return (
-              <View
-                key={message.id}
+          {isLoading ? (
+            <View
+              style={[
+                styles.systemMessage,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text
                 style={[
-                  styles.messageRow,
-                  isCompany && styles.messageRowCompany,
-                  isFreelancer && styles.messageRowFreelancer,
+                  styles.systemMessageText,
+                  { color: theme.textSecondary },
                 ]}
               >
-                <View
-                  style={[
-                    styles.messageBubble,
-                    isCompany && styles.companyBubble,
-                    isFreelancer && [
-                      styles.freelancerBubble,
+                Carregando mensagens...
+              </Text>
+            </View>
+          ) : (
+            visibleMessages.map((message) => {
+              const isCompany = message.sender === "company";
+              const isFreelancer = message.sender === "freelancer";
+              const isSystem = message.sender === "system";
+
+              if (isSystem) {
+                return (
+                  <View
+                    key={message.id}
+                    style={[
+                      styles.systemMessage,
                       {
                         backgroundColor: theme.card,
                         borderColor: theme.border,
                       },
-                    ],
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.systemMessageText,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {message.text}
+                    </Text>
+                  </View>
+                );
+              }
+
+              return (
+                <View
+                  key={message.id}
+                  style={[
+                    styles.messageRow,
+                    isCompany && styles.messageRowCompany,
+                    isFreelancer && styles.messageRowFreelancer,
                   ]}
                 >
-                  <Text
+                  <View
                     style={[
-                      styles.messageText,
-                      isCompany && styles.companyMessageText,
-                      isFreelancer && [
-                        styles.freelancerMessageText,
-                        { color: theme.text },
-                      ],
+                      styles.messageBubble,
+                      isCompany && styles.companyBubble,
+                      isFreelancer && styles.freelancerBubble,
+                      isFreelancer && {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
                     ]}
                   >
-                    {message.text}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.messageText,
+                        isCompany && styles.companyMessageText,
+                        isFreelancer && styles.freelancerMessageText,
+                        isFreelancer && { color: theme.text },
+                      ]}
+                    >
+                      {message.text}
+                    </Text>
 
-                  <Text
-                    style={[
-                      styles.messageTime,
-                      isCompany && styles.companyMessageTime,
-                      isFreelancer && [
-                        styles.freelancerMessageTime,
-                        { color: theme.textSecondary },
-                      ],
-                    ]}
-                  >
-                    {message.time}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.messageTime,
+                        isCompany && styles.companyMessageTime,
+                        isFreelancer && styles.freelancerMessageTime,
+                        isFreelancer && { color: theme.textSecondary },
+                      ]}
+                    >
+                      {message.time}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })
+          )}
+
+          {!isLoading && messages.length === 0 && (
+            <View
+              style={[
+                styles.systemMessage,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.systemMessageText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Nenhuma mensagem enviada ainda.
+              </Text>
+            </View>
+          )}
         </ScrollView>
 
         <View
