@@ -92,7 +92,7 @@ export const styles = StyleSheet.create({
 
   termsArea: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginTop: 4,
     marginBottom: 20,
   },
@@ -107,6 +107,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10,
+    marginTop: 1,
   },
 
   checkboxChecked: {
@@ -118,16 +119,20 @@ export const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 17,
     fontWeight: "900",
+    lineHeight: 20,
   },
 
   termsText: {
     color: colors.gray,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 19,
+    flexWrap: "wrap",
   },
 
   termsLink: {
     color: colors.primaryDark,
+    fontSize: 13,
+    lineHeight: 19,
     fontWeight: "800",
   },
 

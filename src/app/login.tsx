@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import Visibility from "../../assets/icons/visibility.svg";
@@ -21,7 +21,15 @@ import { styles } from "./styles/login";
 import { useTheme } from "@/app/context/ThemeContext";
 import { login as loginService } from "@/services/authService";
 
+type AccountType = "freelancer" | "empresa";
+
 export default function LoginScreen() {
+  const params = useLocalSearchParams<{
+    accountType?: AccountType;
+  }>();
+
+  const accountType: AccountType = params.accountType ?? "freelancer";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -33,6 +41,19 @@ export default function LoginScreen() {
   function showFormError(message: string) {
     setFormError(message);
     Alert.alert("Atenção", message);
+  }
+
+  function handleGoToRegister() {
+    if (isLoading) {
+      return;
+    }
+
+    router.push({
+      pathname: "/create-account",
+      params: {
+        accountType,
+      },
+    });
   }
 
   async function handleLogin() {
@@ -272,16 +293,17 @@ export default function LoginScreen() {
           </Pressable>
         </View>
 
-        <Pressable
-          style={styles.createAccountArea}
-          onPress={() => router.push("/create-account")}
-          disabled={isLoading}
-        >
+        <View style={styles.createAccountArea}>
           <Text style={[styles.createAccountText, { color: theme.textSecondary }]}>
-            Não tem uma conta?{" "}
-            <Text style={styles.createAccountLink}>Criar conta</Text>
+            Ainda não tem uma conta?{" "}
+            <Text
+              style={styles.createAccountLink}
+              onPress={handleGoToRegister}
+            >
+              Registrar-se
+            </Text>
           </Text>
-        </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

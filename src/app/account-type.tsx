@@ -20,6 +20,15 @@ export default function AccountTypeScreen() {
 
   const currentGradient = isDark ? darkGradientColors : gradientColors;
 
+  function handleContinue() {
+    router.push({
+      pathname: "/login",
+      params: {
+        accountType: selectedType,
+      },
+    });
+  }
+
   return (
     <SafeAreaView
       style={[
@@ -38,7 +47,7 @@ export default function AccountTypeScreen() {
       </Text>
 
       <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-        Você pode escolher agora ou alterar depois nas configurações.
+        Escolha seu tipo de conta para continuar.
       </Text>
 
       <View style={styles.cardsArea}>
@@ -138,14 +147,7 @@ export default function AccountTypeScreen() {
           styles.button,
           pressed && styles.buttonPressed,
         ]}
-        onPress={() =>
-          router.push({
-            pathname: "/create-account",
-            params: {
-              accountType: selectedType,
-            },
-          })
-        }
+        onPress={handleContinue}
       >
         <Text style={styles.buttonText}>Continuar</Text>
       </Pressable>
