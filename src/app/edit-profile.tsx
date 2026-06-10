@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -24,35 +25,89 @@ type Skill = {
   name: string;
 };
 
-const availableSkills: Skill[] = [
-  { id: "1", name: "Eventos" },
-  { id: "2", name: "Garçom" },
-  { id: "3", name: "Fotografia" },
-  { id: "4", name: "Manutenção" },
-  { id: "5", name: "Limpeza" },
-  { id: "6", name: "Suporte técnico" },
-];
+type FreelancerProfileForm = {
+  name: string;
+  phone: string;
+  bio: string;
+  experience: string;
+  portfolioUrl: string;
+  isAvailable: boolean;
+  selectedSkills: string[];
+  photoUrl?: string;
+};
 
 export default function EditProfileScreen() {
-  const [name, setName] = useState("Usuário TaskFlow");
-  const [phone, setPhone] = useState("(15) 99999-9999");
-  const [bio, setBio] = useState(
-    "Profissional disponível para serviços sob demanda, eventos e atividades rápidas."
-  );
-  const [experience, setExperience] = useState(
-    "Experiência com atendimento ao público, organização de eventos e serviços pontuais."
-  );
-  const [portfolioUrl, setPortfolioUrl] = useState(
-    "https://meuportfolio.com"
-  );
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [bio, setBio] = useState("");
+  const [experience, setExperience] = useState("");
+  const [portfolioUrl, setPortfolioUrl] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
   const [isAvailable, setIsAvailable] = useState(true);
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([
-    "Eventos",
-    "Garçom",
-    "Serviços gerais",
-  ]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  useEffect(() => {
+    loadProfile();
+    loadAvailableSkills();
+  }, []);
+
+  async function loadProfile() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Aqui futuramente entra a API para buscar o perfil do usuário logado.
+
+        Exemplo:
+        const response = await userService.getMyFreelancerProfile();
+
+        setName(response.name);
+        setPhone(formatPhone(response.phone ?? ""));
+        setBio(response.bio ?? "");
+        setExperience(response.experience ?? "");
+        setPortfolioUrl(response.portfolioUrl ?? "");
+        setPhotoUrl(response.photoUrl);
+        setIsAvailable(response.isAvailable);
+        setSelectedSkills(response.skills ?? []);
+
+        A API identifica o usuário pelo token salvo após o login.
+      */
+    } catch (error) {
+      console.log("Erro ao carregar perfil:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível carregar os dados do seu perfil agora."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function loadAvailableSkills() {
+    try {
+      /*
+        Aqui futuramente entra a API para buscar categorias/habilidades.
+
+        Exemplo:
+        const response = await categoriesService.getCategories();
+        setAvailableSkills(response);
+
+        Por enquanto fica vazio para não manter dados forjados.
+      */
+
+      setAvailableSkills([]);
+    } catch (error) {
+      console.log("Erro ao carregar habilidades:", error);
+      setAvailableSkills([]);
+    }
+  }
 
   function formatPhone(value: string) {
     const numbersOnly = value.replace(/\D/g, "").slice(0, 11);
@@ -85,18 +140,86 @@ export default function EditProfileScreen() {
     });
   }
 
-  function handleSaveProfile() {
-    console.log({
-      name,
-      phone,
-      bio,
-      experience,
-      portfolioUrl,
+  function getCurrentProfileData(): FreelancerProfileForm {
+    return {
+      name: name.trim(),
+      phone: phone.trim(),
+      bio: bio.trim(),
+      experience: experience.trim(),
+      portfolioUrl: portfolioUrl.trim(),
       isAvailable,
       selectedSkills,
-    });
+      photoUrl,
+    };
+  }
 
-    router.back();
+  async function handleSaveProfile() {
+    const profileData = getCurrentProfileData();
+
+    if (!profileData.name) {
+      Alert.alert("Campo obrigatório", "Informe seu nome completo.");
+      return;
+    }
+
+    if (!profileData.phone) {
+      Alert.alert("Campo obrigatório", "Informe seu telefone.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      /*
+        Aqui futuramente entra a API para salvar no banco.
+
+        Exemplo:
+        await userService.updateMyFreelancerProfile({
+          name: profileData.name,
+          phone: profileData.phone.replace(/\D/g, ""),
+          bio: profileData.bio,
+          experience: profileData.experience,
+          portfolioUrl: profileData.portfolioUrl,
+          isAvailable: profileData.isAvailable,
+          skills: profileData.selectedSkills,
+          photoUrl: profileData.photoUrl,
+        });
+
+        A API vai atualizar os dados do usuário logado pelo token.
+      */
+
+      console.log("Perfil salvo:", profileData);
+
+      Alert.alert("Perfil atualizado", "Suas alterações foram salvas.", [
+        {
+          text: "OK",
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (error) {
+      console.log("Erro ao salvar perfil:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível salvar seu perfil agora. Tente novamente."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleChangePhoto() {
+    /*
+      Aqui futuramente entra seleção/upload de imagem.
+
+      Exemplo:
+      usar expo-image-picker para escolher imagem
+      e enviar para API ou storage.
+    */
+
+    Alert.alert(
+      "Alterar foto",
+      "A seleção de foto será integrada depois com upload de imagem."
+    );
   }
 
   return (
@@ -127,16 +250,43 @@ export default function EditProfileScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.avatarSection}>
             <View style={styles.avatarArea}>
-              <Image
-                source={require("../../assets/images/icon.png")}
-                style={styles.avatar}
-                resizeMode="contain"
-              />
+              {photoUrl ? (
+                <Image
+                  source={{ uri: photoUrl }}
+                  style={styles.avatar}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.avatar,
+                    {
+                      backgroundColor: theme.inputBackground,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: theme.textSecondary,
+                      fontSize: 30,
+                      fontWeight: "900",
+                    }}
+                  >
+                    {name ? name.charAt(0).toUpperCase() : "?"}
+                  </Text>
+                </View>
+              )}
 
-              <Pressable style={styles.editPhotoButton}>
+              <Pressable
+                style={styles.editPhotoButton}
+                onPress={handleChangePhoto}
+              >
                 <Text style={styles.editPhotoIcon}>✎</Text>
               </Pressable>
             </View>
@@ -145,6 +295,33 @@ export default function EditProfileScreen() {
               Alterar foto do perfil
             </Text>
           </View>
+
+          {isLoading && (
+            <View
+              style={[
+                styles.availabilityCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <View>
+                <Text style={[styles.availabilityTitle, { color: theme.text }]}>
+                  Carregando perfil...
+                </Text>
+
+                <Text
+                  style={[
+                    styles.availabilitySubtitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  Buscando os dados da sua conta.
+                </Text>
+              </View>
+            </View>
+          )}
 
           <View style={styles.form}>
             <Text style={[styles.label, { color: theme.text }]}>
@@ -164,6 +341,7 @@ export default function EditProfileScreen() {
               placeholderTextColor={theme.textSecondary}
               value={name}
               onChangeText={setName}
+              autoCapitalize="words"
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -249,6 +427,7 @@ export default function EditProfileScreen() {
               value={portfolioUrl}
               onChangeText={setPortfolioUrl}
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="url"
             />
 
@@ -301,46 +480,82 @@ export default function EditProfileScreen() {
                 Selecione as áreas em que você deseja receber chamados.
               </Text>
 
-              <View style={styles.skillsArea}>
-                {availableSkills.map((skill) => {
-                  const isSelected = selectedSkills.includes(skill.name);
-
-                  return (
-                    <Pressable
-                      key={skill.id}
+              {availableSkills.length === 0 ? (
+                <View
+                  style={[
+                    styles.availabilityCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <View>
+                    <Text
                       style={[
-                        styles.skillChip,
-                        {
-                          backgroundColor: theme.card,
-                          borderColor: theme.border,
-                        },
-                        isSelected && styles.skillChipActive,
+                        styles.availabilityTitle,
+                        { color: theme.text },
                       ]}
-                      onPress={() => toggleSkill(skill.name)}
                     >
-                      <Text
+                      Nenhuma categoria carregada
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.availabilitySubtitle,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      Quando a API retornar categorias, elas aparecerão aqui.
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.skillsArea}>
+                  {availableSkills.map((skill) => {
+                    const isSelected = selectedSkills.includes(skill.name);
+
+                    return (
+                      <Pressable
+                        key={skill.id}
                         style={[
-                          styles.skillText,
-                          { color: theme.textSecondary },
-                          isSelected && styles.skillTextActive,
+                          styles.skillChip,
+                          {
+                            backgroundColor: theme.card,
+                            borderColor: theme.border,
+                          },
+                          isSelected && styles.skillChipActive,
                         ]}
+                        onPress={() => toggleSkill(skill.name)}
                       >
-                        {skill.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+                        <Text
+                          style={[
+                            styles.skillText,
+                            { color: theme.textSecondary },
+                            isSelected && styles.skillTextActive,
+                          ]}
+                        >
+                          {skill.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
             </View>
 
             <Pressable
+              disabled={isSaving}
               style={({ pressed }) => [
                 styles.saveButton,
                 pressed && styles.saveButtonPressed,
+                isSaving && { opacity: 0.7 },
               ]}
               onPress={handleSaveProfile}
             >
-              <Text style={styles.saveButtonText}>Salvar alterações</Text>
+              <Text style={styles.saveButtonText}>
+                {isSaving ? "Salvando..." : "Salvar alterações"}
+              </Text>
             </Pressable>
           </View>
         </ScrollView>

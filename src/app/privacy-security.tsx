@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -22,19 +22,96 @@ import { colors } from "@/styles/colors";
 import { styles } from "@/app/styles/privacySecurity";
 import { useTheme } from "@/app/context/ThemeContext";
 
+type PrivacySecuritySettings = {
+  profileVisible: boolean;
+  showLocation: boolean;
+  allowNotifications: boolean;
+  securityAlerts: boolean;
+};
+
 export default function PrivacySecurityScreen() {
   const [profileVisible, setProfileVisible] = useState(true);
   const [showLocation, setShowLocation] = useState(true);
   const [allowNotifications, setAllowNotifications] = useState(true);
   const [securityAlerts, setSecurityAlerts] = useState(true);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   const { isDark, theme } = useTheme();
 
-  function handleSaveSettings() {
-    Alert.alert(
-      "Configurações salvas",
-      "Suas preferências de privacidade e segurança foram atualizadas."
-    );
+  useEffect(() => {
+    loadPrivacySettings();
+  }, []);
+
+  async function loadPrivacySettings() {
+    try {
+      setIsLoading(true);
+
+      /*
+        Aqui futuramente entra a API para buscar as preferências
+        do usuário logado.
+
+        Exemplo:
+        const response = await userService.getPrivacySecuritySettings();
+
+        setProfileVisible(response.profileVisible);
+        setShowLocation(response.showLocation);
+        setAllowNotifications(response.allowNotifications);
+        setSecurityAlerts(response.securityAlerts);
+
+        A API identifica o usuário pelo token salvo no login.
+      */
+    } catch (error) {
+      console.log("Erro ao carregar privacidade:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível carregar suas preferências de privacidade agora."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function getCurrentSettings(): PrivacySecuritySettings {
+    return {
+      profileVisible,
+      showLocation,
+      allowNotifications,
+      securityAlerts,
+    };
+  }
+
+  async function handleSaveSettings() {
+    try {
+      setIsSaving(true);
+
+      const settings = getCurrentSettings();
+
+      /*
+        Aqui futuramente entra a API para salvar no banco.
+
+        Exemplo:
+        await userService.updatePrivacySecuritySettings(settings);
+      */
+
+      console.log("Privacidade salva:", settings);
+
+      Alert.alert(
+        "Configurações salvas",
+        "Suas preferências de privacidade e segurança foram atualizadas."
+      );
+    } catch (error) {
+      console.log("Erro ao salvar privacidade:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível salvar suas preferências agora."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -72,7 +149,7 @@ export default function PrivacySecurityScreen() {
           ]}
         >
           <View>
-            <Text style={[styles.heroLabel, { color: theme.primary }]}>
+            <Text style={[styles.heroLabel, { color: colors.primary }]}>
               Segurança
             </Text>
 
@@ -89,6 +166,26 @@ export default function PrivacySecurityScreen() {
             <LockIcon width={34} height={34} />
           </View>
         </View>
+
+        {isLoading && (
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.infoTitle, { color: theme.text }]}>
+              Carregando preferências...
+            </Text>
+
+            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+              Buscando suas configurações de privacidade e segurança.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -113,7 +210,12 @@ export default function PrivacySecurityScreen() {
                 Perfil visível
               </Text>
 
-              <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.optionSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Permite que outros usuários encontrem seu perfil na plataforma.
               </Text>
             </View>
@@ -121,7 +223,10 @@ export default function PrivacySecurityScreen() {
             <Switch
               value={profileVisible}
               onValueChange={setProfileVisible}
-              trackColor={{ false: colors.border, true: "rgba(11,87,208,0.35)" }}
+              trackColor={{
+                false: colors.border,
+                true: "rgba(11,87,208,0.35)",
+              }}
               thumbColor={profileVisible ? colors.primary : "#F9FAFB"}
             />
           </View>
@@ -136,7 +241,11 @@ export default function PrivacySecurityScreen() {
             ]}
           >
             <View style={styles.optionIconBox}>
-              <LocationIcon width={22} height={22} color={colors.location}/>
+              <LocationIcon
+                width={22}
+                height={22}
+                color={colors.location}
+              />
             </View>
 
             <View style={styles.optionTextArea}>
@@ -144,7 +253,12 @@ export default function PrivacySecurityScreen() {
                 Compartilhar localização
               </Text>
 
-              <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.optionSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Ajuda a exibir chamados próximos e melhorar recomendações.
               </Text>
             </View>
@@ -152,7 +266,10 @@ export default function PrivacySecurityScreen() {
             <Switch
               value={showLocation}
               onValueChange={setShowLocation}
-              trackColor={{ false: colors.border, true: "rgba(11,87,208,0.35)" }}
+              trackColor={{
+                false: colors.border,
+                true: "rgba(11,87,208,0.35)",
+              }}
               thumbColor={showLocation ? colors.primary : "#F9FAFB"}
             />
           </View>
@@ -181,7 +298,12 @@ export default function PrivacySecurityScreen() {
                 Notificações importantes
               </Text>
 
-              <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.optionSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Receba avisos sobre solicitações, mensagens e atualizações.
               </Text>
             </View>
@@ -189,7 +311,10 @@ export default function PrivacySecurityScreen() {
             <Switch
               value={allowNotifications}
               onValueChange={setAllowNotifications}
-              trackColor={{ false: colors.border, true: "rgba(11,87,208,0.35)" }}
+              trackColor={{
+                false: colors.border,
+                true: "rgba(11,87,208,0.35)",
+              }}
               thumbColor={allowNotifications ? colors.primary : "#F9FAFB"}
             />
           </View>
@@ -212,7 +337,12 @@ export default function PrivacySecurityScreen() {
                 Alertas da conta
               </Text>
 
-              <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.optionSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Avise quando houver alteração de senha, login ou dados sensíveis.
               </Text>
             </View>
@@ -220,7 +350,10 @@ export default function PrivacySecurityScreen() {
             <Switch
               value={securityAlerts}
               onValueChange={setSecurityAlerts}
-              trackColor={{ false: colors.border, true: "rgba(11,87,208,0.35)" }}
+              trackColor={{
+                false: colors.border,
+                true: "rgba(11,87,208,0.35)",
+              }}
               thumbColor={securityAlerts ? colors.primary : "#F9FAFB"}
             />
           </View>
@@ -236,12 +369,12 @@ export default function PrivacySecurityScreen() {
           ]}
         >
           <Text style={[styles.infoTitle, { color: theme.text }]}>
-            Como funciona no protótipo?
+            Controle de privacidade
           </Text>
 
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            Nesta versão, as opções são visuais. Na integração final, essas
-            preferências serão enviadas para a API e salvas no banco de dados.
+            Essas preferências serão vinculadas à sua conta e poderão ser
+            atualizadas sempre que necessário.
           </Text>
         </View>
 
@@ -260,6 +393,7 @@ export default function PrivacySecurityScreen() {
 
           <View style={styles.securityItem}>
             <Text style={styles.securityDot}>•</Text>
+
             <Text style={[styles.securityText, { color: theme.textSecondary }]}>
               Chat liberado apenas após confirmação do fluxo.
             </Text>
@@ -267,6 +401,7 @@ export default function PrivacySecurityScreen() {
 
           <View style={styles.securityItem}>
             <Text style={styles.securityDot}>•</Text>
+
             <Text style={[styles.securityText, { color: theme.textSecondary }]}>
               Avaliações entre empresa e freelancer após o serviço.
             </Text>
@@ -274,6 +409,7 @@ export default function PrivacySecurityScreen() {
 
           <View style={styles.securityItem}>
             <Text style={styles.securityDot}>•</Text>
+
             <Text style={[styles.securityText, { color: theme.textSecondary }]}>
               Perfil com informações organizadas para aumentar a confiança.
             </Text>
@@ -281,13 +417,17 @@ export default function PrivacySecurityScreen() {
         </View>
 
         <Pressable
+          disabled={isSaving}
           style={({ pressed }) => [
             styles.saveButton,
             pressed && styles.buttonPressed,
+            isSaving && { opacity: 0.7 },
           ]}
           onPress={handleSaveSettings}
         >
-          <Text style={styles.saveButtonText}>Salvar configurações</Text>
+          <Text style={styles.saveButtonText}>
+            {isSaving ? "Salvando..." : "Salvar configurações"}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 18,
+    marginBottom: 24,
     shadowColor: colors.primary,
     shadowOpacity: 0.24,
     shadowRadius: 10,
@@ -92,43 +92,6 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  infoCard: {
-    borderRadius: 16,
-    backgroundColor: "rgba(11,87,208,0.08)",
-    padding: 14,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 24,
-  },
-
-  infoIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "rgba(11,87,208,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-
-  infoTextArea: {
-    flex: 1,
-  },
-
-  infoTitle: {
-    color: colors.primaryDark,
-    fontSize: 14,
-    fontWeight: "900",
-    marginBottom: 4,
-  },
-
-  infoText: {
-    color: colors.primaryDark,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: "600",
-  },
-
   section: {
     marginBottom: 20,
   },
@@ -140,12 +103,12 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  channelsList: {
+  issueList: {
     gap: 12,
   },
 
-  channelCard: {
-    minHeight: 68,
+  issueCard: {
+    minHeight: 72,
     borderRadius: 16,
     backgroundColor: colors.white,
     borderWidth: 1,
@@ -160,12 +123,17 @@ export const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  channelCardActive: {
+  issueCardActive: {
     borderColor: "rgba(11,87,208,0.45)",
     backgroundColor: "rgba(11,87,208,0.06)",
   },
 
-  channelIconBox: {
+  issueIcon: {
+    fontSize: 25,
+    marginRight: 12,
+  },
+
+  issueIconBox: {
     width: 44,
     height: 44,
     borderRadius: 14,
@@ -175,28 +143,29 @@ export const styles = StyleSheet.create({
     marginRight: 12,
   },
 
-  channelTextArea: {
+  issueTextArea: {
     flex: 1,
   },
 
-  channelTitle: {
+  issueTitle: {
     color: colors.black,
     fontSize: 14,
     fontWeight: "900",
     marginBottom: 3,
   },
 
-  channelTitleActive: {
+  issueTitleActive: {
     color: colors.primary,
   },
 
-  channelSubtitle: {
+  issueSubtitle: {
     color: colors.gray,
     fontSize: 12,
+    lineHeight: 17,
     fontWeight: "600",
   },
 
-  channelSubtitleActive: {
+  issueSubtitleActive: {
     color: colors.primaryDark,
   },
 
@@ -208,6 +177,7 @@ export const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 10,
   },
 
   radioActive: {
@@ -228,51 +198,123 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  input: {
+  inputWithIcon: {
     minHeight: 52,
     borderRadius: 14,
     backgroundColor: colors.lightGray,
     paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  input: {
+    flex: 1,
+    minHeight: 52,
     color: colors.black,
     fontSize: 14,
     fontWeight: "600",
   },
 
+  twoColumns: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+
+  columnItem: {
+    flex: 1,
+  },
+
+  smallInputWithIcon: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: colors.lightGray,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  smallInput: {
+    flex: 1,
+    height: "100%",
+    color: colors.black,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  priorityRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  priorityChip: {
+    flex: 1,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: colors.lightGray,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  priorityChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+
+  priorityChipDanger: {
+    backgroundColor: "rgba(220,38,38,0.1)",
+    borderColor: "rgba(220,38,38,0.3)",
+  },
+
+  priorityText: {
+    color: colors.gray,
+    fontSize: 13,
+    fontWeight: "900",
+  },
+
+  priorityTextActive: {
+    color: colors.white,
+  },
+
+  priorityTextDanger: {
+    color: colors.danger,
+  },
+
   textArea: {
-    height: 120,
+    height: 126,
+    borderRadius: 14,
+    backgroundColor: colors.lightGray,
+    paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 14,
   },
 
-  quickHelpCard: {
+  infoBox: {
     borderRadius: 16,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: "#F1F1F1",
+    backgroundColor: "rgba(11,87,208,0.08)",
     padding: 14,
     marginBottom: 22,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
   },
 
-  quickHelpHeader: {
+  infoHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginBottom: 6,
   },
 
-  quickHelpTitle: {
-    color: colors.black,
+  infoTitle: {
+    color: colors.primaryDark,
     fontSize: 14,
     fontWeight: "900",
   },
 
-  quickHelpText: {
-    color: colors.gray,
+  infoText: {
+    color: colors.primaryDark,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: "600",
