@@ -4,20 +4,20 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: "#F6F8FC",
   },
 
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 46,
-    paddingBottom: 30,
+    paddingHorizontal: 20,
+    paddingTop: 42,
+    paddingBottom: 34,
   },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 22,
+    marginBottom: 18,
   },
 
   headerTitle: {
@@ -30,9 +30,16 @@ export const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E8ECF4",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
 
   settingsIcon: {
@@ -40,17 +47,17 @@ export const styles = StyleSheet.create({
   },
 
   profileCard: {
-    backgroundColor: colors.white,
-    borderRadius: 22,
-    padding: 20,
+    backgroundColor: "#0B57D0",
+    borderRadius: 28,
+    paddingTop: 24,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#F1F1F1",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    shadowColor: "#0B57D0",
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
     marginBottom: 18,
   },
 
@@ -60,36 +67,39 @@ export const styles = StyleSheet.create({
   },
 
   avatar: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     backgroundColor: colors.lightGray,
+    borderWidth: 4,
+    borderColor: colors.white,
   },
 
   onlineBadge: {
     position: "absolute",
-    right: 4,
-    bottom: 6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    right: 8,
+    bottom: 8,
+    width: 19,
+    height: 19,
+    borderRadius: 10,
     backgroundColor: colors.success,
     borderWidth: 3,
     borderColor: colors.white,
   },
 
   userName: {
-    color: colors.black,
-    fontSize: 21,
+    color: colors.white,
+    fontSize: 23,
     fontWeight: "900",
     marginBottom: 4,
+    textAlign: "center",
   },
 
   userType: {
-    color: colors.primary,
-    fontSize: 14,
+    color: "rgba(255,255,255,0.86)",
+    fontSize: 15,
     fontWeight: "800",
-    marginBottom: 10,
+    marginBottom: 9,
   },
 
   ratingArea: {
@@ -99,82 +109,89 @@ export const styles = StyleSheet.create({
   },
 
   ratingIcon: {
-    fontSize: 15,
+    fontSize: 16,
     marginRight: 5,
   },
 
   ratingText: {
-    color: colors.black,
-    fontSize: 14,
+    color: colors.white,
+    fontSize: 15,
     fontWeight: "900",
   },
 
   ratingSubtext: {
-    color: colors.gray,
+    color: "rgba(255,255,255,0.78)",
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   statsArea: {
     width: "100%",
-    minHeight: 70,
-    borderRadius: 16,
-    backgroundColor: colors.lightGray,
+    minHeight: 78,
+    borderRadius: 22,
+    backgroundColor: colors.white,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
 
   statItem: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
   },
 
   statNumber: {
     color: colors.black,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "900",
-    marginBottom: 3,
+    marginBottom: 4,
   },
 
   statLabel: {
-    color: colors.gray,
+    color: "#8A94A6",
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
+    textAlign: "center",
   },
 
   statDivider: {
     width: 1,
-    height: 34,
-    backgroundColor: colors.border,
+    height: 38,
+    backgroundColor: "#EEF1F6",
   },
 
   aboutCard: {
     backgroundColor: colors.white,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
-    borderColor: "#F1F1F1",
+    borderColor: "#E8ECF4",
     shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 2,
-    marginBottom: 20,
+    marginBottom: 18,
   },
 
   sectionTitle: {
     color: colors.black,
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "900",
     marginBottom: 12,
   },
 
   aboutText: {
-    color: colors.gray,
+    color: "#667085",
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 22,
     marginBottom: 14,
   },
 
@@ -185,16 +202,18 @@ export const styles = StyleSheet.create({
   },
 
   tag: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "rgba(11,87,208,0.1)",
+    backgroundColor: "rgba(11,87,208,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(11,87,208,0.16)",
   },
 
   tagText: {
-    color: colors.primary,
+    color: "#0B57D0",
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
   menuArea: {
@@ -202,19 +221,19 @@ export const styles = StyleSheet.create({
   },
 
   menuItem: {
-    minHeight: 72,
-    borderRadius: 16,
+    minHeight: 68,
+    borderRadius: 18,
     backgroundColor: colors.white,
     paddingHorizontal: 14,
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F1F1F1",
+    borderColor: "#E8ECF4",
     marginBottom: 12,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOpacity: 0.045,
+    shadowRadius: 7,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
@@ -225,10 +244,10 @@ export const styles = StyleSheet.create({
   },
 
   menuIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: colors.lightGray,
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    backgroundColor: "rgba(11,87,208,0.10)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -250,37 +269,36 @@ export const styles = StyleSheet.create({
   },
 
   menuSubtitle: {
-    color: colors.gray,
+    color: "#8A94A6",
     fontSize: 12,
     lineHeight: 17,
+    fontWeight: "600",
   },
 
   menuArrow: {
-    color: colors.gray,
+    color: "#A0A8B8",
     fontSize: 28,
     fontWeight: "300",
     marginLeft: 8,
   },
 
   logoutButton: {
-  height: 54,
-  borderRadius: 14,
-  backgroundColor: "#d83f3f",
-  alignItems: "center",
-  justifyContent: "center",
-  borderWidth: 1,
-  borderColor: "#c03333",
-
-  shadowColor: "#000000",
-  shadowOffset: {
-    width: 0,
-    height: 4,
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: "#DC2626",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#B91C1C",
+    shadowColor: "#DC2626",
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.26,
+    shadowRadius: 9,
+    elevation: 4,
   },
-  shadowOpacity: 0.30,
-  shadowRadius: 8,
-  elevation: 4,
-},
-
 
   logoutButtonPressed: {
     opacity: 0.85,

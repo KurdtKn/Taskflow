@@ -65,7 +65,7 @@ export default function FreelancerProfileScreen() {
 
   function handleAcceptCandidate() {
     router.push({
-      pathname: "/job-summary",
+      pathname: "/payment",
       params: {
         jobTitle,
         jobCategory,
