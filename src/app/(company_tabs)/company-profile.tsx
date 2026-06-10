@@ -1,3 +1,6 @@
+import { getCompanyData, getLoggedUser } from "@/services/storage";
+import { logout } from "@/services/authService";
+
 import type { ComponentType } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -60,48 +63,48 @@ export default function CompanyProfileScreen() {
     loadCompanyProfile();
   }, []);
 
-  async function loadCompanyProfile() {
-    try {
-      setIsLoading(true);
+ async function loadCompanyProfile() {
+  try {
+    setIsLoading(true);
 
-      /*
-        Futuramente entra aqui a API.
+    const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        const response = await companyService.getMyCompanyProfile();
-        setCompany(response);
-
-        A API deve retornar somente os dados da empresa logada,
-        usando o token salvo depois do login.
-
-        Formato esperado:
-        {
-          id: "1",
-          name: "Nome da empresa",
-          type: "Empresa contratante",
-          logoUrl: "https://...",
-          isVerified: true,
-          rating: 4.9,
-          reviewsCount: 32,
-          totalJobs: 12,
-          completedJobs: 8,
-          satisfactionRate: 96,
-          about: "Descrição da empresa...",
-          tags: ["Eventos", "Contratação rápida"],
-          location: "Sorocaba - SP",
-          phone: "(15) 99999-9999",
-          email: "empresa@email.com"
-        }
-      */
-
+    if (!loggedUser) {
       setCompany(null);
-    } catch (error) {
-      console.log("Erro ao carregar perfil da empresa:", error);
-      setCompany(null);
-    } finally {
-      setIsLoading(false);
+      router.replace("/login");
+      return;
     }
+
+    const savedCompanyData = await getCompanyData(loggedUser.id);
+
+    setCompany({
+      id: loggedUser.perfilId ?? loggedUser.id,
+      name: savedCompanyData?.name || loggedUser.nome,
+      type: "Empresa contratante",
+      logoUrl: savedCompanyData?.logoUrl,
+      isVerified: savedCompanyData?.isVerified ?? false,
+      reviewsCount: 0,
+      totalJobs: 0,
+      completedJobs: 0,
+      satisfactionRate: 0,
+      about:
+        savedCompanyData?.about ||
+        "Quando a empresa preencher a descrição, ela aparecerá aqui.",
+      tags: savedCompanyData?.tags ?? [],
+      location: savedCompanyData?.location || "Não informado",
+      phone:
+        savedCompanyData?.phone ||
+        loggedUser.telefone ||
+        "Não informado",
+      email: savedCompanyData?.email || loggedUser.email,
+    });
+  } catch (error) {
+    console.log("Erro ao carregar perfil da empresa:", error);
+    setCompany(null);
+  } finally {
+    setIsLoading(false);
   }
+}
 
   const menuOptions: MenuOption[] = [
     {
@@ -134,13 +137,14 @@ export default function CompanyProfileScreen() {
     },
   ];
 
-  function handleLogout() {
-    /*
-      Futuramente:
-      await authService.logout();
-    */
-
-    router.replace("/welcome");
+  async function handleLogout() {
+    try {
+      await logout();
+      router.replace("/welcome");
+    } catch (error) {
+      console.log("Erro ao sair da conta:", error);
+      router.replace("/welcome");
+    }
   }
 
   function getCompanyInitial() {

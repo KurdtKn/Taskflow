@@ -25,33 +25,17 @@ const skills = [
 const portfolioItems = [
   {
     id: "1",
-    title: "Evento corporativo",
-    description: "Atuação como garçom em evento empresarial para 80 pessoas.",
-  },
-  {
-    id: "2",
-    title: "Festa particular",
-    description: "Apoio no atendimento, organização e reposição de bebidas.",
-  },
-  {
-    id: "3",
-    title: "Serviço sob demanda",
-    description: "Atendimento rápido para empresa contratante via plataforma.",
+    title: "Portfólio não preenchido",
+    description: "Quando o freelancer adicionar experiências, elas aparecerão aqui.",
   },
 ];
 
 const reviews = [
   {
     id: "1",
-    company: "TaskFlow Eventos",
-    rating: 5,
-    comment: "Profissional pontual, educado e com ótima comunicação.",
-  },
-  {
-    id: "2",
-    company: "Empresa Alpha",
-    rating: 5,
-    comment: "Serviço muito bem feito. Contrataria novamente.",
+    company: "Sem avaliações",
+    rating: 0,
+    comment: "As avaliações recebidas pelo freelancer aparecerão aqui.",
   },
 ];
 
@@ -69,15 +53,15 @@ export default function FreelancerProfileScreen() {
 
   const { isDark, theme } = useTheme();
 
-  const jobTitle = params.jobTitle ?? "Garçom para Evento";
-  const jobCategory = params.jobCategory ?? "Eventos";
-  const jobPrice = params.jobPrice ?? "R$200,00";
-  const jobLocation = params.jobLocation ?? "Sorocaba - SP";
-  const jobTime = params.jobTime ?? "Hoje, 18:00";
+  const jobTitle = params.jobTitle ?? "Chamado não informado";
+  const jobCategory = params.jobCategory ?? "Categoria não informada";
+  const jobPrice = params.jobPrice ?? "Valor não informado";
+  const jobLocation = params.jobLocation ?? "Local não informado";
+  const jobTime = params.jobTime ?? "Horário não informado";
 
-  const candidateName = params.candidateName ?? "Usuário TaskFlow";
-  const candidateRating = params.candidateRating ?? "4.9";
-  const candidatePrice = params.candidatePrice ?? "R$200,00";
+  const candidateName = params.candidateName ?? "Freelancer não informado";
+  const candidateRating = params.candidateRating ?? "Sem avaliações";
+  const candidatePrice = params.candidatePrice ?? jobPrice;
 
   function handleAcceptCandidate() {
     router.push({
@@ -93,6 +77,14 @@ export default function FreelancerProfileScreen() {
         candidatePrice,
       },
     });
+  }
+
+  function getAvatarInitial() {
+    if (!candidateName || candidateName === "Freelancer não informado") {
+      return "?";
+    }
+
+    return candidateName.charAt(0).toUpperCase();
   }
 
   return (
@@ -130,7 +122,7 @@ export default function FreelancerProfileScreen() {
           ]}
         >
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{candidateName.charAt(0)}</Text>
+            <Text style={styles.avatarText}>{getAvatarInitial()}</Text>
           </View>
 
           <Text style={[styles.name, { color: theme.text }]}>
@@ -138,7 +130,7 @@ export default function FreelancerProfileScreen() {
           </Text>
 
           <Text style={[styles.role, { color: theme.textSecondary }]}>
-            Freelancer verificado
+            Freelancer cadastrado
           </Text>
 
           <View style={styles.ratingArea}>
@@ -149,14 +141,14 @@ export default function FreelancerProfileScreen() {
             </Text>
 
             <Text style={[styles.ratingSubtext, { color: theme.textSecondary }]}>
-              • 24 serviços concluídos
+              • 0 serviços concluídos
             </Text>
           </View>
 
           <View style={styles.statsArea}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
-                24
+                0
               </Text>
 
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
@@ -173,7 +165,7 @@ export default function FreelancerProfileScreen() {
 
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
-                98%
+                0%
               </Text>
 
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
@@ -190,7 +182,7 @@ export default function FreelancerProfileScreen() {
 
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
-                2 min
+                --
               </Text>
 
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
@@ -270,9 +262,7 @@ export default function FreelancerProfileScreen() {
           </Text>
 
           <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
-            Profissional com experiência em serviços sob demanda, eventos e
-            atendimento ao público. Busca manter boa comunicação com a empresa,
-            pontualidade e organização durante todo o serviço.
+            Quando o freelancer preencher a descrição do perfil, ela aparecerá aqui.
           </Text>
         </View>
 

@@ -36,6 +36,7 @@ export default function CreateAccountScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const { isDark, theme } = useTheme();
 
@@ -43,53 +44,59 @@ export default function CreateAccountScreen() {
     return /\S+@\S+\.\S+/.test(value);
   }
 
+  function showFormError(message: string) {
+    setFormError(message);
+    Alert.alert("Atenção", message);
+  }
+
   async function handleCreateAccount() {
+    setFormError("");
+
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
 
     if (!trimmedName) {
-      Alert.alert("Campo obrigatório", "Informe seu nome completo.");
+      showFormError("Informe seu nome completo.");
       return;
     }
 
     if (trimmedName.length < 3) {
-      Alert.alert("Nome inválido", "Informe um nome com pelo menos 3 caracteres.");
+      showFormError("Informe um nome com pelo menos 3 caracteres.");
       return;
     }
 
     if (!trimmedEmail) {
-      Alert.alert("Campo obrigatório", "Informe seu e-mail.");
+      showFormError("Informe seu e-mail.");
       return;
     }
 
     if (!isValidEmail(trimmedEmail)) {
-      Alert.alert("E-mail inválido", "Informe um e-mail válido.");
+      showFormError("Informe um e-mail válido.");
       return;
     }
 
     if (!password) {
-      Alert.alert("Campo obrigatório", "Informe sua senha.");
+      showFormError("Informe sua senha.");
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Senha inválida", "A senha precisa ter pelo menos 6 caracteres.");
+      showFormError("A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
     if (!confirmPassword) {
-      Alert.alert("Campo obrigatório", "Confirme sua senha.");
+      showFormError("Confirme sua senha.");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Senhas diferentes", "A confirmação de senha não confere.");
+      showFormError("As senhas não conferem.");
       return;
     }
 
     if (!acceptedTerms) {
-      Alert.alert(
-        "Termos obrigatórios",
+      showFormError(
         "Você precisa aceitar os Termos de Uso e a Política de Privacidade."
       );
       return;
@@ -105,7 +112,9 @@ export default function CreateAccountScreen() {
         tipoUsuario: accountType,
       });
 
-      if (user.tipoUsuario === "empresa") {
+      const tipoUsuario = user.tipoUsuario?.toLowerCase().trim();
+
+      if (tipoUsuario === "empresa") {
         router.replace("/company-dashboard");
         return;
       }
@@ -119,6 +128,7 @@ export default function CreateAccountScreen() {
           ? error.message
           : "Não foi possível criar sua conta agora. Tente novamente.";
 
+      setFormError(errorMessage);
       Alert.alert("Erro ao criar conta", errorMessage);
     } finally {
       setIsLoading(false);
@@ -173,7 +183,10 @@ export default function CreateAccountScreen() {
             placeholder="Digite seu nome completo"
             placeholderTextColor={theme.textSecondary}
             value={name}
-            onChangeText={setName}
+            onChangeText={(value) => {
+              setName(value);
+              setFormError("");
+            }}
             editable={!isLoading}
           />
 
@@ -193,7 +206,10 @@ export default function CreateAccountScreen() {
             placeholder="exemplo@email.com"
             placeholderTextColor={theme.textSecondary}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(value) => {
+              setEmail(value);
+              setFormError("");
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -221,7 +237,10 @@ export default function CreateAccountScreen() {
               placeholder="Digite sua senha"
               placeholderTextColor={theme.textSecondary}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => {
+                setPassword(value);
+                setFormError("");
+              }}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
@@ -262,7 +281,10 @@ export default function CreateAccountScreen() {
               placeholder="Confirme sua senha"
               placeholderTextColor={theme.textSecondary}
               value={confirmPassword}
-              onChangeText={setConfirmPassword}
+              onChangeText={(value) => {
+                setConfirmPassword(value);
+                setFormError("");
+              }}
               secureTextEntry={!showConfirmPassword}
               autoCapitalize="none"
               autoCorrect={false}
@@ -284,7 +306,10 @@ export default function CreateAccountScreen() {
 
           <Pressable
             style={styles.termsArea}
-            onPress={() => setAcceptedTerms(!acceptedTerms)}
+            onPress={() => {
+              setAcceptedTerms(!acceptedTerms);
+              setFormError("");
+            }}
             disabled={isLoading}
           >
             <View
@@ -307,6 +332,20 @@ export default function CreateAccountScreen() {
               <Text style={styles.termsLink}>Política de Privacidade</Text>
             </Text>
           </Pressable>
+
+          {formError !== "" && (
+            <Text
+              style={{
+                color: "#DC2626",
+                fontSize: 13,
+                fontWeight: "700",
+                marginBottom: 12,
+                textAlign: "center",
+              }}
+            >
+              {formError}
+            </Text>
+          )}
 
           <Pressable
             disabled={isLoading}

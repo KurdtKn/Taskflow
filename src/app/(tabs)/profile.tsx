@@ -1,3 +1,5 @@
+import { getLoggedUser } from "@/services/storage";
+import { logout } from "@/services/authService";
 import type { ComponentType } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -57,18 +59,27 @@ export default function ProfileScreen() {
     try {
       setIsLoading(true);
 
-      /*
-        Aqui futuramente entra a API do usuário logado.
+      const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        const response = await userService.getMyFreelancerProfile();
-        setProfile(response);
+      if (!loggedUser) {
+        setProfile(null);
+        router.replace("/login");
+        return;
+      }
 
-        A API deve identificar o usuário pelo token salvo no login.
-        Por enquanto deixamos null para remover dados forjados.
-      */
-
-      setProfile(null);
+      setProfile({
+        id: loggedUser.perfilId ?? loggedUser.id,
+        name: loggedUser.nome,
+        userType: "Freelancer",
+        photoUrl: "",
+        rating: undefined,
+        reviewsCount: 0,
+        completedServices: 0,
+        acceptanceRate: 0,
+        activeServices: 0,
+        about: "Quando você preencher a descrição do perfil, ela aparecerá aqui.",
+        tags: [],
+      });
     } catch (error) {
       console.log("Erro ao carregar perfil:", error);
       setProfile(null);
@@ -122,19 +133,26 @@ export default function ProfileScreen() {
     },
   ];
 
-  function handleLogout() {
-    /*
-      Aqui futuramente vamos limpar o token/sessão.
-
-      Exemplo:
-      await authService.logout();
-    */
-
-    router.replace("/welcome");
+  async function handleLogout() {
+    try {
+      await logout();
+      router.replace("/welcome");
+    } catch (error) {
+      console.log("Erro ao sair da conta:", error);
+      router.replace("/welcome");
+    }
   }
 
   function handleOpenSettings() {
     router.push("/freelancer-settings");
+  }
+
+  function getProfileInitial() {
+    if (!profile?.name) {
+      return "?";
+    }
+
+    return profile.name.charAt(0).toUpperCase();
   }
 
   return (
@@ -235,8 +253,7 @@ export default function ProfileScreen() {
                 },
               ]}
             >
-              Quando a API retornar os dados do usuário logado, eles aparecerão
-              aqui.
+              Faça login novamente para carregar os dados do seu perfil.
             </Text>
           </View>
         ) : (
@@ -275,7 +292,7 @@ export default function ProfileScreen() {
                         fontWeight: "900",
                       }}
                     >
-                      {profile.name.charAt(0).toUpperCase()}
+                      {getProfileInitial()}
                     </Text>
                   </View>
                 )}

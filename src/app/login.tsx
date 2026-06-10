@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -18,21 +19,78 @@ import VisibilityOff from "../../assets/icons/visibility_off.svg";
 
 import { styles } from "./styles/login";
 import { useTheme } from "@/app/context/ThemeContext";
+import { login as loginService } from "@/services/authService";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const { isDark, theme } = useTheme();
 
-  function handleLogin() {
-    console.log({
-      email,
-      password,
-    });
+  function showFormError(message: string) {
+    setFormError(message);
+    Alert.alert("Atenção", message);
+  }
 
-    router.replace("/home");
+  async function handleLogin() {
+    setFormError("");
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      showFormError("Informe seu e-mail.");
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
+      showFormError("Informe um e-mail válido.");
+      return;
+    }
+
+    if (!password) {
+      showFormError("Informe sua senha.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const user = await loginService({
+        email: trimmedEmail,
+        senha: password,
+      });
+
+      console.log("Usuário logado:", user);
+
+      const tipoUsuario = user.tipoUsuario?.toLowerCase().trim();
+
+      if (tipoUsuario === "empresa") {
+        router.replace("/company-dashboard");
+        return;
+      }
+
+      if (tipoUsuario === "freelancer") {
+        router.replace("/home");
+        return;
+      }
+
+      showFormError(`Tipo de usuário inválido: ${user.tipoUsuario}`);
+    } catch (error) {
+      console.log("Erro ao fazer login:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível entrar agora. Verifique seus dados e tente novamente.";
+
+      setFormError(errorMessage);
+      Alert.alert("Erro no login", errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -48,7 +106,11 @@ export default function LoginScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.back()}
+          disabled={isLoading}
+        >
           <ArrowBack width={28} height={28} />
         </Pressable>
 
@@ -79,10 +141,14 @@ export default function LoginScreen() {
             placeholder="exemplo@email.com"
             placeholderTextColor={theme.textSecondary}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(value) => {
+              setEmail(value);
+              setFormError("");
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!isLoading}
           />
 
           <Text style={[styles.label, { color: theme.text }]}>
@@ -106,14 +172,20 @@ export default function LoginScreen() {
               placeholder="Digite sua senha"
               placeholderTextColor={theme.textSecondary}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => {
+                setPassword(value);
+                setFormError("");
+              }}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
             />
 
             <Pressable
               style={styles.passwordIconButton}
               onPress={() => setShowPassword(!showPassword)}
+              disabled={isLoading}
             >
               {showPassword ? (
                 <Visibility width={22} height={22} />
@@ -123,20 +195,38 @@ export default function LoginScreen() {
             </Pressable>
           </View>
 
-          <Pressable style={styles.forgotPassword}>
+          <Pressable style={styles.forgotPassword} disabled={isLoading}>
             <Text style={styles.forgotPasswordText}>
               Esqueci minha senha
             </Text>
           </Pressable>
 
+          {formError !== "" && (
+            <Text
+              style={{
+                color: "#DC2626",
+                fontSize: 13,
+                fontWeight: "700",
+                marginBottom: 12,
+                textAlign: "center",
+              }}
+            >
+              {formError}
+            </Text>
+          )}
+
           <Pressable
+            disabled={isLoading}
             style={({ pressed }) => [
               styles.button,
               pressed && styles.buttonPressed,
+              isLoading && { opacity: 0.7 },
             ]}
             onPress={handleLogin}
           >
-            <Text style={styles.buttonText}>Entrar</Text>
+            <Text style={styles.buttonText}>
+              {isLoading ? "Entrando..." : "Entrar"}
+            </Text>
           </Pressable>
         </View>
 
@@ -148,6 +238,7 @@ export default function LoginScreen() {
 
         <View style={styles.socialArea}>
           <Pressable
+            disabled={isLoading}
             style={[
               styles.socialButton,
               {
@@ -164,6 +255,7 @@ export default function LoginScreen() {
           </Pressable>
 
           <Pressable
+            disabled={isLoading}
             style={[
               styles.socialButton,
               {
@@ -183,6 +275,7 @@ export default function LoginScreen() {
         <Pressable
           style={styles.createAccountArea}
           onPress={() => router.push("/create-account")}
+          disabled={isLoading}
         >
           <Text style={[styles.createAccountText, { color: theme.textSecondary }]}>
             Não tem uma conta?{" "}
