@@ -20,17 +20,19 @@ import { styles } from "./styles/createAccount";
 import { useTheme } from "@/app/context/ThemeContext";
 import { register } from "@/services/authService";
 
+type AccountType = "freelancer" | "empresa";
+
 export default function CreateAccountScreen() {
+  const params = useLocalSearchParams<{
+    accountType?: AccountType;
+  }>();
+
+  const accountType: AccountType = params.accountType ?? "freelancer";
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  const params = useLocalSearchParams<{
-    accountType?: "freelancer" | "empresa";
-  }>();
-
-  const accountType = params.accountType ?? "freelancer";
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -47,6 +49,32 @@ export default function CreateAccountScreen() {
   function showFormError(message: string) {
     setFormError(message);
     Alert.alert("Atenção", message);
+  }
+
+  function handleToggleTerms() {
+    setAcceptedTerms((currentValue) => !currentValue);
+    setFormError("");
+  }
+
+  function handleOpenTermsAndPrivacy() {
+    if (isLoading) {
+      return;
+    }
+
+    router.push("/terms-and-privacy");
+  }
+
+  function handleGoToLogin() {
+    if (isLoading) {
+      return;
+    }
+
+    router.push({
+      pathname: "/login",
+      params: {
+        accountType,
+      },
+    });
   }
 
   async function handleCreateAccount() {
@@ -304,34 +332,45 @@ export default function CreateAccountScreen() {
             </Pressable>
           </View>
 
-          <Pressable
-            style={styles.termsArea}
-            onPress={() => {
-              setAcceptedTerms(!acceptedTerms);
-              setFormError("");
-            }}
-            disabled={isLoading}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                },
-                acceptedTerms && styles.checkboxChecked,
-              ]}
+          <View style={styles.termsArea}>
+            <Pressable
+              onPress={handleToggleTerms}
+              disabled={isLoading}
+              hitSlop={8}
             >
-              {acceptedTerms && <Text style={styles.checkText}>✓</Text>}
-            </View>
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                  acceptedTerms && styles.checkboxChecked,
+                ]}
+              >
+                {acceptedTerms && <Text style={styles.checkText}>✓</Text>}
+              </View>
+            </Pressable>
 
-            <Text style={[styles.termsText, { color: theme.textSecondary }]}>
-              Aceito os{" "}
-              <Text style={styles.termsLink}>Termos de Uso</Text>
-              {"\n"}e{" "}
-              <Text style={styles.termsLink}>Política de Privacidade</Text>
-            </Text>
-          </Pressable>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.termsText, { color: theme.textSecondary }]}>
+                Aceito os{" "}
+                <Text
+                  style={styles.termsLink}
+                  onPress={handleOpenTermsAndPrivacy}
+                >
+                  Termos de Uso
+                </Text>
+                {"\n"}e{" "}
+                <Text
+                  style={styles.termsLink}
+                  onPress={handleOpenTermsAndPrivacy}
+                >
+                  Política de Privacidade
+                </Text>
+              </Text>
+            </View>
+          </View>
 
           {formError !== "" && (
             <Text
@@ -404,15 +443,14 @@ export default function CreateAccountScreen() {
           </Pressable>
         </View>
 
-        <Pressable
-          style={styles.loginArea}
-          onPress={() => router.push("/login")}
-          disabled={isLoading}
-        >
+        <View style={styles.loginArea}>
           <Text style={[styles.loginText, { color: theme.textSecondary }]}>
-            Já tem uma conta? <Text style={styles.loginLink}>Entrar</Text>
+            Já tem uma conta?{" "}
+            <Text style={styles.loginLink} onPress={handleGoToLogin}>
+              Entrar
+            </Text>
           </Text>
-        </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
