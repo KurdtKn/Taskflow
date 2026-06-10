@@ -1,4 +1,5 @@
-import { Tabs } from "expo-router";
+import { useEffect, useState } from "react";
+import { router, Tabs } from "expo-router";
 
 import AssignmentIcon from "../../../assets/icons/assignment.svg";
 import CreditCardIcon from "../../../assets/icons/credit_card.svg";
@@ -7,9 +8,36 @@ import ProfileIcon from "../../../assets/icons/Perfil.svg";
 
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
+import { getLoggedUser } from "@/services/storage";
 
 export default function CompanyTabsLayout() {
   const { isDark, theme } = useTheme();
+
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const user = await getLoggedUser();
+
+        if (!user || user.tipoUsuario !== "empresa") {
+          router.replace("/login");
+          return;
+        }
+
+        setIsCheckingAuth(false);
+      } catch (error) {
+        console.log("Erro ao verificar login da empresa:", error);
+        router.replace("/login");
+      }
+    }
+
+    checkAuth();
+  }, []);
+
+  if (isCheckingAuth) {
+    return null;
+  }
 
   return (
     <Tabs

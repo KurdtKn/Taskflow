@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +18,7 @@ import Visibility from "../../assets/icons/visibility.svg";
 import VisibilityOff from "../../assets/icons/visibility_off.svg";
 import { styles } from "./styles/createAccount";
 import { useTheme } from "@/app/context/ThemeContext";
+import { register } from "@/services/authService";
 
 export default function CreateAccountScreen() {
   const [name, setName] = useState("");
@@ -33,25 +35,94 @@ export default function CreateAccountScreen() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
 
-  function handleCreateAccount() {
-    console.log({
-      name,
-      email,
-      password,
-      confirmPassword,
-      acceptedTerms,
-      accountType,
-    });
+  function isValidEmail(value: string) {
+    return /\S+@\S+\.\S+/.test(value);
+  }
 
-    if (accountType === "empresa") {
-      router.replace("/company-dashboard");
+  async function handleCreateAccount() {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
+      Alert.alert("Campo obrigatório", "Informe seu nome completo.");
       return;
     }
 
-    router.replace("/home");
+    if (trimmedName.length < 3) {
+      Alert.alert("Nome inválido", "Informe um nome com pelo menos 3 caracteres.");
+      return;
+    }
+
+    if (!trimmedEmail) {
+      Alert.alert("Campo obrigatório", "Informe seu e-mail.");
+      return;
+    }
+
+    if (!isValidEmail(trimmedEmail)) {
+      Alert.alert("E-mail inválido", "Informe um e-mail válido.");
+      return;
+    }
+
+    if (!password) {
+      Alert.alert("Campo obrigatório", "Informe sua senha.");
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert("Senha inválida", "A senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (!confirmPassword) {
+      Alert.alert("Campo obrigatório", "Confirme sua senha.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Senhas diferentes", "A confirmação de senha não confere.");
+      return;
+    }
+
+    if (!acceptedTerms) {
+      Alert.alert(
+        "Termos obrigatórios",
+        "Você precisa aceitar os Termos de Uso e a Política de Privacidade."
+      );
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const user = await register({
+        nome: trimmedName,
+        email: trimmedEmail,
+        senha: password,
+        tipoUsuario: accountType,
+      });
+
+      if (user.tipoUsuario === "empresa") {
+        router.replace("/company-dashboard");
+        return;
+      }
+
+      router.replace("/home");
+    } catch (error) {
+      console.log("Erro ao criar conta:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível criar sua conta agora. Tente novamente.";
+
+      Alert.alert("Erro ao criar conta", errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -67,7 +138,11 @@ export default function CreateAccountScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.back()}
+          disabled={isLoading}
+        >
           <ArrowBack width={28} height={28} />
         </Pressable>
 
@@ -99,6 +174,7 @@ export default function CreateAccountScreen() {
             placeholderTextColor={theme.textSecondary}
             value={name}
             onChangeText={setName}
+            editable={!isLoading}
           />
 
           <Text style={[styles.label, { color: theme.text }]}>
@@ -121,6 +197,7 @@ export default function CreateAccountScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!isLoading}
           />
 
           <Text style={[styles.label, { color: theme.text }]}>
@@ -147,11 +224,14 @@ export default function CreateAccountScreen() {
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
             />
 
             <Pressable
               style={styles.passwordIconButton}
               onPress={() => setShowPassword(!showPassword)}
+              disabled={isLoading}
             >
               {showPassword ? (
                 <Visibility width={22} height={22} />
@@ -185,11 +265,14 @@ export default function CreateAccountScreen() {
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
               autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
             />
 
             <Pressable
               style={styles.passwordIconButton}
               onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              disabled={isLoading}
             >
               {showConfirmPassword ? (
                 <Visibility width={22} height={22} />
@@ -202,6 +285,7 @@ export default function CreateAccountScreen() {
           <Pressable
             style={styles.termsArea}
             onPress={() => setAcceptedTerms(!acceptedTerms)}
+            disabled={isLoading}
           >
             <View
               style={[
@@ -225,13 +309,17 @@ export default function CreateAccountScreen() {
           </Pressable>
 
           <Pressable
+            disabled={isLoading}
             style={({ pressed }) => [
               styles.button,
               pressed && styles.buttonPressed,
+              isLoading && { opacity: 0.7 },
             ]}
             onPress={handleCreateAccount}
           >
-            <Text style={styles.buttonText}>Criar Conta</Text>
+            <Text style={styles.buttonText}>
+              {isLoading ? "Criando..." : "Criar Conta"}
+            </Text>
           </Pressable>
         </View>
 
@@ -243,6 +331,7 @@ export default function CreateAccountScreen() {
 
         <View style={styles.socialArea}>
           <Pressable
+            disabled={isLoading}
             style={[
               styles.socialButton,
               {
@@ -259,6 +348,7 @@ export default function CreateAccountScreen() {
           </Pressable>
 
           <Pressable
+            disabled={isLoading}
             style={[
               styles.socialButton,
               {
@@ -275,7 +365,11 @@ export default function CreateAccountScreen() {
           </Pressable>
         </View>
 
-        <Pressable style={styles.loginArea} onPress={() => router.push("/login")}>
+        <Pressable
+          style={styles.loginArea}
+          onPress={() => router.push("/login")}
+          disabled={isLoading}
+        >
           <Text style={[styles.loginText, { color: theme.textSecondary }]}>
             Já tem uma conta? <Text style={styles.loginLink}>Entrar</Text>
           </Text>
