@@ -103,7 +103,7 @@ export default function JobCandidatesScreen() {
 
   function handleAcceptCandidate(candidate: Candidate) {
     router.push({
-      pathname: "/job-summary",
+      pathname: "/payment",
       params: {
         jobTitle,
         jobCategory,

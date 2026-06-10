@@ -97,6 +97,36 @@ export default function CompanyDashboardScreen() {
   }
 
   function handleViewCandidates(job: CompanyJob) {
+  if (job.status === "finished") {
+    router.push({
+      pathname: "/service-completed",
+      params: {
+        title: job.title,
+        category: job.category,
+        price: job.price,
+        location: job.location,
+        time: job.time,
+      },
+    });
+
+    return;
+  }
+
+  if (job.status === "pending") {
+    router.push({
+      pathname: "/chat",
+      params: {
+        title: job.title,
+        category: job.category,
+        price: job.price,
+        location: job.location,
+        time: job.time,
+      },
+    });
+
+    return;
+  }
+
     router.push({
       pathname: "/job-candidates",
       params: {
@@ -176,7 +206,7 @@ export default function CompanyDashboardScreen() {
               styles.summaryCard,
               {
                 backgroundColor: theme.card,
-                borderColor: theme.border,
+                borderColor: theme.border, //
               },
             ]}
           >
@@ -322,7 +352,13 @@ export default function CompanyDashboardScreen() {
                     </Text>
                   </View>
 
-                  <Text style={styles.detailsText}>Ver candidatos ›</Text>
+                  <Text style={styles.detailsText}>
+                    {job.status === "finished"
+                      ? "Ver serviço concluído ›"
+                      : job.status === "pending"
+                      ? "Abrir chat ›"
+                      : "Ver candidatos ›"}
+                  </Text>
                 </View>
               </Pressable>
             );
