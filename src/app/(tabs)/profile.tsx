@@ -40,7 +40,7 @@ type FreelancerProfile = {
   reviewsCount?: number;
   completedServices?: number;
   acceptanceRate?: number;
-  activeServices?: number;
+  punctuality?: number;
   about?: string;
   tags?: string[];
 };
@@ -73,11 +73,12 @@ export default function ProfileScreen() {
         userType: "Freelancer",
         photoUrl: "",
         rating: undefined,
-        reviewsCount: 0,
-        completedServices: 0,
-        acceptanceRate: 0,
-        activeServices: 0,
-        about: "Quando você preencher a descrição do perfil, ela aparecerá aqui.",
+        reviewsCount: undefined,
+        completedServices: undefined,
+        acceptanceRate: undefined,
+        punctuality: undefined,
+        about:
+          "Quando você preencher a descrição do perfil, ela aparecerá aqui.",
         tags: [],
       });
     } catch (error) {
@@ -91,41 +92,27 @@ export default function ProfileScreen() {
   const menuOptions: MenuOption[] = [
     {
       id: "1",
-      title: "Editar perfil",
-      subtitle: "Nome, telefone, foto e dados pessoais",
-      Icon: EditIcon,
-      action: () => router.push("/edit-profile"),
-    },
-    {
-      id: "2",
-      title: "Portfólio",
-      subtitle: "Experiências, habilidades e trabalhos",
-      Icon: BadgeIcon,
-      action: () => router.push("/portfolio"),
-    },
-    {
-      id: "3",
       title: "Minhas solicitações",
-      subtitle: "Acompanhe serviços solicitados",
+      subtitle: "Acompanhe serviços aceitos e em andamento",
       Icon: AssignmentIcon,
       action: () => router.push("/requests"),
     },
     {
-      id: "4",
-      title: "Avaliações",
-      subtitle: "Veja sua reputação no TaskFlow",
+      id: "2",
+      title: "Avaliações recebidas",
+      subtitle: "Veja sua reputação dentro da plataforma",
       Icon: StarIcon,
       action: () => router.push("/reviews"),
     },
     {
-      id: "5",
+      id: "3",
       title: "Configurações",
       subtitle: "Preferências, segurança e privacidade",
       Icon: SettingsIcon,
       action: () => router.push("/freelancer-settings"),
     },
     {
-      id: "6",
+      id: "4",
       title: "Ajuda e suporte",
       subtitle: "Central de dúvidas e atendimento",
       Icon: HelpIcon,
@@ -155,6 +142,26 @@ export default function ProfileScreen() {
     return profile.name.charAt(0).toUpperCase();
   }
 
+  function formatRating(value?: number) {
+    if (value === undefined || value === null) {
+      return "—";
+    }
+
+    return value.toFixed(1).replace(".", ",");
+  }
+
+  function formatStat(value?: number, suffix = "") {
+    if (value === undefined || value === null) {
+      return "—";
+    }
+
+    return `${value}${suffix}`;
+  }
+
+  function hasRatingData() {
+    return profile?.rating !== undefined && profile?.rating !== null;
+  }
+
   return (
     <SafeAreaView
       style={[
@@ -170,7 +177,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>
-            Meu perfil
+            Perfil
           </Text>
 
           <Pressable
@@ -180,7 +187,10 @@ export default function ProfileScreen() {
                 backgroundColor: theme.card,
                 borderColor: theme.border,
               },
-              pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+              pressed && {
+                opacity: 0.75,
+                transform: [{ scale: 0.96 }],
+              },
             ]}
             onPress={handleOpenSettings}
           >
@@ -189,48 +199,30 @@ export default function ProfileScreen() {
         </View>
 
         {isLoading ? (
-          <View
-            style={[
-              styles.profileCard,
-              {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
-              },
-            ]}
-          >
-            <Text style={[styles.userName, { color: theme.text }]}>
-              Carregando perfil...
-            </Text>
+          <View style={styles.profileCard}>
+            <Text style={styles.userName}>Carregando perfil...</Text>
 
-            <Text style={[styles.userType, { color: theme.textSecondary }]}>
+            <Text style={styles.userType}>
               Buscando dados da sua conta.
             </Text>
           </View>
         ) : !profile ? (
-          <View
-            style={[
-              styles.profileCard,
-              {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
-              },
-            ]}
-          >
+          <View style={styles.profileCard}>
             <View style={styles.avatarArea}>
               <View
                 style={[
                   styles.avatar,
                   {
-                    backgroundColor: theme.inputBackground,
                     alignItems: "center",
                     justifyContent: "center",
+                    backgroundColor: "#FFFFFF",
                   },
                 ]}
               >
                 <Text
                   style={{
-                    color: theme.textSecondary,
-                    fontSize: 28,
+                    color: "#0B57D0",
+                    fontSize: 32,
                     fontWeight: "900",
                   }}
                 >
@@ -239,15 +231,12 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            <Text style={[styles.userName, { color: theme.text }]}>
-              Perfil não carregado
-            </Text>
+            <Text style={styles.userName}>Perfil não carregado</Text>
 
             <Text
               style={[
                 styles.userType,
                 {
-                  color: theme.textSecondary,
                   textAlign: "center",
                   lineHeight: 20,
                 },
@@ -258,15 +247,7 @@ export default function ProfileScreen() {
           </View>
         ) : (
           <>
-            <View
-              style={[
-                styles.profileCard,
-                {
-                  backgroundColor: theme.card,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
+            <View style={styles.profileCard}>
               <View style={styles.avatarArea}>
                 {profile.photoUrl ? (
                   <Image
@@ -279,16 +260,16 @@ export default function ProfileScreen() {
                     style={[
                       styles.avatar,
                       {
-                        backgroundColor: theme.inputBackground,
                         alignItems: "center",
                         justifyContent: "center",
+                        backgroundColor: "#FFFFFF",
                       },
                     ]}
                   >
                     <Text
                       style={{
-                        color: theme.text,
-                        fontSize: 28,
+                        color: "#0B57D0",
+                        fontSize: 34,
                         fontWeight: "900",
                       }}
                     >
@@ -300,146 +281,187 @@ export default function ProfileScreen() {
                 <View style={styles.onlineBadge} />
               </View>
 
-              <Text style={[styles.userName, { color: theme.text }]}>
-                {profile.name}
-              </Text>
+              <Text style={styles.userName}>{profile.name}</Text>
 
-              <Text style={[styles.userType, { color: theme.textSecondary }]}>
-                {profile.userType}
-              </Text>
+              <Text style={styles.userType}>{profile.userType}</Text>
 
-              {profile.rating !== undefined && (
-                <View style={styles.ratingArea}>
-                  <Text style={{ fontSize: 16 }}>⭐</Text>
+              <View style={styles.ratingArea}>
+                <Text style={styles.ratingIcon}>⭐</Text>
 
-                  <Text style={[styles.ratingText, { color: theme.text }]}>
-                    {profile.rating.toFixed(1).replace(".", ",")}
+                {hasRatingData() ? (
+                  <>
+                    <Text style={styles.ratingText}>
+                      {formatRating(profile.rating)}
+                    </Text>
+
+                    <Text style={styles.ratingSubtext}>
+                      {" "}
+                      ({profile.reviewsCount ?? 0} avaliações)
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.ratingSubtext}>
+                    Sem avaliações ainda
                   </Text>
+                )}
+              </View>
 
-                  <Text
-                    style={[
-                      styles.ratingSubtext,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    • {profile.reviewsCount ?? 0} avaliações
-                  </Text>
-                </View>
-              )}
-
-              <View
-                style={[
-                  styles.statsArea,
-                  {
-                    backgroundColor: theme.background,
-                    borderColor: theme.border,
-                  },
-                ]}
-              >
+              <View style={styles.statsArea}>
                 <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: theme.text }]}>
-                    {profile.completedServices ?? 0}
+                  <Text style={styles.statNumber}>
+                    {formatStat(profile.completedServices)}
                   </Text>
 
-                  <Text
-                    style={[styles.statLabel, { color: theme.textSecondary }]}
-                  >
-                    Serviços
-                  </Text>
+                  <Text style={styles.statLabel}>Serviços</Text>
                 </View>
 
-                <View
-                  style={[
-                    styles.statDivider,
-                    { backgroundColor: theme.border },
-                  ]}
-                />
+                <View style={styles.statDivider} />
 
                 <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: theme.text }]}>
-                    {profile.acceptanceRate ?? 0}%
+                  <Text style={styles.statNumber}>
+                    {formatStat(profile.acceptanceRate, "%")}
                   </Text>
 
-                  <Text
-                    style={[styles.statLabel, { color: theme.textSecondary }]}
-                  >
-                    Aceitação
-                  </Text>
+                  <Text style={styles.statLabel}>Concluídos</Text>
                 </View>
 
-                <View
-                  style={[
-                    styles.statDivider,
-                    { backgroundColor: theme.border },
-                  ]}
-                />
+                <View style={styles.statDivider} />
 
                 <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: theme.text }]}>
-                    {profile.activeServices ?? 0}
+                  <Text style={styles.statNumber}>
+                    {formatRating(profile.punctuality)}
                   </Text>
 
-                  <Text
-                    style={[styles.statLabel, { color: theme.textSecondary }]}
-                  >
-                    Ativos
-                  </Text>
+                  <Text style={styles.statLabel}>Pontualidade</Text>
                 </View>
               </View>
             </View>
 
-            {(profile.about || profile.tags?.length) && (
-              <View
-                style={[
-                  styles.aboutCard,
-                  {
-                    backgroundColor: theme.card,
-                    borderColor: theme.border,
-                  },
-                ]}
-              >
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                  Sobre
+            <View
+              style={[
+                styles.aboutCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Minhas habilidades
+              </Text>
+
+              {profile.tags && profile.tags.length > 0 ? (
+                <View style={styles.tagsArea}>
+                  {profile.tags.map((tag) => (
+                    <View key={tag} style={styles.tag}>
+                      <Text style={styles.tagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
+                  Nenhuma habilidade cadastrada ainda.
                 </Text>
+              )}
 
-                {profile.about && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 10,
+                  marginTop: 18,
+                }}
+              >
+                <Pressable
+                  style={({ pressed }) => [
+                    {
+                      flex: 1,
+                      minHeight: 48,
+                      borderRadius: 14,
+                      backgroundColor: "rgba(11,87,208,0.10)",
+                      borderWidth: 1,
+                      borderColor: "rgba(11,87,208,0.18)",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    },
+                    pressed && {
+                      opacity: 0.8,
+                      transform: [{ scale: 0.98 }],
+                    },
+                  ]}
+                  onPress={() => router.push("/portfolio")}
+                >
+                  <BadgeIcon width={22} height={22} />
+
                   <Text
-                    style={[styles.aboutText, { color: theme.textSecondary }]}
+                    style={{
+                      color: "#0B57D0",
+                      fontSize: 15,
+                      fontWeight: "900",
+                    }}
                   >
-                    {profile.about}
+                    Portfólio
                   </Text>
-                )}
+                </Pressable>
 
-                {profile.tags && profile.tags.length > 0 && (
-                  <View style={styles.tagsArea}>
-                    {profile.tags.map((tag) => (
-                      <View
-                        key={tag}
-                        style={[
-                          styles.tag,
-                          {
-                            backgroundColor: theme.background,
-                            borderColor: theme.border,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.tagText, { color: theme.text }]}>
-                          {tag}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
+                <Pressable
+                  style={({ pressed }) => [
+                    {
+                      flex: 1,
+                      minHeight: 48,
+                      borderRadius: 14,
+                      backgroundColor: "rgba(11,87,208,0.10)",
+                      borderWidth: 1,
+                      borderColor: "rgba(11,87,208,0.18)",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    },
+                    pressed && {
+                      opacity: 0.8,
+                      transform: [{ scale: 0.98 }],
+                    },
+                  ]}
+                  onPress={() => router.push("/edit-profile")}
+                >
+                  <EditIcon width={22} height={22} />
+
+                  <Text
+                    style={{
+                      color: "#0B57D0",
+                      fontSize: 15,
+                      fontWeight: "900",
+                    }}
+                  >
+                    Editar perfil
+                  </Text>
+                </Pressable>
               </View>
-            )}
+            </View>
+
+            <View
+              style={[
+                styles.aboutCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Sobre mim
+              </Text>
+
+              <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
+                {profile.about}
+              </Text>
+            </View>
           </>
         )}
 
         <View style={styles.menuArea}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Opções da conta
-          </Text>
-
           {menuOptions.map((option) => (
             <Pressable
               key={option.id}
