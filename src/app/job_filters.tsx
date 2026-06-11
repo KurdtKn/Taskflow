@@ -13,28 +13,15 @@ import { router, useLocalSearchParams } from "expo-router";
 import { styles } from "@/app/styles/jobFilters";
 import { useTheme } from "@/app/context/ThemeContext";
 
-const categories = [
-  "Todos",
-  "Garçom",
-  "Fotógrafo",
-  "DJ",
-  "Limpeza",
-  "Manutenção",
-  "Babá",
-  "Eventos",
-];
-
 export default function JobFilters() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
 
-  const [selectedCategory, setSelectedCategory] = useState(
-    String(categoria || "Todos")
-  );
+  const categoriaInicial =
+    String(categoria || "") === "Todos" ? "" : String(categoria || "");
 
+  const [category, setCategory] = useState(categoriaInicial);
   const [city, setCity] = useState(String(cidade || ""));
-
   const [minValue, setMinValue] = useState(String(valorMin || ""));
-
   const [maxValue, setMaxValue] = useState(String(valorMax || ""));
 
   const { isDark, theme } = useTheme();
@@ -43,8 +30,8 @@ export default function JobFilters() {
     router.push({
       pathname: "/(tabs)/home",
       params: {
-        categoria: selectedCategory,
-        cidade: city,
+        categoria: category.trim() || "Todos",
+        cidade: city.trim(),
         valorMin: minValue,
         valorMax: maxValue,
       },
@@ -52,12 +39,10 @@ export default function JobFilters() {
   }
 
   function clearFilters() {
-    setSelectedCategory("Todos");
+    setCategory("");
     setCity("");
     setMinValue("");
     setMaxValue("");
-
-    router.push("/(tabs)/home");
   }
 
   return (
@@ -102,37 +87,24 @@ export default function JobFilters() {
             Categoria do serviço
           </Text>
 
-          <View style={styles.chipArea}>
-            {categories.map((item) => {
-              const isSelected = selectedCategory === item;
+          <Text style={[styles.label, { color: theme.text }]}>
+            Digite a categoria ou serviço
+          </Text>
 
-              return (
-                <Pressable
-                  key={item}
-                  onPress={() => setSelectedCategory(item)}
-                  style={({ pressed }) => [
-                    styles.chip,
-                    {
-                      backgroundColor: theme.inputBackground,
-                      borderColor: theme.border,
-                    },
-                    isSelected && styles.chipSelected,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: theme.textSecondary },
-                      isSelected && styles.chipTextSelected,
-                    ]}
-                  >
-                    {item}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+                color: theme.text,
+              },
+            ]}
+            placeholder="Ex: Garçom, Fotógrafo, Limpeza"
+            placeholderTextColor={theme.textSecondary}
+            value={category}
+            onChangeText={setCategory}
+          />
         </View>
 
         <View

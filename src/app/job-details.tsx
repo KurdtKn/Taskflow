@@ -16,6 +16,7 @@ import TimeIcon from "../../assets/icons/access_time.svg";
 
 import { styles } from "@/app/styles/jobDetails";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 
 export default function JobDetailsScreen() {
   const params = useLocalSearchParams<{
@@ -45,7 +46,7 @@ export default function JobDetailsScreen() {
   const title = getParamValue(params.title, "Chamado disponível");
   const description = getParamValue(
     params.description,
-    "A empresa está procurando um profissional disponível para atender este chamado de forma pontual, com responsabilidade, boa comunicação e experiência na categoria informada."
+    "A descrição deste chamado será carregada conforme os dados cadastrados pela empresa."
   );
   const company = getParamValue(params.company, "Empresa não informada");
   const category = getParamValue(params.category, "Categoria");
@@ -58,8 +59,8 @@ export default function JobDetailsScreen() {
   function getCompanyInitials() {
     const words = company.trim().split(" ").filter(Boolean);
 
-    if (words.length === 0) {
-      return "TF";
+    if (words.length === 0 || company === "Empresa não informada") {
+      return "API";
     }
 
     if (words.length === 1) {
@@ -96,10 +97,14 @@ export default function JobDetailsScreen() {
     router.push({
       pathname: "/company-public-profile",
       params: {
-        companyName: company,
-        companyLocation: location,
-        companyRating: "4,8",
         jobTitle: title,
+
+        /*
+          Futuramente, quando a API retornar o ID da empresa no chamado,
+          enviar aqui:
+
+          companyId: empresaId,
+        */
       },
     });
   }
@@ -176,7 +181,7 @@ export default function JobDetailsScreen() {
         >
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <LocationIcon width={22} height={22} color="#e62727" />
+              <LocationIcon width={22} height={22} color={colors.location} />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -245,7 +250,7 @@ export default function JobDetailsScreen() {
             </Text>
 
             <Text style={[styles.companyRating, { color: theme.textSecondary }]}>
-              ⭐ 4,8 • Empresa verificada
+              Nota e verificação via API
             </Text>
           </View>
         </View>

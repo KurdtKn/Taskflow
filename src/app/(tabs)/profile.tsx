@@ -15,6 +15,7 @@ import { router, useFocusEffect } from "expo-router";
 
 import { styles } from "@/app/styles/profile";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 
 import EditIcon from "../../../assets/icons/edit.svg";
 import BadgeIcon from "../../../assets/icons/badge.svg";
@@ -50,6 +51,23 @@ export default function ProfileScreen() {
 
   const [profile, setProfile] = useState<FreelancerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const profileCardBackground = isDark ? colors.blue[700] : colors.primary;
+  const profileCardBorder = isDark ? colors.blue[600] : colors.primary;
+
+  const iconColor = colors.black;
+  const iconBoxBackground = isDark ? colors.white : colors.lightGray;
+  const iconBoxBorder = isDark ? colors.white : colors.border;
+
+  const actionButtonBackground = isDark
+    ? "rgba(255,255,255,0.08)"
+    : "rgba(11,87,208,0.10)";
+
+  const actionButtonBorder = isDark
+    ? "rgba(255,255,255,0.18)"
+    : "rgba(11,87,208,0.18)";
+
+  const actionButtonTextColor = isDark ? colors.white : colors.primary;
 
   useFocusEffect(
     useCallback(() => {
@@ -189,8 +207,9 @@ export default function ProfileScreen() {
             style={({ pressed }) => [
               styles.settingsButton,
               {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
+                backgroundColor: iconBoxBackground,
+                borderColor: iconBoxBorder,
+                borderWidth: 1,
               },
               pressed && {
                 opacity: 0.75,
@@ -199,12 +218,20 @@ export default function ProfileScreen() {
             ]}
             onPress={handleOpenSettings}
           >
-            <SettingsIcon width={24} height={24} />
+            <SettingsIcon width={24} height={24} color={iconColor} />
           </Pressable>
         </View>
 
         {isLoading ? (
-          <View style={styles.profileCard}>
+          <View
+            style={[
+              styles.profileCard,
+              {
+                backgroundColor: profileCardBackground,
+                borderColor: profileCardBorder,
+              },
+            ]}
+          >
             <Text style={styles.userName}>Carregando perfil...</Text>
 
             <Text style={styles.userType}>
@@ -212,7 +239,15 @@ export default function ProfileScreen() {
             </Text>
           </View>
         ) : !profile ? (
-          <View style={styles.profileCard}>
+          <View
+            style={[
+              styles.profileCard,
+              {
+                backgroundColor: profileCardBackground,
+                borderColor: profileCardBorder,
+              },
+            ]}
+          >
             <View style={styles.avatarArea}>
               <View
                 style={[
@@ -220,13 +255,13 @@ export default function ProfileScreen() {
                   {
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: "#FFFFFF",
+                    backgroundColor: colors.white,
                   },
                 ]}
               >
                 <Text
                   style={{
-                    color: "#0B57D0",
+                    color: colors.primary,
                     fontSize: 32,
                     fontWeight: "900",
                   }}
@@ -252,7 +287,15 @@ export default function ProfileScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.profileCard}>
+            <View
+              style={[
+                styles.profileCard,
+                {
+                  backgroundColor: profileCardBackground,
+                  borderColor: profileCardBorder,
+                },
+              ]}
+            >
               <View style={styles.avatarArea}>
                 {profile.photoUrl ? (
                   <Image
@@ -267,13 +310,13 @@ export default function ProfileScreen() {
                       {
                         alignItems: "center",
                         justifyContent: "center",
-                        backgroundColor: "#FFFFFF",
+                        backgroundColor: colors.white,
                       },
                     ]}
                   >
                     <Text
                       style={{
-                        color: "#0B57D0",
+                        color: colors.primary,
                         fontSize: 34,
                         fontWeight: "900",
                       }}
@@ -311,33 +354,66 @@ export default function ProfileScreen() {
                 )}
               </View>
 
-              <View style={styles.statsArea}>
+              <View
+                style={[
+                  styles.statsArea,
+                  {
+                    backgroundColor: isDark
+                      ? colors.white
+                      : "rgba(255,255,255,0.96)",
+                    borderColor: isDark
+                      ? colors.white
+                      : "rgba(255,255,255,0.75)",
+                    borderWidth: 1,
+                  },
+                ]}
+              >
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>
+                  <Text style={[styles.statNumber, { color: colors.black }]}>
                     {formatStat(profile.completedServices)}
                   </Text>
 
-                  <Text style={styles.statLabel}>Serviços</Text>
+                  <Text style={[styles.statLabel, { color: colors.gray }]}>
+                    Serviços
+                  </Text>
                 </View>
 
-                <View style={styles.statDivider} />
+                <View
+                  style={[
+                    styles.statDivider,
+                    {
+                      backgroundColor: colors.border,
+                    },
+                  ]}
+                />
 
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>
+                  <Text style={[styles.statNumber, { color: colors.black }]}>
                     {formatStat(profile.acceptanceRate, "%")}
                   </Text>
 
-                  <Text style={styles.statLabel}>Concluídos</Text>
+                  <Text style={[styles.statLabel, { color: colors.gray }]}>
+                    Concluídos
+                  </Text>
                 </View>
 
-                <View style={styles.statDivider} />
+                <View
+                  style={[
+                    styles.statDivider,
+                    {
+                      backgroundColor: colors.border,
+                    },
+                  ]}
+                />
 
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>
+                  <Text style={[styles.statNumber, { color: colors.black }]}>
                     {formatRating(profile.punctuality)}
                   </Text>
 
-                  <Text style={styles.statLabel}>Pontualidade</Text>
+                  <Text style={[styles.statLabel, { color: colors.gray }]}>
+                    Pontualidade
+                  </Text>
                 </View>
               </View>
             </View>
@@ -358,8 +434,19 @@ export default function ProfileScreen() {
               {profile.tags && profile.tags.length > 0 ? (
                 <View style={styles.tagsArea}>
                   {profile.tags.map((tag) => (
-                    <View key={tag} style={styles.tag}>
-                      <Text style={styles.tagText}>{tag}</Text>
+                    <View
+                      key={tag}
+                      style={[
+                        styles.tag,
+                        {
+                          backgroundColor: theme.inputBackground,
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.tagText, { color: theme.text }]}>
+                        {tag}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -382,9 +469,9 @@ export default function ProfileScreen() {
                       flex: 1,
                       minHeight: 48,
                       borderRadius: 14,
-                      backgroundColor: "rgba(11,87,208,0.10)",
+                      backgroundColor: actionButtonBackground,
                       borderWidth: 1,
-                      borderColor: "rgba(11,87,208,0.18)",
+                      borderColor: actionButtonBorder,
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "center",
@@ -397,11 +484,11 @@ export default function ProfileScreen() {
                   ]}
                   onPress={() => router.push("/portfolio")}
                 >
-                  <BadgeIcon width={22} height={22} />
+                  <BadgeIcon width={22} height={22} color={actionButtonTextColor} />
 
                   <Text
                     style={{
-                      color: "#0B57D0",
+                      color: actionButtonTextColor,
                       fontSize: 15,
                       fontWeight: "900",
                     }}
@@ -416,9 +503,9 @@ export default function ProfileScreen() {
                       flex: 1,
                       minHeight: 48,
                       borderRadius: 14,
-                      backgroundColor: "rgba(11,87,208,0.10)",
+                      backgroundColor: actionButtonBackground,
                       borderWidth: 1,
-                      borderColor: "rgba(11,87,208,0.18)",
+                      borderColor: actionButtonBorder,
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "center",
@@ -431,11 +518,11 @@ export default function ProfileScreen() {
                   ]}
                   onPress={() => router.push("/edit-profile")}
                 >
-                  <EditIcon width={22} height={22} />
+                  <EditIcon width={22} height={22} color={actionButtonTextColor} />
 
                   <Text
                     style={{
-                      color: "#0B57D0",
+                      color: actionButtonTextColor,
                       fontSize: 15,
                       fontWeight: "900",
                     }}
@@ -484,12 +571,13 @@ export default function ProfileScreen() {
                 style={[
                   styles.menuIconBox,
                   {
-                    backgroundColor: theme.inputBackground,
-                    borderColor: theme.border,
+                    backgroundColor: iconBoxBackground,
+                    borderColor: iconBoxBorder,
+                    borderWidth: 1,
                   },
                 ]}
               >
-                <option.Icon width={24} height={24} />
+                <option.Icon width={24} height={24} color={iconColor} />
               </View>
 
               <View style={styles.menuTextArea}>
