@@ -372,11 +372,10 @@ export default function RequestsScreen() {
             ]}
           >
             <AssignmentIcon
-              width={38}
-              height={38}
+              width={34}
+              height={34}
               color={emptyIconColor}
               fill={emptyIconColor}
-              stroke={emptyIconColor}
             />
 
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
@@ -398,11 +397,10 @@ export default function RequestsScreen() {
             ]}
           >
             <AssignmentIcon
-              width={38}
-              height={38}
+              width={34}
+              height={34}
               color={emptyIconColor}
               fill={emptyIconColor}
-              stroke={emptyIconColor}
             />
 
             <Text style={[styles.emptyTitle, { color: theme.text }]}>

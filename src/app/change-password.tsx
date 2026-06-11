@@ -22,6 +22,13 @@ import { colors } from "@/styles/colors";
 import { styles } from "@/app/styles/changePassword";
 import { useTheme } from "@/app/context/ThemeContext";
 
+const PASSWORD_MIN_LENGTH = 6;
+const PASSWORD_MAX_LENGTH = 64;
+
+function removeSpaces(value: string) {
+  return value.replace(/\s/g, "");
+}
+
 export default function ChangePasswordScreen() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -37,34 +44,98 @@ export default function ChangePasswordScreen() {
 
   const eyeIconColor = isDark ? colors.white : colors.black;
 
-  async function handleChangePassword() {
+  const cleanPasswordBoxStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
+    overflow: "hidden" as const,
+  };
+
+  const cleanInputStyle = {
+    color: theme.text,
+    backgroundColor: "transparent",
+    paddingLeft: 16,
+    paddingRight: 8,
+    flex: 1,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
+
+  const cleanEyeButtonStyle = {
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    width: 52,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  };
+
+  function handleChangeCurrentPassword(value: string) {
+    setCurrentPassword(removeSpaces(value).slice(0, PASSWORD_MAX_LENGTH));
+  }
+
+  function handleChangeNewPassword(value: string) {
+    setNewPassword(removeSpaces(value).slice(0, PASSWORD_MAX_LENGTH));
+  }
+
+  function handleChangeConfirmPassword(value: string) {
+    setConfirmPassword(removeSpaces(value).slice(0, PASSWORD_MAX_LENGTH));
+  }
+
+  function getValidationError() {
     const current = currentPassword.trim();
     const newPass = newPassword.trim();
     const confirm = confirmPassword.trim();
 
     if (!current || !newPass || !confirm) {
-      Alert.alert(
-        "Campos obrigatórios",
-        "Preencha todos os campos para continuar."
-      );
-      return;
+      return "Preencha todos os campos para continuar.";
     }
 
-    if (newPass.length < 6) {
-      Alert.alert(
-        "Senha fraca",
-        "A nova senha precisa ter pelo menos 6 caracteres."
-      );
-      return;
+    if (current.length < PASSWORD_MIN_LENGTH) {
+      return `A senha atual precisa ter pelo menos ${PASSWORD_MIN_LENGTH} caracteres.`;
+    }
+
+    if (current.length > PASSWORD_MAX_LENGTH) {
+      return `A senha atual pode ter no máximo ${PASSWORD_MAX_LENGTH} caracteres.`;
+    }
+
+    if (newPass.length < PASSWORD_MIN_LENGTH) {
+      return `A nova senha precisa ter pelo menos ${PASSWORD_MIN_LENGTH} caracteres.`;
+    }
+
+    if (newPass.length > PASSWORD_MAX_LENGTH) {
+      return `A nova senha pode ter no máximo ${PASSWORD_MAX_LENGTH} caracteres.`;
+    }
+
+    if (confirm.length > PASSWORD_MAX_LENGTH) {
+      return `A confirmação de senha pode ter no máximo ${PASSWORD_MAX_LENGTH} caracteres.`;
+    }
+
+    if (/\s/.test(current) || /\s/.test(newPass) || /\s/.test(confirm)) {
+      return "As senhas não podem conter espaços.";
+    }
+
+    if (newPass === current) {
+      return "A nova senha precisa ser diferente da senha atual.";
     }
 
     if (newPass !== confirm) {
-      Alert.alert(
-        "Senhas diferentes",
-        "A confirmação precisa ser igual à nova senha."
-      );
+      return "A confirmação precisa ser igual à nova senha.";
+    }
+
+    return "";
+  }
+
+  async function handleChangePassword() {
+    const validationError = getValidationError();
+
+    if (validationError) {
+      Alert.alert("Atenção", validationError);
       return;
     }
+
+    const current = currentPassword.trim();
+    const newPass = newPassword.trim();
 
     try {
       setIsSaving(true);
@@ -116,7 +187,6 @@ export default function ChangePasswordScreen() {
           height={22}
           color={eyeIconColor}
           fill={eyeIconColor}
-          stroke={eyeIconColor}
         />
       );
     }
@@ -127,7 +197,6 @@ export default function ChangePasswordScreen() {
         height={22}
         color={eyeIconColor}
         fill={eyeIconColor}
-        stroke={eyeIconColor}
       />
     );
   }
@@ -145,9 +214,26 @@ export default function ChangePasswordScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack width={28} height={28} />
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
+          <Pressable
+            style={styles.backButton}
+            onPress={() => router.back()}
+            disabled={isSaving}
+          >
+            <ArrowBack
+              width={28}
+              height={28}
+              color={theme.text}
+              fill={theme.text}
+            />
           </Pressable>
 
           <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -161,6 +247,7 @@ export default function ChangePasswordScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: theme.background }}
         >
           <View
             style={[
@@ -185,8 +272,22 @@ export default function ChangePasswordScreen() {
               </Text>
             </View>
 
-            <View style={styles.heroIconBox}>
-              <LockIcon width={34} height={34} />
+            <View
+              style={[
+                styles.heroIconBox,
+                {
+                  backgroundColor: colors.white,
+                  borderColor: colors.white,
+                  borderWidth: 0,
+                },
+              ]}
+            >
+              <LockIcon
+                width={34}
+                height={34}
+                color={colors.black}
+                fill={colors.black}
+              />
             </View>
           </View>
 
@@ -199,27 +300,31 @@ export default function ChangePasswordScreen() {
               <View
                 style={[
                   styles.passwordBox,
-                  {
-                    backgroundColor: theme.inputBackground,
-                    borderColor: theme.border,
-                  },
+                  cleanPasswordBoxStyle,
                 ]}
               >
                 <TextInput
-                  style={[styles.input, { color: theme.text }]}
+                  style={[
+                    styles.input,
+                    cleanInputStyle,
+                  ]}
                   placeholder="Digite sua senha atual"
                   placeholderTextColor={theme.textSecondary}
                   secureTextEntry={!showCurrentPassword}
                   value={currentPassword}
-                  onChangeText={setCurrentPassword}
+                  onChangeText={handleChangeCurrentPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="password"
+                  maxLength={PASSWORD_MAX_LENGTH}
                   editable={!isSaving}
                 />
 
                 <Pressable
-                  style={styles.eyeButton}
+                  style={[
+                    styles.eyeButton,
+                    cleanEyeButtonStyle,
+                  ]}
                   onPress={() =>
                     setShowCurrentPassword(!showCurrentPassword)
                   }
@@ -238,27 +343,31 @@ export default function ChangePasswordScreen() {
               <View
                 style={[
                   styles.passwordBox,
-                  {
-                    backgroundColor: theme.inputBackground,
-                    borderColor: theme.border,
-                  },
+                  cleanPasswordBoxStyle,
                 ]}
               >
                 <TextInput
-                  style={[styles.input, { color: theme.text }]}
+                  style={[
+                    styles.input,
+                    cleanInputStyle,
+                  ]}
                   placeholder="Digite a nova senha"
                   placeholderTextColor={theme.textSecondary}
                   secureTextEntry={!showNewPassword}
                   value={newPassword}
-                  onChangeText={setNewPassword}
+                  onChangeText={handleChangeNewPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="newPassword"
+                  maxLength={PASSWORD_MAX_LENGTH}
                   editable={!isSaving}
                 />
 
                 <Pressable
-                  style={styles.eyeButton}
+                  style={[
+                    styles.eyeButton,
+                    cleanEyeButtonStyle,
+                  ]}
                   onPress={() => setShowNewPassword(!showNewPassword)}
                   disabled={isSaving}
                 >
@@ -275,27 +384,31 @@ export default function ChangePasswordScreen() {
               <View
                 style={[
                   styles.passwordBox,
-                  {
-                    backgroundColor: theme.inputBackground,
-                    borderColor: theme.border,
-                  },
+                  cleanPasswordBoxStyle,
                 ]}
               >
                 <TextInput
-                  style={[styles.input, { color: theme.text }]}
+                  style={[
+                    styles.input,
+                    cleanInputStyle,
+                  ]}
                   placeholder="Confirme a nova senha"
                   placeholderTextColor={theme.textSecondary}
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  onChangeText={handleChangeConfirmPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="newPassword"
+                  maxLength={PASSWORD_MAX_LENGTH}
                   editable={!isSaving}
                 />
 
                 <Pressable
-                  style={styles.eyeButton}
+                  style={[
+                    styles.eyeButton,
+                    cleanEyeButtonStyle,
+                  ]}
                   onPress={() =>
                     setShowConfirmPassword(!showConfirmPassword)
                   }

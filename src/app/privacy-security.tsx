@@ -128,7 +128,12 @@ export default function PrivacySecurityScreen() {
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} />
+          <ArrowBack
+            width={28}
+            height={28}
+            color={theme.text}
+            fill={theme.text}
+          />
         </Pressable>
 
         <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -181,7 +186,6 @@ export default function PrivacySecurityScreen() {
               height={34}
               color={iconColor}
               fill={iconColor}
-              stroke={iconColor}
             />
           </View>
         </View>
@@ -235,7 +239,6 @@ export default function PrivacySecurityScreen() {
                 height={22}
                 color={iconColor}
                 fill={iconColor}
-                stroke={iconColor}
               />
             </View>
 
@@ -289,7 +292,6 @@ export default function PrivacySecurityScreen() {
                 height={22}
                 color={iconColor}
                 fill={iconColor}
-                stroke={iconColor}
               />
             </View>
 
@@ -399,11 +401,10 @@ export default function PrivacySecurityScreen() {
               ]}
             >
               <SettingsIcon
-                width={22}
-                height={22}
+                width={34}
+                height={34}
                 color={iconColor}
                 fill={iconColor}
-                stroke={iconColor}
               />
             </View>
 

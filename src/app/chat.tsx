@@ -38,6 +38,16 @@ function getCurrentTime() {
   });
 }
 
+function normalizeMessage(value: string) {
+  return value
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export default function ChatScreen() {
   const params = useLocalSearchParams<{
     jobId?: string | string[];
@@ -53,10 +63,20 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState("");
   const [currentSender, setCurrentSender] = useState<MessageSender>("company");
-  const [currentUserType, setCurrentUserType] = useState<"empresa" | "freelancer" | null>(null);
+  const [currentUserType, setCurrentUserType] = useState<
+    "empresa" | "freelancer" | null
+  >(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const { isDark, theme } = useTheme();
+
+  const cleanInputStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    color: theme.text,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
 
   function getParamValue(value?: string | string[], fallback = "") {
     if (Array.isArray(value)) {
@@ -70,7 +90,10 @@ export default function ChatScreen() {
   const candidaturaId = getParamValue(params.candidaturaId);
   const freelancerId = getParamValue(params.freelancerId);
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
-  const candidateName = getParamValue(params.candidateName, "Freelancer selecionado");
+  const candidateName = getParamValue(
+    params.candidateName,
+    "Freelancer selecionado"
+  );
   const companyName = getParamValue(params.companyName, "Empresa");
 
   const chatKey = `${CHAT_STORAGE_KEY}:${jobId || "sem-chamado"}:${
@@ -87,6 +110,8 @@ export default function ChatScreen() {
     time: "Agora",
     createdAt: new Date().toISOString(),
   };
+
+  const canSendMessage = normalizeMessage(messageText).length > 0 && !isLoading;
 
   useEffect(() => {
     loadChat();
@@ -142,17 +167,21 @@ export default function ChatScreen() {
     }
   }
 
-  async function handleSendMessage() {
-    const trimmedMessage = messageText.trim();
+  function handleChangeMessage(value: string) {
+    setMessageText(value);
+  }
 
-    if (!trimmedMessage || isLoading) {
+  async function handleSendMessage() {
+    const normalizedMessage = normalizeMessage(messageText);
+
+    if (!normalizedMessage || isLoading) {
       return;
     }
 
     const newMessage: Message = {
       id: `${Date.now()}-${currentSender}`,
       sender: currentSender,
-      text: trimmedMessage,
+      text: normalizedMessage,
       time: getCurrentTime(),
       createdAt: new Date().toISOString(),
     };
@@ -229,7 +258,11 @@ export default function ChatScreen() {
             </Text>
           </View>
 
-          <Pressable style={styles.finishButton} onPress={handleFinishService}>
+          <Pressable
+            style={styles.finishButton}
+            onPress={handleFinishService}
+            disabled={isLoading}
+          >
             <Text style={styles.finishButtonText}>Finalizar</Text>
           </Pressable>
         </View>
@@ -261,6 +294,7 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.messagesContent}
           keyboardShouldPersistTaps="always"
+          style={{ backgroundColor: theme.background }}
           onContentSizeChange={() =>
             scrollRef.current?.scrollToEnd({ animated: true })
           }
@@ -395,26 +429,22 @@ export default function ChatScreen() {
           <TextInput
             style={[
               styles.input,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                color: theme.text,
-              },
+              cleanInputStyle,
             ]}
             placeholder="Digite uma mensagem..."
             placeholderTextColor={theme.textSecondary}
             value={messageText}
-            onChangeText={setMessageText}
+            onChangeText={handleChangeMessage}
             multiline
             editable={!isLoading}
           />
 
           <Pressable
-            disabled={isLoading}
+            disabled={!canSendMessage}
             style={({ pressed }) => [
               styles.sendButton,
-              pressed && styles.sendButtonPressed,
-              isLoading && { opacity: 0.7 },
+              pressed && canSendMessage && styles.sendButtonPressed,
+              !canSendMessage && { opacity: 0.45 },
             ]}
             onPress={handleSendMessage}
           >

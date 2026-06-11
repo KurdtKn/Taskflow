@@ -7,6 +7,9 @@ import { router } from "expo-router";
 import { styles } from "./styles/splash";
 import { useTheme } from "@/app/context/ThemeContext";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getLoggedUser } from "@/services/storage";
+
 const LOADING_TIME = 1800;
 const PROGRESS_WIDTH = 190;
 
@@ -20,7 +23,20 @@ export default function SplashScreen() {
       duration: LOADING_TIME,
       easing: Easing.out(Easing.ease),
       useNativeDriver: false,
-    }).start(() => {
+    }).start(async () => {
+      const rememberMe = await AsyncStorage.getItem("@taskflow:remember_me");
+      const user = await getLoggedUser();
+
+      if (rememberMe === "true" && user?.tipoUsuario === "empresa") {
+        router.replace("/company-dashboard");
+        return;
+      }
+
+      if (rememberMe === "true" && user?.tipoUsuario === "freelancer") {
+        router.replace("/home");
+        return;
+      }
+
       router.replace("/welcome");
     });
   }, []);

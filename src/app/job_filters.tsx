@@ -1,5 +1,7 @@
 import { useState } from "react";
 import {
+  Alert,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -13,20 +15,116 @@ import { router, useLocalSearchParams } from "expo-router";
 import { styles } from "@/app/styles/jobFilters";
 import { useTheme } from "@/app/context/ThemeContext";
 
+const CATEGORY_MAX_LENGTH = 40;
+const CITY_MAX_LENGTH = 60;
+const MAX_PRICE = 9999999;
+
+function onlyNumbers(value: string) {
+  return value.replace(/\D/g, "");
+}
+
 export default function JobFilters() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
 
   const categoriaInicial =
     String(categoria || "") === "Todos" ? "" : String(categoria || "");
 
-  const [category, setCategory] = useState(categoriaInicial);
-  const [city, setCity] = useState(String(cidade || ""));
+  const [category, setCategory] = useState(
+    categoriaInicial.slice(0, CATEGORY_MAX_LENGTH)
+  );
+  const [city, setCity] = useState(String(cidade || "").slice(0, CITY_MAX_LENGTH));
   const [minValue, setMinValue] = useState(String(valorMin || ""));
   const [maxValue, setMaxValue] = useState(String(valorMax || ""));
 
   const { isDark, theme } = useTheme();
 
+  const cleanInputStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    color: theme.text,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
+
+  function handleChangeCategory(value: string) {
+    setCategory(value.slice(0, CATEGORY_MAX_LENGTH));
+  }
+
+  function handleChangeCity(value: string) {
+    setCity(value.slice(0, CITY_MAX_LENGTH));
+  }
+
+  function handleChangeMinValue(value: string) {
+    const numbersOnly = onlyNumbers(value).slice(0, 7);
+
+    if (!numbersOnly) {
+      setMinValue("");
+      return;
+    }
+
+    const valueNumber = Number(numbersOnly);
+
+    if (valueNumber > MAX_PRICE) {
+      setMinValue(String(MAX_PRICE));
+      return;
+    }
+
+    setMinValue(String(valueNumber));
+  }
+
+  function handleChangeMaxValue(value: string) {
+    const numbersOnly = onlyNumbers(value).slice(0, 7);
+
+    if (!numbersOnly) {
+      setMaxValue("");
+      return;
+    }
+
+    const valueNumber = Number(numbersOnly);
+
+    if (valueNumber > MAX_PRICE) {
+      setMaxValue(String(MAX_PRICE));
+      return;
+    }
+
+    setMaxValue(String(valueNumber));
+  }
+
+  function getValidationError() {
+    const min = minValue ? Number(minValue) : null;
+    const max = maxValue ? Number(maxValue) : null;
+
+    if (category.trim().length > CATEGORY_MAX_LENGTH) {
+      return `A categoria pode ter no máximo ${CATEGORY_MAX_LENGTH} caracteres.`;
+    }
+
+    if (city.trim().length > CITY_MAX_LENGTH) {
+      return `A cidade pode ter no máximo ${CITY_MAX_LENGTH} caracteres.`;
+    }
+
+    if (min !== null && min > MAX_PRICE) {
+      return "O valor mínimo pode ser no máximo R$ 9.999.999.";
+    }
+
+    if (max !== null && max > MAX_PRICE) {
+      return "O valor máximo pode ser no máximo R$ 9.999.999.";
+    }
+
+    if (min !== null && max !== null && min > max) {
+      return "O valor mínimo não pode ser maior que o valor máximo.";
+    }
+
+    return "";
+  }
+
   function applyFilters() {
+    const validationError = getValidationError();
+
+    if (validationError) {
+      Alert.alert("Atenção", validationError);
+      return;
+    }
+
     router.push({
       pathname: "/(tabs)/home",
       params: {
@@ -112,16 +210,13 @@ export default function JobFilters() {
           <TextInput
             style={[
               styles.input,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                color: theme.text,
-              },
+              cleanInputStyle,
             ]}
             placeholder="Ex: Garçom, Fotógrafo, Limpeza"
             placeholderTextColor={theme.textSecondary}
             value={category}
-            onChangeText={setCategory}
+            onChangeText={handleChangeCategory}
+            maxLength={CATEGORY_MAX_LENGTH}
           />
         </View>
 
@@ -145,16 +240,13 @@ export default function JobFilters() {
           <TextInput
             style={[
               styles.input,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                color: theme.text,
-              },
+              cleanInputStyle,
             ]}
             placeholder="Ex: Sorocaba"
             placeholderTextColor={theme.textSecondary}
             value={city}
-            onChangeText={setCity}
+            onChangeText={handleChangeCity}
+            maxLength={CITY_MAX_LENGTH}
           />
         </View>
 
@@ -180,19 +272,14 @@ export default function JobFilters() {
               <TextInput
                 style={[
                   styles.input,
-                  {
-                    backgroundColor: theme.inputBackground,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  },
+                  cleanInputStyle,
                 ]}
                 placeholder="R$ 50"
                 placeholderTextColor={theme.textSecondary}
                 keyboardType="numeric"
                 value={minValue}
-                onChangeText={(text) =>
-                  setMinValue(text.replace(/[^0-9]/g, ""))
-                }
+                onChangeText={handleChangeMinValue}
+                maxLength={7}
               />
             </View>
 
@@ -204,19 +291,14 @@ export default function JobFilters() {
               <TextInput
                 style={[
                   styles.input,
-                  {
-                    backgroundColor: theme.inputBackground,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  },
+                  cleanInputStyle,
                 ]}
                 placeholder="R$ 300"
                 placeholderTextColor={theme.textSecondary}
                 keyboardType="numeric"
                 value={maxValue}
-                onChangeText={(text) =>
-                  setMaxValue(text.replace(/[^0-9]/g, ""))
-                }
+                onChangeText={handleChangeMaxValue}
+                maxLength={7}
               />
             </View>
           </View>

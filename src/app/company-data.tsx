@@ -45,6 +45,20 @@ type CompanyDataForm = {
   logoUrl?: string;
 };
 
+const COMPANY_NAME_MAX_LENGTH = 100;
+const EMAIL_MAX_LENGTH = 120;
+const CITY_MAX_LENGTH = 60;
+const ADDRESS_MAX_LENGTH = 120;
+const DESCRIPTION_MAX_LENGTH = 1000;
+
+function onlyNumbers(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function removeSpaces(value: string) {
+  return value.replace(/\s/g, "");
+}
+
 export default function CompanyDataScreen() {
   const [companyName, setCompanyName] = useState("");
   const [cnpj, setCnpj] = useState("");
@@ -62,6 +76,14 @@ export default function CompanyDataScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  const cleanInputStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    color: theme.text,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
 
   useEffect(() => {
     loadCompanyData();
@@ -82,22 +104,22 @@ export default function CompanyDataScreen() {
       const savedCompanyData = await getCompanyData(loggedUser.id);
 
       if (savedCompanyData) {
-        setCompanyName(savedCompanyData.name);
-        setCnpj(savedCompanyData.cnpj);
-        setEmail(savedCompanyData.email);
-        setPhone(savedCompanyData.phone);
-        setCity(savedCompanyData.location);
-        setAddress(savedCompanyData.address);
-        setDescription(savedCompanyData.about);
+        setCompanyName(savedCompanyData.name.slice(0, COMPANY_NAME_MAX_LENGTH));
+        setCnpj(formatCnpj(savedCompanyData.cnpj));
+        setEmail(removeSpaces(savedCompanyData.email).slice(0, EMAIL_MAX_LENGTH));
+        setPhone(formatPhone(savedCompanyData.phone));
+        setCity(savedCompanyData.location.slice(0, CITY_MAX_LENGTH));
+        setAddress(savedCompanyData.address.slice(0, ADDRESS_MAX_LENGTH));
+        setDescription(savedCompanyData.about.slice(0, DESCRIPTION_MAX_LENGTH));
         setIsVerified(savedCompanyData.isVerified);
         setSelectedAreas(savedCompanyData.tags);
         setLogoUrl(savedCompanyData.logoUrl);
         return;
       }
 
-      setCompanyName(loggedUser.nome);
-      setEmail(loggedUser.email);
-      setPhone(loggedUser.telefone ?? "");
+      setCompanyName(loggedUser.nome.slice(0, COMPANY_NAME_MAX_LENGTH));
+      setEmail(removeSpaces(loggedUser.email).slice(0, EMAIL_MAX_LENGTH));
+      setPhone(formatPhone(loggedUser.telefone ?? ""));
     } catch (error) {
       console.log("Erro ao carregar dados da empresa:", error);
 
@@ -131,7 +153,7 @@ export default function CompanyDataScreen() {
   }
 
   function formatCnpj(value: string) {
-    const numbersOnly = value.replace(/\D/g, "").slice(0, 14);
+    const numbersOnly = onlyNumbers(value).slice(0, 14);
 
     return numbersOnly
       .replace(/^(\d{2})(\d)/, "$1.$2")
@@ -141,14 +163,21 @@ export default function CompanyDataScreen() {
   }
 
   function formatPhone(value: string) {
-    const numbersOnly = value.replace(/\D/g, "").slice(0, 11);
+    const numbersOnly = onlyNumbers(value).slice(0, 11);
 
     if (numbersOnly.length <= 2) {
       return numbersOnly;
     }
 
-    if (numbersOnly.length <= 7) {
+    if (numbersOnly.length <= 6) {
       return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(2)}`;
+    }
+
+    if (numbersOnly.length <= 10) {
+      return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(
+        2,
+        6
+      )}-${numbersOnly.slice(6)}`;
     }
 
     return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(
@@ -157,15 +186,39 @@ export default function CompanyDataScreen() {
     )}-${numbersOnly.slice(7)}`;
   }
 
+  function handleChangeCompanyName(value: string) {
+    setCompanyName(value.slice(0, COMPANY_NAME_MAX_LENGTH));
+  }
+
   function handleChangeCnpj(value: string) {
     setCnpj(formatCnpj(value));
+  }
+
+  function handleChangeEmail(value: string) {
+    setEmail(removeSpaces(value).slice(0, EMAIL_MAX_LENGTH));
   }
 
   function handleChangePhone(value: string) {
     setPhone(formatPhone(value));
   }
 
+  function handleChangeCity(value: string) {
+    setCity(value.slice(0, CITY_MAX_LENGTH));
+  }
+
+  function handleChangeAddress(value: string) {
+    setAddress(value.slice(0, ADDRESS_MAX_LENGTH));
+  }
+
+  function handleChangeDescription(value: string) {
+    setDescription(value.slice(0, DESCRIPTION_MAX_LENGTH));
+  }
+
   function toggleArea(area: string) {
+    if (isSaving || isLoading) {
+      return;
+    }
+
     setSelectedAreas((currentAreas) => {
       if (currentAreas.includes(area)) {
         return currentAreas.filter((item) => item !== area);
@@ -190,18 +243,77 @@ export default function CompanyDataScreen() {
     };
   }
 
+  function getValidationError(companyData: CompanyDataForm) {
+    const cleanedCnpj = onlyNumbers(companyData.cnpj);
+    const cleanedPhone = onlyNumbers(companyData.phone);
+
+    if (!companyData.companyName) {
+      return "Informe o nome da empresa.";
+    }
+
+    if (companyData.companyName.length < 3) {
+      return "O nome da empresa precisa ter pelo menos 3 caracteres.";
+    }
+
+    if (companyData.companyName.length > COMPANY_NAME_MAX_LENGTH) {
+      return `O nome da empresa pode ter no máximo ${COMPANY_NAME_MAX_LENGTH} caracteres.`;
+    }
+
+    if (!cleanedCnpj) {
+      return "Informe o CNPJ da empresa.";
+    }
+
+    if (cleanedCnpj.length !== 14) {
+      return "Informe um CNPJ com 14 números.";
+    }
+
+    if (!companyData.email) {
+      return "Informe o e-mail comercial.";
+    }
+
+    if (companyData.email.length > EMAIL_MAX_LENGTH) {
+      return `O e-mail pode ter no máximo ${EMAIL_MAX_LENGTH} caracteres.`;
+    }
+
+    if (!isValidEmail(companyData.email)) {
+      return "Informe um e-mail comercial válido.";
+    }
+
+    if (cleanedPhone && cleanedPhone.length < 10) {
+      return "Informe um telefone válido com DDD.";
+    }
+
+    if (cleanedPhone && cleanedPhone.length > 11) {
+      return "O telefone pode ter no máximo 11 números.";
+    }
+
+    if (companyData.city && companyData.city.length < 3) {
+      return "A cidade precisa ter pelo menos 3 caracteres.";
+    }
+
+    if (companyData.city.length > CITY_MAX_LENGTH) {
+      return `A cidade pode ter no máximo ${CITY_MAX_LENGTH} caracteres.`;
+    }
+
+    if (companyData.address.length > ADDRESS_MAX_LENGTH) {
+      return `O endereço pode ter no máximo ${ADDRESS_MAX_LENGTH} caracteres.`;
+    }
+
+    if (companyData.description.length > DESCRIPTION_MAX_LENGTH) {
+      return `A descrição pode ter no máximo ${DESCRIPTION_MAX_LENGTH} caracteres.`;
+    }
+
+    return "";
+  }
+
   async function handleSaveCompanyData() {
     console.log("Clicou em salvar dados da empresa");
 
     const companyData = getCurrentCompanyData();
+    const validationError = getValidationError(companyData);
 
-    if (!companyData.companyName) {
-      Alert.alert("Campo obrigatório", "Informe o nome da empresa.");
-      return;
-    }
-
-    if (companyData.email && !isValidEmail(companyData.email)) {
-      Alert.alert("E-mail inválido", "Informe um e-mail comercial válido.");
+    if (validationError) {
+      Alert.alert("Atenção", validationError);
       return;
     }
 
@@ -219,7 +331,7 @@ export default function CompanyDataScreen() {
       await saveCompanyData(loggedUser.id, {
         name: companyData.companyName,
         cnpj: companyData.cnpj,
-        email: companyData.email || loggedUser.email,
+        email: companyData.email,
         phone: companyData.phone,
         location: companyData.city,
         address: companyData.address,
@@ -247,62 +359,66 @@ export default function CompanyDataScreen() {
   }
 
   async function handleChangeLogo() {
-  try {
-    if (Platform.OS !== "web") {
-      const permissionResult =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (isSaving || isLoading) {
+      return;
+    }
 
-      if (!permissionResult.granted) {
-        Alert.alert(
-          "Permissão necessária",
-          "Permita o acesso à galeria para escolher a logo da empresa."
-        );
+    try {
+      if (Platform.OS !== "web") {
+        const permissionResult =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permissionResult.granted) {
+          Alert.alert(
+            "Permissão necessária",
+            "Permita o acesso à galeria para escolher a logo da empresa."
+          );
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+        base64: true,
+      });
+
+      if (result.canceled) {
         return;
       }
-    }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.6,
-      base64: true,
-    });
+      const selectedImage = result.assets[0];
 
-    if (result.canceled) {
-      return;
-    }
+      if (!selectedImage) {
+        Alert.alert("Erro", "Não foi possível carregar a imagem selecionada.");
+        return;
+      }
 
-    const selectedImage = result.assets[0];
+      if (selectedImage.base64) {
+        const mimeType = selectedImage.mimeType ?? "image/jpeg";
+        const base64Image = `data:${mimeType};base64,${selectedImage.base64}`;
 
-    if (!selectedImage) {
+        setLogoUrl(base64Image);
+        return;
+      }
+
+      if (selectedImage.uri) {
+        setLogoUrl(selectedImage.uri);
+        return;
+      }
+
       Alert.alert("Erro", "Não foi possível carregar a imagem selecionada.");
-      return;
+    } catch (error) {
+      console.log("Erro ao selecionar logo:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível selecionar a logo da empresa agora."
+      );
     }
-
-    if (selectedImage.base64) {
-      const mimeType = selectedImage.mimeType ?? "image/jpeg";
-      const base64Image = `data:${mimeType};base64,${selectedImage.base64}`;
-
-      setLogoUrl(base64Image);
-      return;
-    }
-
-    if (selectedImage.uri) {
-      setLogoUrl(selectedImage.uri);
-      return;
-    }
-
-    Alert.alert("Erro", "Não foi possível carregar a imagem selecionada.");
-  } catch (error) {
-    console.log("Erro ao selecionar logo:", error);
-
-    Alert.alert(
-      "Erro",
-      "Não foi possível selecionar a logo da empresa agora."
-    );
   }
-}
 
   const isProfileActive =
     companyName.trim().length > 0 &&
@@ -322,9 +438,22 @@ export default function CompanyDataScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack width={28} height={28} />
+            <ArrowBack
+              width={28}
+              height={28}
+              color={theme.text}
+              fill={theme.text}
+            />
           </Pressable>
 
           <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -338,6 +467,7 @@ export default function CompanyDataScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="always"
+          style={{ backgroundColor: theme.background }}
         >
           <View style={styles.logoSection}>
             <View style={[styles.logoArea, { position: "relative" }]}>
@@ -396,6 +526,7 @@ export default function CompanyDataScreen() {
                   },
                 ]}
                 onPress={handleChangeLogo}
+                disabled={isSaving || isLoading}
               >
                 <Text style={styles.editLogoIcon}>✎</Text>
               </Pressable>
@@ -442,16 +573,14 @@ export default function CompanyDataScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Digite o nome da empresa"
               placeholderTextColor={theme.textSecondary}
               value={companyName}
-              onChangeText={setCompanyName}
+              onChangeText={handleChangeCompanyName}
+              maxLength={COMPANY_NAME_MAX_LENGTH}
+              editable={!isLoading && !isSaving}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -461,11 +590,7 @@ export default function CompanyDataScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="00.000.000/0000-00"
               placeholderTextColor={theme.textSecondary}
@@ -473,6 +598,7 @@ export default function CompanyDataScreen() {
               onChangeText={handleChangeCnpj}
               keyboardType="numeric"
               maxLength={18}
+              editable={!isLoading && !isSaving}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -482,19 +608,17 @@ export default function CompanyDataScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="empresa@email.com"
               placeholderTextColor={theme.textSecondary}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={handleChangeEmail}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
+              maxLength={EMAIL_MAX_LENGTH}
+              editable={!isLoading && !isSaving}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -504,11 +628,7 @@ export default function CompanyDataScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="(00) 00000-0000"
               placeholderTextColor={theme.textSecondary}
@@ -516,6 +636,7 @@ export default function CompanyDataScreen() {
               onChangeText={handleChangePhone}
               keyboardType="phone-pad"
               maxLength={15}
+              editable={!isLoading && !isSaving}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -525,16 +646,14 @@ export default function CompanyDataScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Ex: Sorocaba - SP"
               placeholderTextColor={theme.textSecondary}
               value={city}
-              onChangeText={setCity}
+              onChangeText={handleChangeCity}
+              maxLength={CITY_MAX_LENGTH}
+              editable={!isLoading && !isSaving}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -544,38 +663,55 @@ export default function CompanyDataScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Rua, número, bairro"
               placeholderTextColor={theme.textSecondary}
               value={address}
-              onChangeText={setAddress}
+              onChangeText={handleChangeAddress}
+              maxLength={ADDRESS_MAX_LENGTH}
+              editable={!isLoading && !isSaving}
             />
 
-            <Text style={[styles.label, { color: theme.text }]}>
-              Descrição da empresa
-            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={[styles.label, { color: theme.text }]}>
+                Descrição da empresa
+              </Text>
+
+              <Text
+                style={{
+                  color:
+                    description.length >= DESCRIPTION_MAX_LENGTH
+                      ? "#DC2626"
+                      : theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {description.length}/{DESCRIPTION_MAX_LENGTH}
+              </Text>
+            </View>
 
             <TextInput
               style={[
                 styles.input,
                 styles.textArea,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Conte um pouco sobre a empresa"
               placeholderTextColor={theme.textSecondary}
               value={description}
-              onChangeText={setDescription}
+              onChangeText={handleChangeDescription}
+              maxLength={DESCRIPTION_MAX_LENGTH}
               multiline
               textAlignVertical="top"
+              editable={!isLoading && !isSaving}
             />
 
             <View
@@ -663,6 +799,7 @@ export default function CompanyDataScreen() {
                           isSelected && styles.areaChipActive,
                         ]}
                         onPress={() => toggleArea(area.name)}
+                        disabled={isLoading || isSaving}
                       >
                         <Text
                           style={[

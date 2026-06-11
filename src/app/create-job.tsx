@@ -28,6 +28,12 @@ const categories = [
   "Serviços gerais",
 ];
 
+const TITLE_MAX_LENGTH = 100;
+const DESCRIPTION_MAX_LENGTH = 1000;
+const LOCATION_MAX_LENGTH = 60;
+const MAX_PRICE = 9999999;
+const MAX_PROFESSIONALS = 99;
+
 export default function CreateJobScreen() {
   const [title, setTitle] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Eventos");
@@ -37,47 +43,211 @@ export default function CreateJobScreen() {
   const [hour, setHour] = useState("");
   const [price, setPrice] = useState("");
   const [professionals, setProfessionals] = useState("1");
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const { isDark, theme } = useTheme();
 
-  function formatDate(value: string) {
-    const numbersOnly = value.replace(/\D/g, "").slice(0, 4);
+  const cleanInputStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    color: theme.text,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
 
-    if (numbersOnly.length <= 2) {
-      return numbersOnly;
-    }
-
-    return `${numbersOnly.slice(0, 2)}/${numbersOnly.slice(2)}`;
+  function onlyNumbers(value: string) {
+    return value.replace(/\D/g, "");
   }
 
-  function formatHour(value: string) {
-    const numbersOnly = value.replace(/\D/g, "").slice(0, 4);
+  function padTwo(value: number) {
+    return String(value).padStart(2, "0");
+  }
+
+  function formatDate(value: string, currentValue: string) {
+    const numbersOnly = onlyNumbers(value).slice(0, 4);
+
+    if (numbersOnly.length === 0) {
+      return "";
+    }
+
+    if (numbersOnly.length <= 2) {
+      const day = Number(numbersOnly);
+
+      if (numbersOnly.length === 2 && (day < 1 || day > 31)) {
+        return currentValue;
+      }
+
+      return numbersOnly;
+    }
+
+    const dayText = numbersOnly.slice(0, 2);
+    const monthText = numbersOnly.slice(2);
+
+    const day = Number(dayText);
+    const month = Number(monthText);
+
+    if (day < 1 || day > 31) {
+      return currentValue;
+    }
+
+    if (monthText.length === 2) {
+      if (month < 1 || month > 12) {
+        return currentValue;
+      }
+
+      const currentYear = new Date().getFullYear();
+      const maxDaysInMonth = new Date(currentYear, month, 0).getDate();
+
+      if (day > maxDaysInMonth) {
+        return currentValue;
+      }
+    }
+
+    return `${dayText}/${monthText}`;
+  }
+
+  function normalizeDate(value: string) {
+    const numbersOnly = onlyNumbers(value).slice(0, 4);
+
+    if (numbersOnly.length < 3) {
+      return value;
+    }
+
+    const dayText = numbersOnly.slice(0, 2);
+    const monthText = numbersOnly.slice(2);
+
+    const day = Number(dayText);
+    const month = Number(monthText);
+
+    if (day < 1 || day > 31 || month < 1 || month > 12) {
+      return value;
+    }
+
+    const currentYear = new Date().getFullYear();
+    const maxDaysInMonth = new Date(currentYear, month, 0).getDate();
+
+    if (day > maxDaysInMonth) {
+      return value;
+    }
+
+    return `${padTwo(day)}/${padTwo(month)}`;
+  }
+
+  function formatHour(value: string, currentValue: string) {
+    const numbersOnly = onlyNumbers(value).slice(0, 4);
+
+    if (numbersOnly.length === 0) {
+      return "";
+    }
+
+    const hourText = numbersOnly.slice(0, 2);
+    const minuteText = numbersOnly.slice(2, 4);
+
+    if (hourText.length === 2) {
+      const hourNumber = Number(hourText);
+
+      if (hourNumber < 0 || hourNumber > 23) {
+        return currentValue;
+      }
+    }
+
+    if (minuteText.length === 2) {
+      const minuteNumber = Number(minuteText);
+
+      if (minuteNumber < 0 || minuteNumber > 59) {
+        return currentValue;
+      }
+    }
 
     if (numbersOnly.length <= 2) {
       return numbersOnly;
     }
 
-    return `${numbersOnly.slice(0, 2)}:${numbersOnly.slice(2)}`;
+    return `${hourText}:${minuteText}`;
+  }
+
+  function normalizeHour(value: string) {
+    const numbersOnly = onlyNumbers(value).slice(0, 4);
+
+    if (numbersOnly.length === 0) {
+      return value;
+    }
+
+    if (numbersOnly.length <= 2) {
+      const hourNumber = Number(numbersOnly);
+
+      if (hourNumber < 0 || hourNumber > 23) {
+        return value;
+      }
+
+      return `${padTwo(hourNumber)}:00`;
+    }
+
+    const hourText = numbersOnly.slice(0, 2);
+    const minuteText = numbersOnly.slice(2);
+
+    const hourNumber = Number(hourText);
+    const minuteNumber = Number(minuteText);
+
+    if (hourNumber < 0 || hourNumber > 23) {
+      return value;
+    }
+
+    if (minuteNumber < 0 || minuteNumber > 59) {
+      return value;
+    }
+
+    return `${padTwo(hourNumber)}:${padTwo(minuteNumber)}`;
   }
 
   function handleChangeDate(value: string) {
-    setDate(formatDate(value));
+    setDate((currentValue) => formatDate(value, currentValue));
   }
 
   function handleChangeHour(value: string) {
-    setHour(formatHour(value));
+    setHour((currentValue) => formatHour(value, currentValue));
   }
 
-  const isDateValid = /^\d{2}\/\d{2}$/.test(date);
-  const isHourValid = /^\d{2}:\d{2}$/.test(hour);
+  function handleChangePrice(value: string) {
+    const numbersOnly = onlyNumbers(value).slice(0, 7);
 
-  const isFormValid =
-    title.trim().length > 0 &&
-    description.trim().length > 0 &&
-    location.trim().length > 0 &&
-    isDateValid &&
-    isHourValid &&
-    price.trim().length > 0;
+    if (!numbersOnly) {
+      setPrice("");
+      return;
+    }
+
+    const valueNumber = Number(numbersOnly);
+
+    if (valueNumber > MAX_PRICE) {
+      setPrice(String(MAX_PRICE));
+      return;
+    }
+
+    setPrice(String(valueNumber));
+  }
+
+  function handleChangeProfessionals(value: string) {
+    const numbersOnly = onlyNumbers(value).slice(0, 2);
+
+    if (!numbersOnly) {
+      setProfessionals("");
+      return;
+    }
+
+    const quantity = Number(numbersOnly);
+
+    if (quantity <= 0) {
+      setProfessionals("");
+      return;
+    }
+
+    if (quantity > MAX_PROFESSIONALS) {
+      setProfessionals(String(MAX_PROFESSIONALS));
+      return;
+    }
+
+    setProfessionals(String(quantity));
+  }
 
   function getCategoryId(category: string) {
     const categoryMap: Record<string, number> = {
@@ -92,18 +262,90 @@ export default function CreateJobScreen() {
     return categoryMap[category] ?? 1;
   }
 
-  function getServiceDate() {
-    const [day, month] = date.split("/");
+  function getParsedServiceDateTime() {
+    const normalizedDate = normalizeDate(date);
+    const normalizedHour = normalizeHour(hour);
+
+    if (!/^\d{2}\/\d{2}$/.test(normalizedDate)) {
+      return null;
+    }
+
+    if (!/^\d{2}:\d{2}$/.test(normalizedHour)) {
+      return null;
+    }
+
+    const [dayText, monthText] = normalizedDate.split("/");
+    const [hourText, minuteText] = normalizedHour.split(":");
+
+    const day = Number(dayText);
+    const month = Number(monthText);
+    const hourNumber = Number(hourText);
+    const minute = Number(minuteText);
     const currentYear = new Date().getFullYear();
 
-    return `${currentYear}-${month}-${day}T00:00:00`;
+    const serviceDateTime = new Date(
+      currentYear,
+      month - 1,
+      day,
+      hourNumber,
+      minute,
+      0,
+      0
+    );
+
+    const isRealDate =
+      serviceDateTime.getFullYear() === currentYear &&
+      serviceDateTime.getMonth() === month - 1 &&
+      serviceDateTime.getDate() === day &&
+      serviceDateTime.getHours() === hourNumber &&
+      serviceDateTime.getMinutes() === minute;
+
+    if (!isRealDate) {
+      return null;
+    }
+
+    return serviceDateTime;
+  }
+
+  function isServiceDateTimeInFuture() {
+    const serviceDateTime = getParsedServiceDateTime();
+
+    if (!serviceDateTime) {
+      return false;
+    }
+
+    return serviceDateTime.getTime() > new Date().getTime();
+  }
+
+  function getServiceDate() {
+    const serviceDateTime = getParsedServiceDateTime();
+
+    if (!serviceDateTime) {
+      return "";
+    }
+
+    const year = serviceDateTime.getFullYear();
+    const month = String(serviceDateTime.getMonth() + 1).padStart(2, "0");
+    const day = String(serviceDateTime.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T00:00:00`;
   }
 
   function getEstimatedValue() {
-    const numbersOnly = price.replace(/\D/g, "");
+    const numbersOnly = onlyNumbers(price);
 
     if (!numbersOnly) {
       return null;
+    }
+
+    return Number(numbersOnly);
+  }
+
+  function getProfessionalsQuantity() {
+    const numbersOnly = onlyNumbers(professionals);
+
+    if (!numbersOnly) {
+      return 0;
     }
 
     return Number(numbersOnly);
@@ -118,16 +360,95 @@ export default function CreateJobScreen() {
     };
   }
 
+  function getValidationError() {
+    const trimmedTitle = title.trim();
+    const trimmedDescription = description.trim();
+    const trimmedLocation = location.trim();
+    const estimatedValue = getEstimatedValue();
+    const professionalsQuantity = getProfessionalsQuantity();
+
+    if (!trimmedTitle) {
+      return "Informe o título do chamado.";
+    }
+
+    if (trimmedTitle.length < 5) {
+      return "O título precisa ter pelo menos 5 caracteres.";
+    }
+
+    if (!trimmedDescription) {
+      return "Informe a descrição do serviço.";
+    }
+
+    if (trimmedDescription.length < 20) {
+      return "A descrição precisa ter pelo menos 20 caracteres.";
+    }
+
+    if (!trimmedLocation) {
+      return "Informe o local do serviço.";
+    }
+
+    if (trimmedLocation.length < 3) {
+      return "O local precisa ter pelo menos 3 caracteres.";
+    }
+
+    if (!/^\d{2}\/\d{1,2}$/.test(date)) {
+      return "Informe uma data no formato DD/MM.";
+    }
+
+    if (!/^\d{1,2}(:\d{1,2})?$/.test(hour)) {
+      return "Informe um horário no formato HH:MM.";
+    }
+
+    if (!getParsedServiceDateTime()) {
+      return "Informe uma data e um horário válidos.";
+    }
+
+    if (!isServiceDateTimeInFuture()) {
+      return "A data e o horário do chamado precisam ser futuros.";
+    }
+
+    if (estimatedValue === null) {
+      return "Informe o valor estimado do serviço.";
+    }
+
+    if (estimatedValue <= 0) {
+      return "O valor estimado precisa ser maior que zero.";
+    }
+
+    if (estimatedValue > MAX_PRICE) {
+      return "O valor estimado pode ser no máximo R$ 9.999.999.";
+    }
+
+    if (professionalsQuantity <= 0) {
+      return "Informe pelo menos 1 profissional.";
+    }
+
+    if (professionalsQuantity > MAX_PROFESSIONALS) {
+      return "O limite máximo é de 99 profissionais.";
+    }
+
+    return "";
+  }
+
+  const isFormValid = getValidationError() === "";
+
   async function handlePublishJob() {
-    if (!isFormValid) {
-      Alert.alert(
-        "Campos obrigatórios",
-        "Preencha todos os campos obrigatórios.",
-      );
+    const validationError = getValidationError();
+
+    if (validationError) {
+      Alert.alert("Atenção", validationError);
       return;
     }
 
+    const normalizedDate = normalizeDate(date);
+    const normalizedHour = normalizeHour(hour);
+
+    setDate(normalizedDate);
+    setHour(normalizedHour);
+
     try {
+      setIsPublishing(true);
+
       const loggedUser = await getLoggedUser();
 
       if (!loggedUser) {
@@ -139,7 +460,7 @@ export default function CreateJobScreen() {
       if (loggedUser.tipoUsuario !== "empresa") {
         Alert.alert(
           "Acesso negado",
-          "Apenas empresas podem publicar chamados.",
+          "Apenas empresas podem publicar chamados."
         );
         return;
       }
@@ -147,7 +468,7 @@ export default function CreateJobScreen() {
       if (!loggedUser.perfilId) {
         Alert.alert(
           "Perfil da empresa não encontrado",
-          "Faça logout e entre novamente com a conta da empresa.",
+          "Faça logout e entre novamente com a conta da empresa."
         );
         return;
       }
@@ -163,7 +484,7 @@ export default function CreateJobScreen() {
         cidade: city,
         estado: state,
         dataServico: getServiceDate(),
-        horaServico: hour,
+        horaServico: normalizedHour,
         valorEstimado: getEstimatedValue(),
       });
 
@@ -171,7 +492,7 @@ export default function CreateJobScreen() {
 
       Alert.alert(
         "Chamado publicado",
-        "Seu chamado foi publicado com sucesso.",
+        "Seu chamado foi publicado com sucesso."
       );
 
       router.replace("/company-dashboard");
@@ -184,12 +505,17 @@ export default function CreateJobScreen() {
           : "Não foi possível publicar o chamado agora.";
 
       Alert.alert("Erro ao publicar", errorMessage);
+    } finally {
+      setIsPublishing(false);
     }
   }
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
@@ -197,9 +523,22 @@ export default function CreateJobScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack width={28} height={28} />
+            <ArrowBack
+              width={28}
+              height={28}
+              color={theme.text}
+              fill={theme.text}
+            />
           </Pressable>
 
           <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -213,6 +552,7 @@ export default function CreateJobScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="always"
+          style={{ backgroundColor: theme.background }}
         >
           <View
             style={[
@@ -239,22 +579,20 @@ export default function CreateJobScreen() {
             </Text>
 
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
-              ]}
+              style={[styles.input, cleanInputStyle]}
               placeholder="Ex: Garçom para evento"
               placeholderTextColor={theme.textSecondary}
               value={title}
-              onChangeText={(value) => setTitle(value.slice(0, 100))}
-              maxLength={100}
+              onChangeText={(value) =>
+                setTitle(value.slice(0, TITLE_MAX_LENGTH))
+              }
+              maxLength={TITLE_MAX_LENGTH}
+              editable={!isPublishing}
             />
 
-            <Text style={[styles.label, { color: theme.text }]}>Categoria</Text>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Categoria
+            </Text>
 
             <View style={styles.categoriesArea}>
               {categories.map((category) => {
@@ -272,6 +610,7 @@ export default function CreateJobScreen() {
                       isSelected && styles.categoryChipActive,
                     ]}
                     onPress={() => setSelectedCategory(category)}
+                    disabled={isPublishing}
                   >
                     <Text
                       style={[
@@ -287,27 +626,43 @@ export default function CreateJobScreen() {
               })}
             </View>
 
-            <Text style={[styles.label, { color: theme.text }]}>
-              Descrição do serviço
-            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={[styles.label, { color: theme.text }]}>
+                Descrição do serviço
+              </Text>
+
+              <Text
+                style={{
+                  color:
+                    description.length >= DESCRIPTION_MAX_LENGTH
+                      ? "#DC2626"
+                      : theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {description.length}/{DESCRIPTION_MAX_LENGTH}
+              </Text>
+            </View>
 
             <TextInput
-              style={[
-                styles.input,
-                styles.textArea,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
-              ]}
+              style={[styles.input, styles.textArea, cleanInputStyle]}
               placeholder="Descreva o que precisa ser feito, requisitos e observações importantes."
               placeholderTextColor={theme.textSecondary}
               value={description}
-              onChangeText={(value) => setDescription(value.slice(0, 500))}
-              maxLength={500}
+              onChangeText={(value) =>
+                setDescription(value.slice(0, DESCRIPTION_MAX_LENGTH))
+              }
+              maxLength={DESCRIPTION_MAX_LENGTH}
               multiline
               textAlignVertical="top"
+              editable={!isPublishing}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -315,40 +670,35 @@ export default function CreateJobScreen() {
             </Text>
 
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
-              ]}
+              style={[styles.input, cleanInputStyle]}
               placeholder="Ex: Centro, Sorocaba - SP"
               placeholderTextColor={theme.textSecondary}
               value={location}
-              onChangeText={(value) => setLocation(value.slice(0, 60))}
-              maxLength={60}
+              onChangeText={(value) =>
+                setLocation(value.slice(0, LOCATION_MAX_LENGTH))
+              }
+              maxLength={LOCATION_MAX_LENGTH}
+              editable={!isPublishing}
             />
 
             <View style={styles.doubleInputArea}>
               <View style={styles.doubleInputBox}>
-                <Text style={[styles.label, { color: theme.text }]}>Data</Text>
+                <Text style={[styles.label, { color: theme.text }]}>
+                  Data
+                </Text>
 
                 <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: theme.inputBackground,
-                      borderColor: theme.border,
-                      color: theme.text,
-                    },
-                  ]}
+                  style={[styles.input, cleanInputStyle]}
                   placeholder="Ex: 15/06"
                   placeholderTextColor={theme.textSecondary}
                   value={date}
                   onChangeText={handleChangeDate}
+                  onBlur={() =>
+                    setDate((currentValue) => normalizeDate(currentValue))
+                  }
                   keyboardType="numeric"
                   maxLength={5}
+                  editable={!isPublishing}
                 />
               </View>
 
@@ -358,20 +708,17 @@ export default function CreateJobScreen() {
                 </Text>
 
                 <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: theme.inputBackground,
-                      borderColor: theme.border,
-                      color: theme.text,
-                    },
-                  ]}
+                  style={[styles.input, cleanInputStyle]}
                   placeholder="Ex: 18:00"
                   placeholderTextColor={theme.textSecondary}
                   value={hour}
                   onChangeText={handleChangeHour}
+                  onBlur={() =>
+                    setHour((currentValue) => normalizeHour(currentValue))
+                  }
                   keyboardType="numeric"
                   maxLength={5}
+                  editable={!isPublishing}
                 />
               </View>
             </View>
@@ -383,22 +730,14 @@ export default function CreateJobScreen() {
                 </Text>
 
                 <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: theme.inputBackground,
-                      borderColor: theme.border,
-                      color: theme.text,
-                    },
-                  ]}
+                  style={[styles.input, cleanInputStyle]}
                   placeholder="Ex: R$200,00"
                   placeholderTextColor={theme.textSecondary}
                   value={price}
-                  onChangeText={(value) =>
-                    setPrice(value.replace(/\D/g, "").slice(0, 8))
-                  }
+                  onChangeText={handleChangePrice}
                   keyboardType="numeric"
-                  maxLength={8}
+                  maxLength={7}
+                  editable={!isPublishing}
                 />
               </View>
 
@@ -408,22 +747,14 @@ export default function CreateJobScreen() {
                 </Text>
 
                 <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: theme.inputBackground,
-                      borderColor: theme.border,
-                      color: theme.text,
-                    },
-                  ]}
+                  style={[styles.input, cleanInputStyle]}
                   placeholder="Ex: 1"
                   placeholderTextColor={theme.textSecondary}
                   value={professionals}
-                  onChangeText={(value) =>
-                    setProfessionals(value.replace(/\D/g, "").slice(0, 2))
-                  }
+                  onChangeText={handleChangeProfessionals}
                   keyboardType="numeric"
                   maxLength={2}
+                  editable={!isPublishing}
                 />
               </View>
             </View>
@@ -449,15 +780,20 @@ export default function CreateJobScreen() {
             </View>
 
             <Pressable
-              disabled={!isFormValid}
+              disabled={isPublishing}
               style={({ pressed }) => [
                 styles.publishButton,
-                !isFormValid && styles.publishButtonDisabled,
-                pressed && isFormValid && styles.publishButtonPressed,
+                (!isFormValid || isPublishing) && styles.publishButtonDisabled,
+                pressed &&
+                  !isPublishing &&
+                  isFormValid &&
+                  styles.publishButtonPressed,
               ]}
               onPress={handlePublishJob}
             >
-              <Text style={styles.publishButtonText}>Publicar chamado</Text>
+              <Text style={styles.publishButtonText}>
+                {isPublishing ? "Publicando..." : "Publicar chamado"}
+              </Text>
             </Pressable>
           </View>
         </ScrollView>

@@ -24,8 +24,16 @@ import { colors } from "@/styles/colors";
 
 type AccountType = "freelancer" | "empresa";
 
+const NAME_MAX_LENGTH = 80;
+const EMAIL_MAX_LENGTH = 120;
+const PASSWORD_MAX_LENGTH = 64;
+
 function onlyNumbers(value: string) {
   return value.replace(/\D/g, "");
+}
+
+function removeSpaces(value: string) {
+  return value.replace(/\s/g, "");
 }
 
 function formatCnpj(value: string) {
@@ -59,7 +67,42 @@ export default function CreateAccountScreen() {
   const [formError, setFormError] = useState("");
 
   const { isDark, theme } = useTheme();
+
   const eyeIconColor = isDark ? colors.white : colors.black;
+
+  const cleanInputStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    color: theme.text,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
+
+  const cleanPasswordAreaStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
+    overflow: "hidden" as const,
+  };
+
+  const cleanPasswordInputStyle = {
+    color: theme.text,
+    backgroundColor: "transparent",
+    paddingLeft: 16,
+    paddingRight: 8,
+    flex: 1,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
+
+  const cleanEyeButtonStyle = {
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    width: 52,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  };
 
   function isValidEmail(value: string) {
     return /\S+@\S+\.\S+/.test(value);
@@ -68,6 +111,26 @@ export default function CreateAccountScreen() {
   function showFormError(message: string) {
     setFormError(message);
     Alert.alert("Atenção", message);
+  }
+
+  function handleChangeName(value: string) {
+    setName(value.slice(0, NAME_MAX_LENGTH));
+    setFormError("");
+  }
+
+  function handleChangeEmail(value: string) {
+    setEmail(value.trim().slice(0, EMAIL_MAX_LENGTH));
+    setFormError("");
+  }
+
+  function handleChangePassword(value: string) {
+    setPassword(removeSpaces(value).slice(0, PASSWORD_MAX_LENGTH));
+    setFormError("");
+  }
+
+  function handleChangeConfirmPassword(value: string) {
+    setConfirmPassword(removeSpaces(value).slice(0, PASSWORD_MAX_LENGTH));
+    setFormError("");
   }
 
   function handleToggleTerms() {
@@ -121,6 +184,15 @@ export default function CreateAccountScreen() {
       return;
     }
 
+    if (trimmedName.length > NAME_MAX_LENGTH) {
+      showFormError(
+        isCompanyAccount
+          ? `O nome da empresa pode ter no máximo ${NAME_MAX_LENGTH} caracteres.`
+          : `O nome pode ter no máximo ${NAME_MAX_LENGTH} caracteres.`
+      );
+      return;
+    }
+
     if (isCompanyAccount && !cleanedCnpj) {
       showFormError("Informe o CNPJ da empresa.");
       return;
@@ -140,6 +212,11 @@ export default function CreateAccountScreen() {
       return;
     }
 
+    if (trimmedEmail.length > EMAIL_MAX_LENGTH) {
+      showFormError(`O e-mail pode ter no máximo ${EMAIL_MAX_LENGTH} caracteres.`);
+      return;
+    }
+
     if (!isValidEmail(trimmedEmail)) {
       showFormError("Informe um e-mail válido.");
       return;
@@ -155,8 +232,32 @@ export default function CreateAccountScreen() {
       return;
     }
 
+    if (password.length > PASSWORD_MAX_LENGTH) {
+      showFormError(
+        `A senha pode ter no máximo ${PASSWORD_MAX_LENGTH} caracteres.`
+      );
+      return;
+    }
+
+    if (/\s/.test(password)) {
+      showFormError("A senha não pode conter espaços.");
+      return;
+    }
+
     if (!confirmPassword) {
       showFormError("Confirme sua senha.");
+      return;
+    }
+
+    if (confirmPassword.length > PASSWORD_MAX_LENGTH) {
+      showFormError(
+        `A confirmação de senha pode ter no máximo ${PASSWORD_MAX_LENGTH} caracteres.`
+      );
+      return;
+    }
+
+    if (/\s/.test(confirmPassword)) {
+      showFormError("A confirmação de senha não pode conter espaços.");
       return;
     }
 
@@ -245,7 +346,12 @@ export default function CreateAccountScreen() {
           onPress={() => router.back()}
           disabled={isLoading}
         >
-          <ArrowBack width={28} height={28} />
+          <ArrowBack
+            width={28}
+            height={28}
+            color={theme.text}
+            fill={theme.text}
+          />
         </Pressable>
 
         <View style={styles.header}>
@@ -268,11 +374,7 @@ export default function CreateAccountScreen() {
           <TextInput
             style={[
               styles.input,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                color: theme.text,
-              },
+              cleanInputStyle,
             ]}
             placeholder={
               isCompanyAccount
@@ -281,10 +383,8 @@ export default function CreateAccountScreen() {
             }
             placeholderTextColor={theme.textSecondary}
             value={name}
-            onChangeText={(value) => {
-              setName(value);
-              setFormError("");
-            }}
+            onChangeText={handleChangeName}
+            maxLength={NAME_MAX_LENGTH}
             editable={!isLoading}
           />
 
@@ -297,11 +397,7 @@ export default function CreateAccountScreen() {
               <TextInput
                 style={[
                   styles.input,
-                  {
-                    backgroundColor: theme.inputBackground,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  },
+                  cleanInputStyle,
                 ]}
                 placeholder="00.000.000/0000-00"
                 placeholderTextColor={theme.textSecondary}
@@ -324,11 +420,7 @@ export default function CreateAccountScreen() {
           <TextInput
             style={[
               styles.input,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                color: theme.text,
-              },
+              cleanInputStyle,
             ]}
             placeholder={
               isCompanyAccount
@@ -337,13 +429,11 @@ export default function CreateAccountScreen() {
             }
             placeholderTextColor={theme.textSecondary}
             value={email}
-            onChangeText={(value) => {
-              setEmail(value);
-              setFormError("");
-            }}
+            onChangeText={handleChangeEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            maxLength={EMAIL_MAX_LENGTH}
             editable={!isLoading}
           />
 
@@ -354,32 +444,30 @@ export default function CreateAccountScreen() {
           <View
             style={[
               styles.passwordArea,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-              },
+              cleanPasswordAreaStyle,
             ]}
           >
             <TextInput
               style={[
                 styles.passwordInput,
-                { color: theme.text },
+                cleanPasswordInputStyle,
               ]}
               placeholder="Digite sua senha"
               placeholderTextColor={theme.textSecondary}
               value={password}
-              onChangeText={(value) => {
-                setPassword(value);
-                setFormError("");
-              }}
+              onChangeText={handleChangePassword}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              maxLength={PASSWORD_MAX_LENGTH}
               editable={!isLoading}
             />
 
             <Pressable
-              style={styles.passwordIconButton}
+              style={[
+                styles.passwordIconButton,
+                cleanEyeButtonStyle,
+              ]}
               onPress={() => setShowPassword(!showPassword)}
               disabled={isLoading}
             >
@@ -389,7 +477,6 @@ export default function CreateAccountScreen() {
                   height={22}
                   color={eyeIconColor}
                   fill={eyeIconColor}
-                  stroke={eyeIconColor}
                 />
               ) : (
                 <VisibilityOff
@@ -397,7 +484,6 @@ export default function CreateAccountScreen() {
                   height={22}
                   color={eyeIconColor}
                   fill={eyeIconColor}
-                  stroke={eyeIconColor}
                 />
               )}
             </Pressable>
@@ -410,32 +496,30 @@ export default function CreateAccountScreen() {
           <View
             style={[
               styles.passwordArea,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-              },
+              cleanPasswordAreaStyle,
             ]}
           >
             <TextInput
               style={[
                 styles.passwordInput,
-                { color: theme.text },
+                cleanPasswordInputStyle,
               ]}
               placeholder="Confirme sua senha"
               placeholderTextColor={theme.textSecondary}
               value={confirmPassword}
-              onChangeText={(value) => {
-                setConfirmPassword(value);
-                setFormError("");
-              }}
+              onChangeText={handleChangeConfirmPassword}
               secureTextEntry={!showConfirmPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              maxLength={PASSWORD_MAX_LENGTH}
               editable={!isLoading}
             />
 
             <Pressable
-              style={styles.passwordIconButton}
+              style={[
+                styles.passwordIconButton,
+                cleanEyeButtonStyle,
+              ]}
               onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               disabled={isLoading}
             >
@@ -445,7 +529,6 @@ export default function CreateAccountScreen() {
                   height={22}
                   color={eyeIconColor}
                   fill={eyeIconColor}
-                  stroke={eyeIconColor}
                 />
               ) : (
                 <VisibilityOff
@@ -453,7 +536,6 @@ export default function CreateAccountScreen() {
                   height={22}
                   color={eyeIconColor}
                   fill={eyeIconColor}
-                  stroke={eyeIconColor}
                 />
               )}
             </Pressable>
@@ -540,8 +622,9 @@ export default function CreateAccountScreen() {
             style={[
               styles.socialButton,
               {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
+                backgroundColor: colors.white,
+                borderColor: colors.white,
+                borderWidth: 0,
               },
             ]}
           >
@@ -557,8 +640,9 @@ export default function CreateAccountScreen() {
             style={[
               styles.socialButton,
               {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
+                backgroundColor: colors.white,
+                borderColor: colors.white,
+                borderWidth: 0,
               },
             ]}
           >
