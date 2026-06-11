@@ -19,8 +19,23 @@ import VisibilityOff from "../../assets/icons/visibility_off.svg";
 import { styles } from "./styles/createAccount";
 import { useTheme } from "@/app/context/ThemeContext";
 import { register } from "@/services/authService";
+import { saveCompanyData } from "@/services/storage";
 
 type AccountType = "freelancer" | "empresa";
+
+function onlyNumbers(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function formatCnpj(value: string) {
+  const numbers = onlyNumbers(value).slice(0, 14);
+
+  return numbers
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
 
 export default function CreateAccountScreen() {
   const params = useLocalSearchParams<{
@@ -28,8 +43,10 @@ export default function CreateAccountScreen() {
   }>();
 
   const accountType: AccountType = params.accountType ?? "freelancer";
+  const isCompanyAccount = accountType === "empresa";
 
   const [name, setName] = useState("");
+  const [cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -82,19 +99,42 @@ export default function CreateAccountScreen() {
 
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
+    const cleanedCnpj = onlyNumbers(cnpj);
 
     if (!trimmedName) {
-      showFormError("Informe seu nome completo.");
+      showFormError(
+        isCompanyAccount
+          ? "Informe o nome da empresa."
+          : "Informe seu nome completo."
+      );
       return;
     }
 
     if (trimmedName.length < 3) {
-      showFormError("Informe um nome com pelo menos 3 caracteres.");
+      showFormError(
+        isCompanyAccount
+          ? "Informe um nome de empresa com pelo menos 3 caracteres."
+          : "Informe um nome com pelo menos 3 caracteres."
+      );
+      return;
+    }
+
+    if (isCompanyAccount && !cleanedCnpj) {
+      showFormError("Informe o CNPJ da empresa.");
+      return;
+    }
+
+    if (isCompanyAccount && cleanedCnpj.length !== 14) {
+      showFormError("Informe um CNPJ válido com 14 números.");
       return;
     }
 
     if (!trimmedEmail) {
-      showFormError("Informe seu e-mail.");
+      showFormError(
+        isCompanyAccount
+          ? "Informe o e-mail comercial."
+          : "Informe seu e-mail."
+      );
       return;
     }
 
@@ -133,16 +173,38 @@ export default function CreateAccountScreen() {
     try {
       setIsLoading(true);
 
-      const user = await register({
-        nome: trimmedName,
-        email: trimmedEmail,
-        senha: password,
-        tipoUsuario: accountType,
-      });
+      const payload = isCompanyAccount
+        ? {
+            nome: trimmedName,
+            email: trimmedEmail,
+            senha: password,
+            tipoUsuario: accountType,
+            cnpj: cleanedCnpj,
+          }
+        : {
+            nome: trimmedName,
+            email: trimmedEmail,
+            senha: password,
+            tipoUsuario: accountType,
+          };
+
+      const user = await register(payload as any);
 
       const tipoUsuario = user.tipoUsuario?.toLowerCase().trim();
 
       if (tipoUsuario === "empresa") {
+        await saveCompanyData(user.id, {
+          name: trimmedName,
+          cnpj: formatCnpj(cleanedCnpj),
+          email: trimmedEmail,
+          phone: "",
+          location: "",
+          address: "",
+          about: "",
+          isVerified: false,
+          tags: [],
+        });
+
         router.replace("/company-dashboard");
         return;
       }
@@ -190,13 +252,15 @@ export default function CreateAccountScreen() {
           </Text>
 
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            Preencha seus dados para começar
+            {isCompanyAccount
+              ? "Preencha os dados da empresa para começar"
+              : "Preencha seus dados para começar"}
           </Text>
         </View>
 
         <View style={styles.form}>
           <Text style={[styles.label, { color: theme.text }]}>
-            Nome completo
+            {isCompanyAccount ? "Nome da empresa" : "Nome completo"}
           </Text>
 
           <TextInput
@@ -208,7 +272,11 @@ export default function CreateAccountScreen() {
                 color: theme.text,
               },
             ]}
-            placeholder="Digite seu nome completo"
+            placeholder={
+              isCompanyAccount
+                ? "Digite o nome da empresa"
+                : "Digite seu nome completo"
+            }
             placeholderTextColor={theme.textSecondary}
             value={name}
             onChangeText={(value) => {
@@ -218,8 +286,37 @@ export default function CreateAccountScreen() {
             editable={!isLoading}
           />
 
+          {isCompanyAccount && (
+            <>
+              <Text style={[styles.label, { color: theme.text }]}>
+                CNPJ
+              </Text>
+
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  },
+                ]}
+                placeholder="00.000.000/0000-00"
+                placeholderTextColor={theme.textSecondary}
+                value={cnpj}
+                onChangeText={(value) => {
+                  setCnpj(formatCnpj(value));
+                  setFormError("");
+                }}
+                keyboardType="numeric"
+                editable={!isLoading}
+                maxLength={18}
+              />
+            </>
+          )}
+
           <Text style={[styles.label, { color: theme.text }]}>
-            E-mail
+            {isCompanyAccount ? "E-mail comercial" : "E-mail"}
           </Text>
 
           <TextInput
@@ -231,7 +328,11 @@ export default function CreateAccountScreen() {
                 color: theme.text,
               },
             ]}
-            placeholder="exemplo@email.com"
+            placeholder={
+              isCompanyAccount
+                ? "comercial@empresa.com"
+                : "exemplo@email.com"
+            }
             placeholderTextColor={theme.textSecondary}
             value={email}
             onChangeText={(value) => {

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Image,
   Pressable,
@@ -19,42 +20,35 @@ import { styles } from "@/app/styles/companyPublicProfile";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
 
-const companyTags = [
-  "Empresa verificada",
-  "Boa comunicação",
-  "Eventos",
-  "Contratação rápida",
-];
+type CompanyReview = {
+  id: string;
+  freelancer: string;
+  rating: number;
+  comment: string;
+  date: string;
+};
 
-const reviews = [
-  {
-    id: "1",
-    freelancer: "Usuário TaskFlow",
-    rating: 5,
-    comment:
-      "Empresa organizada, passou todas as informações corretamente e manteve boa comunicação durante o serviço.",
-    date: "Hoje",
-  },
-  {
-    id: "2",
-    freelancer: "Anna Clara",
-    rating: 5,
-    comment:
-      "Ótima empresa para trabalhar. O pagamento foi confirmado e o serviço estava bem explicado.",
-    date: "2 dias atrás",
-  },
-  {
-    id: "3",
-    freelancer: "Gabriel Santos",
-    rating: 4,
-    comment:
-      "Boa experiência. O chamado estava claro e o contato pelo chat ajudou bastante.",
-    date: "1 semana atrás",
-  },
-];
+type CompanyPublicProfile = {
+  id?: string;
+  name: string;
+  location: string;
+  rating?: string;
+  reviewsCount?: number;
+  totalJobs?: number;
+  completedJobs?: number;
+  satisfactionRate?: string;
+  about?: string;
+  tags: string[];
+  isVerified: boolean;
+  averageResponseTime?: string;
+  reviews: CompanyReview[];
+  logoUrl?: string;
+};
 
 export default function CompanyPublicProfileScreen() {
   const params = useLocalSearchParams<{
+    companyId?: string;
+    empresaId?: string;
     companyName?: string;
     companyLocation?: string;
     companyRating?: string;
@@ -63,10 +57,79 @@ export default function CompanyPublicProfileScreen() {
 
   const { isDark, theme } = useTheme();
 
-  const companyName = params.companyName ?? "TaskFlow Eventos";
-  const companyLocation = params.companyLocation ?? "Sorocaba - SP";
-  const companyRating = params.companyRating ?? "4,9";
-  const jobTitle = params.jobTitle ?? "Garçom para Evento";
+  const companyId = params.companyId ?? params.empresaId ?? "";
+  const jobTitle = params.jobTitle ?? "Chamado selecionado";
+
+  const [companyProfile, setCompanyProfile] =
+    useState<CompanyPublicProfile | null>(null);
+
+  useEffect(() => {
+    loadCompanyProfile();
+  }, [companyId]);
+
+  async function loadCompanyProfile() {
+    /*
+      LOCAL DA API FUTURAMENTE:
+
+      Quando a API tiver uma rota para buscar o perfil público da empresa,
+      a chamada deve entrar aqui.
+
+      Exemplo de rota futura:
+
+      const response = await apiGet<CompanyPublicProfile>(
+        `/api/Empresas/${companyId}/perfil-publico`
+      );
+
+      setCompanyProfile(response);
+
+      Dados esperados da API:
+      - nome da empresa
+      - localização
+      - nota média
+      - quantidade de avaliações
+      - total de chamados publicados
+      - chamados concluídos
+      - taxa de satisfação
+      - descrição da empresa
+      - tags
+      - se é verificada
+      - tempo médio de resposta
+      - avaliações dos freelancers
+      - logo da empresa
+    */
+
+    setCompanyProfile({
+      id: companyId,
+      name: params.companyName ?? "Empresa não informada",
+      location: params.companyLocation ?? "Localização não informada",
+      rating: params.companyRating,
+      reviewsCount: undefined,
+      totalJobs: undefined,
+      completedJobs: undefined,
+      satisfactionRate: undefined,
+      about: undefined,
+      tags: [],
+      isVerified: false,
+      averageResponseTime: undefined,
+      reviews: [],
+      logoUrl: undefined,
+    });
+  }
+
+  const companyName = companyProfile?.name ?? "Empresa não informada";
+  const companyLocation =
+    companyProfile?.location ?? "Localização não informada";
+  const companyRating = companyProfile?.rating ?? "Sem nota";
+  const reviewsCount = companyProfile?.reviewsCount;
+  const totalJobs = companyProfile?.totalJobs;
+  const completedJobs = companyProfile?.completedJobs;
+  const satisfactionRate = companyProfile?.satisfactionRate;
+  const about = companyProfile?.about;
+  const tags = companyProfile?.tags ?? [];
+  const isVerified = companyProfile?.isVerified ?? false;
+  const averageResponseTime = companyProfile?.averageResponseTime;
+  const reviews = companyProfile?.reviews ?? [];
+  const logoUrl = companyProfile?.logoUrl;
 
   return (
     <SafeAreaView
@@ -111,15 +174,25 @@ export default function CompanyPublicProfileScreen() {
           ]}
         >
           <View style={styles.logoArea}>
-            <Image
-              source={require("../../assets/images/icon.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            {logoUrl ? (
+              <Image
+                source={{ uri: logoUrl }}
+                style={styles.logo}
+                resizeMode="cover"
+              />
+            ) : (
+              <Image
+                source={require("../../assets/images/icon.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            )}
 
-            <View style={styles.verifiedBadge}>
-              <CheckIcon width={13} height={13} />
-            </View>
+            {isVerified && (
+              <View style={styles.verifiedBadge}>
+                <CheckIcon width={13} height={13} />
+              </View>
+            )}
           </View>
 
           <Text style={[styles.companyName, { color: theme.text }]}>
@@ -138,7 +211,9 @@ export default function CompanyPublicProfileScreen() {
             </Text>
 
             <Text style={[styles.ratingSubtext, { color: theme.textSecondary }]}>
-              • 32 avaliações
+              {reviewsCount !== undefined
+                ? `• ${reviewsCount} avaliações`
+                : "• avaliações via API"}
             </Text>
           </View>
 
@@ -153,7 +228,7 @@ export default function CompanyPublicProfileScreen() {
           >
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
-                32
+                {totalJobs ?? "—"}
               </Text>
 
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
@@ -170,7 +245,7 @@ export default function CompanyPublicProfileScreen() {
 
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
-                28
+                {completedJobs ?? "—"}
               </Text>
 
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
@@ -187,7 +262,7 @@ export default function CompanyPublicProfileScreen() {
 
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
-                96%
+                {satisfactionRate ?? "—"}
               </Text>
 
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
@@ -233,29 +308,30 @@ export default function CompanyPublicProfileScreen() {
           </Text>
 
           <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
-            Empresa focada na contratação de profissionais para eventos, serviços
-            rápidos e demandas sob demanda. Costuma publicar chamados com
-            informações claras sobre local, horário, valor e atividades esperadas.
+            {about ??
+              "As informações públicas da empresa serão carregadas pela API quando esse recurso estiver disponível."}
           </Text>
 
-          <View style={styles.tagsArea}>
-            {companyTags.map((tag) => (
-              <View
-                key={tag}
-                style={[
-                  styles.tag,
-                  {
-                    backgroundColor: theme.background,
-                    borderColor: theme.border,
-                  },
-                ]}
-              >
-                <Text style={[styles.tagText, { color: theme.text }]}>
-                  {tag}
-                </Text>
-              </View>
-            ))}
-          </View>
+          {tags.length > 0 && (
+            <View style={styles.tagsArea}>
+              {tags.map((tag) => (
+                <View
+                  key={tag}
+                  style={[
+                    styles.tag,
+                    {
+                      backgroundColor: theme.background,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.tagText, { color: theme.text }]}>
+                    {tag}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         <View
@@ -273,7 +349,7 @@ export default function CompanyPublicProfileScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <LocationIcon width={22} height={22} color={colors.location}/>
+              <LocationIcon width={22} height={22} color={colors.location} />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -305,7 +381,7 @@ export default function CompanyPublicProfileScreen() {
               </Text>
 
               <Text style={[styles.infoValue, { color: theme.text }]}>
-                Empresa verificada
+                {isVerified ? "Empresa verificada" : "Verificação via API"}
               </Text>
             </View>
           </View>
@@ -328,7 +404,7 @@ export default function CompanyPublicProfileScreen() {
               </Text>
 
               <Text style={[styles.infoValue, { color: theme.text }]}>
-                Até 10 minutos
+                {averageResponseTime ?? "Informação via API"}
               </Text>
             </View>
           </View>
@@ -345,9 +421,8 @@ export default function CompanyPublicProfileScreen() {
           </Text>
 
           <View style={styles.reviewsList}>
-            {reviews.map((review) => (
+            {reviews.length === 0 ? (
               <View
-                key={review.id}
                 style={[
                   styles.reviewCard,
                   {
@@ -356,31 +431,63 @@ export default function CompanyPublicProfileScreen() {
                   },
                 ]}
               >
-                <View style={styles.reviewHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                      {review.freelancer.charAt(0)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.reviewHeaderText}>
-                    <Text style={[styles.freelancerName, { color: theme.text }]}>
-                      {review.freelancer}
-                    </Text>
-
-                    <Text style={[styles.reviewDate, { color: theme.textSecondary }]}>
-                      {review.date}
-                    </Text>
-                  </View>
-
-                  <Text style={styles.reviewRating}>⭐ {review.rating},0</Text>
-                </View>
-
                 <Text style={[styles.reviewComment, { color: theme.textSecondary }]}>
-                  {review.comment}
+                  As avaliações reais da empresa serão exibidas aqui quando a API
+                  retornar esses dados.
                 </Text>
               </View>
-            ))}
+            ) : (
+              reviews.map((review) => (
+                <View
+                  key={review.id}
+                  style={[
+                    styles.reviewCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.reviewHeader}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {review.freelancer.charAt(0)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.reviewHeaderText}>
+                      <Text
+                        style={[styles.freelancerName, { color: theme.text }]}
+                      >
+                        {review.freelancer}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.reviewDate,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        {review.date}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.reviewRating}>
+                      ⭐ {review.rating.toFixed(1).replace(".", ",")}
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.reviewComment,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {review.comment}
+                  </Text>
+                </View>
+              ))
+            )}
           </View>
         </View>
 

@@ -15,7 +15,7 @@ import TimeIcon from "../../assets/icons/access_time.svg";
 
 import { styles } from "@/app/styles/jobDetails";
 
-export default function JobDetailsScreen() {
+export default function JobSummaryScreen() {
   const params = useLocalSearchParams<{
     title?: string;
     category?: string;
@@ -25,12 +25,12 @@ export default function JobDetailsScreen() {
     time?: string;
   }>();
 
-  const title = params.title ?? "Garçom para Evento";
-  const category = params.category ?? "Evento";
-  const price = params.price ?? "R$200,00";
-  const distance = params.distance ?? "1,5 km";
-  const location = params.location ?? "Centro";
-  const time = params.time ?? "Hoje, 18:00";
+  const title = params.title ?? "Chamado disponível";
+  const category = params.category ?? "Categoria";
+  const price = params.price ?? "A combinar";
+  const distance = params.distance ?? "Perto de você";
+  const location = params.location ?? "Local não informado";
+  const time = params.time ?? "Data a combinar";
 
   function handleRequestService() {
     console.log("Solicitar atendimento:", title);
@@ -50,10 +50,14 @@ export default function JobDetailsScreen() {
     router.push({
       pathname: "/company-public-profile",
       params: {
-        companyName: "TaskFlow Eventos",
-        companyLocation: location,
-        companyRating: "4,9",
         jobTitle: title,
+
+        /*
+          Futuramente, quando a API retornar o ID da empresa no chamado,
+          enviar aqui:
+
+          companyId: empresaId,
+        */
       },
     });
   }
@@ -98,6 +102,7 @@ export default function JobDetailsScreen() {
 
             <View style={styles.infoTextArea}>
               <Text style={styles.infoLabel}>Localização</Text>
+
               <Text style={styles.infoValue}>
                 {distance} - {location}
               </Text>
@@ -113,6 +118,7 @@ export default function JobDetailsScreen() {
 
             <View style={styles.infoTextArea}>
               <Text style={styles.infoLabel}>Data e horário</Text>
+
               <Text style={styles.infoValue}>{time}</Text>
             </View>
           </View>
@@ -122,22 +128,22 @@ export default function JobDetailsScreen() {
           <Text style={styles.sectionTitle}>Descrição do serviço</Text>
 
           <Text style={styles.description}>
-            A empresa está procurando um profissional disponível para atender
-            este chamado de forma pontual, com responsabilidade, boa comunicação
-            e experiência na categoria informada. O freelancer deverá comparecer
-            no local indicado e realizar o serviço conforme os detalhes
-            combinados após a aprovação da solicitação.
+            A descrição deste chamado será carregada conforme os dados
+            cadastrados pela empresa na API.
           </Text>
         </View>
 
         <View style={styles.companyCard}>
           <View style={styles.companyAvatar}>
-            <Text style={styles.companyAvatarText}>TF</Text>
+            <Text style={styles.companyAvatarText}>API</Text>
           </View>
 
           <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>TaskFlow Eventos</Text>
-            <Text style={styles.companyRating}>⭐ 4,8 • Empresa verificada</Text>
+            <Text style={styles.companyName}>Empresa via API</Text>
+
+            <Text style={styles.companyRating}>
+              Nota e verificação via API
+            </Text>
           </View>
         </View>
 

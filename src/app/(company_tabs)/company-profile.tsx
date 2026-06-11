@@ -2,7 +2,7 @@ import { getCompanyData, getLoggedUser } from "@/services/storage";
 import { logout } from "@/services/authService";
 
 import type { ComponentType } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Image,
   Pressable,
@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import BadgeIcon from "../../../assets/icons/badge.svg";
 import StarIcon from "../../../assets/icons/star_border.svg";
@@ -59,52 +59,55 @@ export default function CompanyProfileScreen() {
   const [company, setCompany] = useState<CompanyProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    loadCompanyProfile();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadCompanyProfile();
+    }, [])
+  );
 
- async function loadCompanyProfile() {
-  try {
-    setIsLoading(true);
+  async function loadCompanyProfile() {
+    try {
+      setIsLoading(true);
 
-    const loggedUser = await getLoggedUser();
+      const loggedUser = await getLoggedUser();
 
-    if (!loggedUser) {
+      if (!loggedUser) {
+        setCompany(null);
+        router.replace("/login");
+        return;
+      }
+
+      const savedCompanyData = await getCompanyData(loggedUser.id);
+
+      setCompany({
+        id: loggedUser.perfilId ?? loggedUser.id,
+        name: savedCompanyData?.name || loggedUser.nome,
+        type: "Empresa contratante",
+        logoUrl: savedCompanyData?.logoUrl,
+        isVerified: savedCompanyData?.isVerified ?? false,
+        reviewsCount: 0,
+        totalJobs: 0,
+        completedJobs: 0,
+        satisfactionRate: 0,
+        about:
+          savedCompanyData?.about ||
+          "Quando a empresa preencher a descrição, ela aparecerá aqui.",
+        tags: savedCompanyData?.tags ?? [],
+        location: savedCompanyData?.location || "Não informado",
+        phone: savedCompanyData?.phone || loggedUser.telefone || "Não informado",
+        email: savedCompanyData?.email || loggedUser.email,
+      });
+    } catch (error) {
+      console.log("Erro ao carregar perfil da empresa:", error);
       setCompany(null);
-      router.replace("/login");
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    const savedCompanyData = await getCompanyData(loggedUser.id);
-
-    setCompany({
-      id: loggedUser.perfilId ?? loggedUser.id,
-      name: savedCompanyData?.name || loggedUser.nome,
-      type: "Empresa contratante",
-      logoUrl: savedCompanyData?.logoUrl,
-      isVerified: savedCompanyData?.isVerified ?? false,
-      reviewsCount: 0,
-      totalJobs: 0,
-      completedJobs: 0,
-      satisfactionRate: 0,
-      about:
-        savedCompanyData?.about ||
-        "Quando a empresa preencher a descrição, ela aparecerá aqui.",
-      tags: savedCompanyData?.tags ?? [],
-      location: savedCompanyData?.location || "Não informado",
-      phone:
-        savedCompanyData?.phone ||
-        loggedUser.telefone ||
-        "Não informado",
-      email: savedCompanyData?.email || loggedUser.email,
-    });
-  } catch (error) {
-    console.log("Erro ao carregar perfil da empresa:", error);
-    setCompany(null);
-  } finally {
-    setIsLoading(false);
   }
-}
+
+  const iconColor = colors.black;
+  const iconBoxBackground = isDark ? colors.white : colors.lightGray;
+  const iconBoxBorder = isDark ? colors.white : colors.border;
 
   const menuOptions: MenuOption[] = [
     {
@@ -220,12 +223,14 @@ export default function CompanyProfileScreen() {
                     backgroundColor: theme.inputBackground,
                     alignItems: "center",
                     justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: theme.border,
                   },
                 ]}
               >
                 <Text
                   style={{
-                    color: theme.textSecondary,
+                    color: theme.text,
                     fontSize: 28,
                     fontWeight: "900",
                   }}
@@ -237,7 +242,7 @@ export default function CompanyProfileScreen() {
 
             {company?.isVerified && (
               <View style={styles.verifiedBadge}>
-                <CheckIcon width={13} height={13} />
+                <CheckIcon width={13} height={13} color={colors.white} />
               </View>
             )}
           </View>
@@ -253,7 +258,7 @@ export default function CompanyProfileScreen() {
           </Text>
 
           <View style={styles.ratingArea}>
-            <StarIcon width={17} height={17} />
+            <StarIcon width={17} height={17} color={colors.warning} />
 
             <Text style={[styles.ratingText, { color: theme.text }]}>
               {getRatingText()}
@@ -271,7 +276,16 @@ export default function CompanyProfileScreen() {
             )}
           </View>
 
-          <View style={styles.statsArea}>
+          <View
+            style={[
+              styles.statsArea,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+                borderWidth: 1,
+              },
+            ]}
+          >
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
                 {company?.totalJobs ?? 0}
@@ -344,7 +358,7 @@ export default function CompanyProfileScreen() {
                   style={[
                     styles.tag,
                     {
-                      backgroundColor: theme.background,
+                      backgroundColor: theme.inputBackground,
                       borderColor: theme.border,
                     },
                   ]}
@@ -373,7 +387,7 @@ export default function CompanyProfileScreen() {
 
           <View style={styles.contactRow}>
             <View style={styles.contactIconBox}>
-              <LocationIcon width={22} height={22} color={colors.location} />
+              <LocationIcon width={22} height={22} color={colors.black} />
             </View>
 
             <View style={styles.contactTextArea}>
@@ -401,7 +415,7 @@ export default function CompanyProfileScreen() {
 
           <View style={styles.contactRow}>
             <View style={styles.contactIconBox}>
-              <SupportIcon width={22} height={22} />
+              <SupportIcon width={22} height={22} color={colors.black} />
             </View>
 
             <View style={styles.contactTextArea}>
@@ -429,7 +443,7 @@ export default function CompanyProfileScreen() {
 
           <View style={styles.contactRow}>
             <View style={styles.contactIconBox}>
-              <SendIcon width={22} height={22} />
+              <SendIcon width={22} height={22} color={iconColor} />
             </View>
 
             <View style={styles.contactTextArea}>
@@ -467,8 +481,17 @@ export default function CompanyProfileScreen() {
               ]}
               onPress={option.action}
             >
-              <View style={styles.menuIconBox}>
-                <option.Icon width={24} height={24} />
+              <View
+                style={[
+                  styles.menuIconBox,
+                  {
+                    backgroundColor: iconBoxBackground,
+                    borderColor: iconBoxBorder,
+                    borderWidth: 1,
+                  },
+                ]}
+              >
+                <option.Icon width={24} height={24} color={iconColor} />
               </View>
 
               <View style={styles.menuTextArea}>

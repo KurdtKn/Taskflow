@@ -8,7 +8,7 @@ import { useTheme } from "@/app/context/ThemeContext";
 export default function WelcomeScreen() {
   const { isDark, theme } = useTheme();
 
-  function handleGoToRegister() {
+  function handleStart() {
     router.push("/account-type");
   }
 
@@ -44,19 +44,10 @@ export default function WelcomeScreen() {
           styles.button,
           pressed && styles.buttonPressed,
         ]}
-        onPress={() => router.push("/account-type")}
+        onPress={handleStart}
       >
         <Text style={styles.buttonText}>Começar</Text>
       </Pressable>
-
-      <View style={styles.loginArea}>
-        <Text style={[styles.loginText, { color: theme.textSecondary }]}>
-          Ainda não tem uma conta?{" "}
-          <Text style={styles.loginLink} onPress={handleGoToRegister}>
-            Registrar-se
-          </Text>
-        </Text>
-      </View>
     </SafeAreaView>
   );
 }
