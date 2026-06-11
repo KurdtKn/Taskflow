@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Image,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -53,6 +54,12 @@ type ServiceItem = {
   imageUrl?: string;
 };
 
+const SEARCH_MAX_LENGTH = 60;
+
+function normalizeSearchText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
 export default function HomeScreen() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
 
@@ -62,14 +69,21 @@ export default function HomeScreen() {
   const [userName, setUserName] = useState("Usuário");
 
   const { isDark, theme } = useTheme();
+
   const homeIconColor = isDark ? colors.white : colors.black;
 
+  const filtroCategoriaAtual = String(categoria || "Todos");
+  const filtroCidadeAtual = String(cidade || "");
+  const filtroValorMinAtual = String(valorMin || "");
+  const filtroValorMaxAtual = String(valorMax || "");
+  const buscaAtual = normalizeSearchText(search);
+
   const hasActiveFilters =
-    Boolean(categoria) ||
-    Boolean(cidade) ||
-    Boolean(valorMin) ||
-    Boolean(valorMax) ||
-    Boolean(search);
+    (filtroCategoriaAtual !== "" && filtroCategoriaAtual !== "Todos") ||
+    filtroCidadeAtual.trim() !== "" ||
+    filtroValorMinAtual.trim() !== "" ||
+    filtroValorMaxAtual.trim() !== "" ||
+    buscaAtual !== "";
 
   useEffect(() => {
     loadServices();
@@ -96,6 +110,16 @@ export default function HomeScreen() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handleChangeSearch(value: string) {
+    setSearch(value.slice(0, SEARCH_MAX_LENGTH));
+  }
+
+  function handleBlurSearch() {
+    setSearch((currentValue) =>
+      normalizeSearchText(currentValue).slice(0, SEARCH_MAX_LENGTH)
+    );
   }
 
   function getGenericServiceImageUrl(id: string) {
@@ -252,7 +276,7 @@ export default function HomeScreen() {
       const filtroCidade = String(cidade || "");
       const filtroValorMin = String(valorMin || "");
       const filtroValorMax = String(valorMax || "");
-      const filtroBusca = search.toLowerCase().trim();
+      const filtroBusca = normalizeSearchText(search).toLowerCase();
 
       const valorServico = formatServicePriceToNumber(service.price);
 
@@ -298,6 +322,7 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={{ backgroundColor: theme.background }}
       >
         <View style={styles.header}>
           <View>
@@ -326,7 +351,6 @@ export default function HomeScreen() {
               height={24}
               color={homeIconColor}
               fill={homeIconColor}
-              stroke={homeIconColor}
             />
           </Pressable>
         </View>
@@ -337,7 +361,8 @@ export default function HomeScreen() {
               styles.searchBox,
               {
                 backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
+                borderColor: "transparent",
+                borderWidth: 0,
               },
             ]}
           >
@@ -346,18 +371,25 @@ export default function HomeScreen() {
               height={20}
               color={homeIconColor}
               fill={homeIconColor}
-              stroke={homeIconColor}
             />
 
             <TextInput
               style={[
                 styles.searchInput,
-                { color: theme.text },
+                {
+                  color: theme.text,
+                  backgroundColor: "transparent",
+                  ...(Platform.OS === "web"
+                    ? ({ outlineStyle: "none" } as any)
+                    : {}),
+                },
               ]}
               placeholder="Buscar serviços..."
               placeholderTextColor={theme.textSecondary}
               value={search}
-              onChangeText={setSearch}
+              onChangeText={handleChangeSearch}
+              onBlur={handleBlurSearch}
+              maxLength={SEARCH_MAX_LENGTH}
             />
           </View>
 
@@ -377,7 +409,6 @@ export default function HomeScreen() {
               height={24}
               color={homeIconColor}
               fill={homeIconColor}
-              stroke={homeIconColor}
             />
           </Pressable>
         </View>
@@ -452,7 +483,8 @@ export default function HomeScreen() {
                 textAlign: "center",
               }}
             >
-              Quando empresas publicarem chamados disponíveis, eles aparecerão aqui.
+              Quando empresas publicarem chamados disponíveis, eles aparecerão
+              aqui.
             </Text>
           </View>
         ) : (
@@ -524,11 +556,11 @@ export default function HomeScreen() {
 
                   <View style={styles.infoRow}>
                     <CalendarIcon
-                        width={16}
-                        height={16}
-                        color={homeIconColor}
-                        fill={homeIconColor}
-                      />
+                      width={16}
+                      height={16}
+                      color={homeIconColor}
+                      fill={homeIconColor}
+                    />
 
                     <Text
                       style={[

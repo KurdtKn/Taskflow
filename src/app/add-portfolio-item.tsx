@@ -30,6 +30,16 @@ const categories = [
   "Serviços gerais",
 ];
 
+const TITLE_MAX_LENGTH = 100;
+const DESCRIPTION_MAX_LENGTH = 1000;
+const CLIENT_MAX_LENGTH = 100;
+const DATE_MAX_LENGTH = 30;
+const LINK_MAX_LENGTH = 150;
+
+function removeSpaces(value: string) {
+  return value.replace(/\s/g, "");
+}
+
 export default function AddPortfolioItemScreen() {
   const [selectedCategory, setSelectedCategory] = useState("Eventos");
   const [title, setTitle] = useState("");
@@ -40,14 +50,117 @@ export default function AddPortfolioItemScreen() {
 
   const { isDark, theme } = useTheme();
 
+  const cleanInputStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    color: theme.text,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
+
+  function normalizeLink(value: string) {
+    const cleanedValue = removeSpaces(value.trim()).slice(0, LINK_MAX_LENGTH);
+
+    if (!cleanedValue) {
+      return "";
+    }
+
+    if (
+      cleanedValue.startsWith("http://") ||
+      cleanedValue.startsWith("https://")
+    ) {
+      return cleanedValue;
+    }
+
+    return `https://${cleanedValue}`;
+  }
+
+  function handleChangeTitle(value: string) {
+    setTitle(value.slice(0, TITLE_MAX_LENGTH));
+  }
+
+  function handleChangeDescription(value: string) {
+    setDescription(value.slice(0, DESCRIPTION_MAX_LENGTH));
+  }
+
+  function handleChangeClientName(value: string) {
+    setClientName(value.slice(0, CLIENT_MAX_LENGTH));
+  }
+
+  function handleChangeDate(value: string) {
+    setDate(value.slice(0, DATE_MAX_LENGTH));
+  }
+
+  function handleChangeLink(value: string) {
+    setLink(removeSpaces(value).slice(0, LINK_MAX_LENGTH));
+  }
+
+  function getValidationError() {
+    const trimmedTitle = title.trim();
+    const trimmedDescription = description.trim();
+    const trimmedClientName = clientName.trim();
+    const trimmedDate = date.trim();
+    const normalizedUrl = normalizeLink(link);
+
+    if (!trimmedTitle) {
+      return "Informe o título do trabalho.";
+    }
+
+    if (trimmedTitle.length < 3) {
+      return "O título precisa ter pelo menos 3 caracteres.";
+    }
+
+    if (trimmedTitle.length > TITLE_MAX_LENGTH) {
+      return `O título pode ter no máximo ${TITLE_MAX_LENGTH} caracteres.`;
+    }
+
+    if (!trimmedDescription) {
+      return "Informe a descrição do item.";
+    }
+
+    if (trimmedDescription.length < 10) {
+      return "A descrição precisa ter pelo menos 10 caracteres.";
+    }
+
+    if (trimmedDescription.length > DESCRIPTION_MAX_LENGTH) {
+      return `A descrição pode ter no máximo ${DESCRIPTION_MAX_LENGTH} caracteres.`;
+    }
+
+    if (trimmedClientName.length > CLIENT_MAX_LENGTH) {
+      return `O cliente ou empresa pode ter no máximo ${CLIENT_MAX_LENGTH} caracteres.`;
+    }
+
+    if (trimmedDate.length > DATE_MAX_LENGTH) {
+      return `A data pode ter no máximo ${DATE_MAX_LENGTH} caracteres.`;
+    }
+
+    if (normalizedUrl.length > LINK_MAX_LENGTH) {
+      return `O link pode ter no máximo ${LINK_MAX_LENGTH} caracteres.`;
+    }
+
+    return "";
+  }
+
   function handleSavePortfolioItem() {
-    if (!title.trim() || !description.trim()) {
-      Alert.alert(
-        "Campos obrigatórios",
-        "Preencha pelo menos o título e a descrição do item."
-      );
+    const validationError = getValidationError();
+
+    if (validationError) {
+      Alert.alert("Atenção", validationError);
       return;
     }
+
+    const normalizedUrl = normalizeLink(link);
+
+    setLink(normalizedUrl);
+
+    console.log("Item do portfólio:", {
+      title: title.trim(),
+      category: selectedCategory,
+      description: description.trim(),
+      clientName: clientName.trim(),
+      date: date.trim(),
+      link: normalizedUrl,
+    });
 
     Alert.alert(
       "Item adicionado",
@@ -74,9 +187,22 @@ export default function AddPortfolioItemScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack width={28} height={28} />
+            <ArrowBack
+              width={28}
+              height={28}
+              color={theme.text}
+              fill={theme.text}
+            />
           </Pressable>
 
           <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -89,6 +215,8 @@ export default function AddPortfolioItemScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          style={{ backgroundColor: theme.background }}
+          keyboardShouldPersistTaps="handled"
         >
           <View
             style={[
@@ -114,8 +242,22 @@ export default function AddPortfolioItemScreen() {
               </Text>
             </View>
 
-            <View style={styles.heroIconBox}>
-              <PlusIcon width={34} height={34} color={colors.plus}/>
+            <View
+              style={[
+                styles.heroIconBox,
+                {
+                  backgroundColor: colors.white,
+                  borderColor: colors.white,
+                  borderWidth: 0,
+                },
+              ]}
+            >
+              <PlusIcon
+                width={34}
+                height={34}
+                color={colors.black}
+                fill={colors.black}
+              />
             </View>
           </View>
 
@@ -127,16 +269,13 @@ export default function AddPortfolioItemScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Ex: Garçom em evento corporativo"
               placeholderTextColor={theme.textSecondary}
               value={title}
-              onChangeText={setTitle}
+              onChangeText={handleChangeTitle}
+              maxLength={TITLE_MAX_LENGTH}
             />
           </View>
 
@@ -178,26 +317,44 @@ export default function AddPortfolioItemScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.label, { color: theme.text }]}>
-              Descrição
-            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={[styles.label, { color: theme.text }]}>
+                Descrição
+              </Text>
+
+              <Text
+                style={{
+                  color:
+                    description.length >= DESCRIPTION_MAX_LENGTH
+                      ? "#DC2626"
+                      : theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {description.length}/{DESCRIPTION_MAX_LENGTH}
+              </Text>
+            </View>
 
             <TextInput
               style={[
                 styles.input,
                 styles.textArea,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Descreva o que você fez nesse serviço..."
               placeholderTextColor={theme.textSecondary}
               multiline
               textAlignVertical="top"
               value={description}
-              onChangeText={setDescription}
+              onChangeText={handleChangeDescription}
+              maxLength={DESCRIPTION_MAX_LENGTH}
             />
           </View>
 
@@ -209,16 +366,13 @@ export default function AddPortfolioItemScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Ex: Buffet Aurora"
               placeholderTextColor={theme.textSecondary}
               value={clientName}
-              onChangeText={setClientName}
+              onChangeText={handleChangeClientName}
+              maxLength={CLIENT_MAX_LENGTH}
             />
           </View>
 
@@ -230,16 +384,13 @@ export default function AddPortfolioItemScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Ex: Maio de 2026"
               placeholderTextColor={theme.textSecondary}
               value={date}
-              onChangeText={setDate}
+              onChangeText={handleChangeDate}
+              maxLength={DATE_MAX_LENGTH}
             />
           </View>
 
@@ -251,17 +402,19 @@ export default function AddPortfolioItemScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Ex: link de foto, Instagram ou site"
               placeholderTextColor={theme.textSecondary}
               autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
               value={link}
-              onChangeText={setLink}
+              onChangeText={handleChangeLink}
+              onBlur={() =>
+                setLink((currentValue) => normalizeLink(currentValue))
+              }
+              maxLength={LINK_MAX_LENGTH}
             />
           </View>
 
@@ -287,8 +440,22 @@ export default function AddPortfolioItemScreen() {
                 },
               ]}
             >
-              <View style={styles.previewImage}>
-                <BadgeIcon width={30} height={30} />
+              <View
+                style={[
+                  styles.previewImage,
+                  {
+                    backgroundColor: colors.white,
+                    borderColor: colors.white,
+                    borderWidth: 0,
+                  },
+                ]}
+              >
+                <BadgeIcon
+                  width={30}
+                  height={30}
+                  color={colors.black}
+                  fill={colors.black}
+                />
               </View>
 
               <View style={styles.previewContent}>

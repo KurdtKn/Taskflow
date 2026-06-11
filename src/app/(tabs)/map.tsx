@@ -1,7 +1,14 @@
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, SafeAreaView, Text, TextInput, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  SafeAreaView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 import FilterIcon from "../../../assets/icons/filter.svg";
 import SearchIcon from "../../../assets/icons/search.svg";
@@ -28,6 +35,12 @@ type MapService = {
   };
 };
 
+const SEARCH_MAX_LENGTH = 60;
+
+function normalizeSearchText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
 export default function MapScreen() {
   const { categoria, cidade, valorMin, valorMax } = useLocalSearchParams();
 
@@ -39,7 +52,9 @@ export default function MapScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
-  const searchIconColor = isDark ? colors.white : colors.black;
+
+  const iconColor = isDark ? colors.white : colors.black;
+  const iconBoxColor = colors.black;
 
   useEffect(() => {
     loadMapServices();
@@ -62,26 +77,6 @@ export default function MapScreen() {
         });
 
         setServices(response);
-
-        A API ou o back-end deve retornar os chamados reais disponíveis,
-        já com dados como título, categoria, valor, local, horário e posição.
-
-        Formato esperado:
-        [
-          {
-            id: "1",
-            title: "Título do chamado",
-            category: "Categoria",
-            price: "R$200,00",
-            distance: "1,5 km",
-            location: "Centro",
-            time: "Hoje, 18:00",
-            position: {
-              top: "28%",
-              left: "58%"
-            }
-          }
-        ]
       */
 
       setServices([]);
@@ -91,6 +86,16 @@ export default function MapScreen() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handleChangeSearch(value: string) {
+    setSearch(value.slice(0, SEARCH_MAX_LENGTH));
+  }
+
+  function handleBlurSearch() {
+    setSearch((currentValue) =>
+      normalizeSearchText(currentValue).slice(0, SEARCH_MAX_LENGTH)
+    );
   }
 
   function handleOpenFilters() {
@@ -121,7 +126,7 @@ export default function MapScreen() {
       const filtroCidade = String(cidade || "");
       const filtroValorMin = String(valorMin || "");
       const filtroValorMax = String(valorMax || "");
-      const filtroBusca = search.toLowerCase().trim();
+      const filtroBusca = normalizeSearchText(search).toLowerCase();
 
       const valorServico = getServiceValue(service.price);
 
@@ -211,27 +216,35 @@ export default function MapScreen() {
             styles.searchBox,
             {
               backgroundColor: theme.inputBackground,
-              borderColor: theme.border,
+              borderColor: "transparent",
+              borderWidth: 0,
             },
           ]}
         >
           <SearchIcon
             width={22}
             height={22}
-            color={searchIconColor}
-            fill={searchIconColor}
-            stroke={searchIconColor}
+            color={iconColor}
+            fill={iconColor}
           />
 
           <TextInput
             style={[
               styles.searchInput,
-              { color: theme.text },
+              {
+                color: theme.text,
+                backgroundColor: "transparent",
+                ...(Platform.OS === "web"
+                  ? ({ outlineStyle: "none" } as any)
+                  : {}),
+              },
             ]}
             placeholder="Buscar no mapa..."
             placeholderTextColor={theme.textSecondary}
             value={search}
-            onChangeText={setSearch}
+            onChangeText={handleChangeSearch}
+            onBlur={handleBlurSearch}
+            maxLength={SEARCH_MAX_LENGTH}
           />
         </View>
 
@@ -239,14 +252,20 @@ export default function MapScreen() {
           style={({ pressed }) => [
             styles.filterButton,
             {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
+              backgroundColor: colors.white,
+              borderColor: colors.white,
+              borderWidth: 0,
             },
             pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
           ]}
           onPress={handleOpenFilters}
         >
-          <FilterIcon width={28} height={28} />
+          <FilterIcon
+            width={28}
+            height={28}
+            color={iconBoxColor}
+            fill={iconBoxColor}
+          />
         </Pressable>
       </View>
 
@@ -297,12 +316,18 @@ export default function MapScreen() {
           style={[
             styles.currentLocationButton,
             {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
+              backgroundColor: colors.white,
+              borderColor: colors.white,
+              borderWidth: 0,
             },
           ]}
         >
-          <LocationIcon width={24} height={24} color={colors.location} />
+          <LocationIcon
+            width={24}
+            height={24}
+            color={colors.black}
+            fill={colors.black}
+          />
         </Pressable>
       </View>
 
@@ -367,7 +392,12 @@ export default function MapScreen() {
           </View>
 
           <View style={styles.infoRow}>
-            <LocationIcon width={16} height={16} color={colors.location} />
+            <LocationIcon
+              width={16}
+              height={16}
+              color={iconColor}
+              fill={iconColor}
+            />
 
             <Text style={[styles.infoText, { color: theme.textSecondary }]}>
               {selectedService.distance} - {selectedService.location}
@@ -375,7 +405,12 @@ export default function MapScreen() {
           </View>
 
           <View style={styles.infoRow}>
-            <TimeIcon width={16} height={16} />
+            <TimeIcon
+              width={16}
+              height={16}
+              color={iconColor}
+              fill={iconColor}
+            />
 
             <Text style={[styles.infoText, { color: theme.textSecondary }]}>
               {selectedService.time}

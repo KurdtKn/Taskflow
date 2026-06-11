@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -24,6 +25,12 @@ import { colors } from "@/styles/colors";
 
 type AccountType = "freelancer" | "empresa";
 
+const REMEMBER_ME_KEY = "@taskflow:remember_me";
+
+function getRememberEmailKey(type: AccountType) {
+  return `@taskflow:remember_email:${type}`;
+}
+
 export default function LoginScreen() {
   const params = useLocalSearchParams<{
     accountType?: AccountType;
@@ -36,12 +43,33 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState("");
 
   const { isDark, theme } = useTheme();
+
   const eyeIconColor = isDark ? colors.white : colors.black;
+
+  useEffect(() => {
+    async function loadRememberPreference() {
+      try {
+        const savedEmail = await AsyncStorage.getItem(
+          getRememberEmailKey(accountType)
+        );
+
+        setEmail(savedEmail ?? "");
+        setRememberMe(false);
+      } catch (error) {
+        console.log("Erro ao carregar preferência de login:", error);
+      }
+    }
+
+    loadRememberPreference();
+  }, [accountType]);
 
   function showFormError(message: string) {
     setFormError(message);
@@ -63,6 +91,22 @@ export default function LoginScreen() {
 
   function getAccountTypeLabel(type: AccountType) {
     return type === "empresa" ? "empresa" : "freelancer";
+  }
+
+  async function saveRememberPreference(trimmedEmail: string) {
+    await AsyncStorage.setItem(
+      REMEMBER_ME_KEY,
+      rememberMe ? "true" : "false"
+    );
+
+    const emailKey = getRememberEmailKey(accountType);
+
+    if (rememberMe) {
+      await AsyncStorage.setItem(emailKey, trimmedEmail);
+      return;
+    }
+
+    await AsyncStorage.removeItem(emailKey);
   }
 
   async function handleLogin() {
@@ -115,6 +159,8 @@ export default function LoginScreen() {
         return;
       }
 
+      await saveRememberPreference(trimmedEmail);
+
       if (tipoUsuario === "empresa") {
         router.replace("/company-dashboard");
         return;
@@ -157,7 +203,12 @@ export default function LoginScreen() {
           onPress={() => router.back()}
           disabled={isLoading}
         >
-          <ArrowBack width={28} height={28} />
+          <ArrowBack
+            width={28}
+            height={28}
+            color={theme.text}
+            fill={theme.text}
+          />
         </Pressable>
 
         <View style={styles.header}>
@@ -181,8 +232,12 @@ export default function LoginScreen() {
               styles.input,
               {
                 backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
+                borderColor: "transparent",
+                borderWidth: 0,
                 color: theme.text,
+                ...(Platform.OS === "web"
+                  ? ({ outlineStyle: "none" } as any)
+                  : {}),
               },
             ]}
             placeholder="exemplo@email.com"
@@ -207,14 +262,27 @@ export default function LoginScreen() {
               styles.passwordArea,
               {
                 backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
+                borderColor: "transparent",
+                borderWidth: 0,
+                paddingLeft: 0,
+                paddingRight: 0,
+                overflow: "hidden",
               },
             ]}
           >
             <TextInput
               style={[
                 styles.passwordInput,
-                { color: theme.text },
+                {
+                  color: theme.text,
+                  backgroundColor: "transparent",
+                  paddingLeft: 16,
+                  paddingRight: 8,
+                  flex: 1,
+                  ...(Platform.OS === "web"
+                    ? ({ outlineStyle: "none" } as any)
+                    : {}),
+                },
               ]}
               placeholder="Digite sua senha"
               placeholderTextColor={theme.textSecondary}
@@ -230,7 +298,16 @@ export default function LoginScreen() {
             />
 
             <Pressable
-              style={styles.passwordIconButton}
+              style={[
+                styles.passwordIconButton,
+                {
+                  backgroundColor: "transparent",
+                  borderWidth: 0,
+                  width: 52,
+                  alignItems: "center",
+                  justifyContent: "center",
+                },
+              ]}
               onPress={() => setShowPassword(!showPassword)}
               disabled={isLoading}
             >
@@ -240,7 +317,6 @@ export default function LoginScreen() {
                   height={22}
                   color={eyeIconColor}
                   fill={eyeIconColor}
-                  stroke={eyeIconColor}
                 />
               ) : (
                 <VisibilityOff
@@ -248,9 +324,67 @@ export default function LoginScreen() {
                   height={22}
                   color={eyeIconColor}
                   fill={eyeIconColor}
-                  stroke={eyeIconColor}
                 />
               )}
+            </Pressable>
+          </View>
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 12,
+              marginBottom: 18,
+            }}
+          >
+            <Pressable
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+              }}
+              onPress={() => setRememberMe((currentValue) => !currentValue)}
+              disabled={isLoading}
+              hitSlop={8}
+            >
+              <View
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 6,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: rememberMe
+                    ? theme.primary
+                    : theme.inputBackground,
+                  borderWidth: 1,
+                  borderColor: rememberMe ? theme.primary : theme.border,
+                }}
+              >
+                {rememberMe && (
+                  <Text
+                    style={{
+                      color: colors.white,
+                      fontSize: 14,
+                      fontWeight: "900",
+                      lineHeight: 16,
+                    }}
+                  >
+                    ✓
+                  </Text>
+                )}
+              </View>
+
+              <Text
+                style={{
+                  color: theme.textSecondary,
+                  fontSize: 13,
+                  fontWeight: "700",
+                }}
+              >
+                Manter conectado
+              </Text>
             </Pressable>
           </View>
 
@@ -301,8 +435,9 @@ export default function LoginScreen() {
             style={[
               styles.socialButton,
               {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
+                backgroundColor: colors.white,
+                borderColor: colors.white,
+                borderWidth: 0,
               },
             ]}
           >
@@ -318,8 +453,9 @@ export default function LoginScreen() {
             style={[
               styles.socialButton,
               {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
+                backgroundColor: colors.white,
+                borderColor: colors.white,
+                borderWidth: 0,
               },
             ]}
           >

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -25,6 +26,13 @@ const ratingTags = [
   "Atencioso",
 ];
 
+const COMMENT_MIN_LENGTH = 50;
+const COMMENT_MAX_LENGTH = 500;
+
+function normalizeComment(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
 export default function RateServiceScreen() {
   const params = useLocalSearchParams<{
     jobTitle?: string;
@@ -43,6 +51,18 @@ export default function RateServiceScreen() {
 
   const { isDark, theme } = useTheme();
 
+  const cleanTextAreaStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    color: theme.text,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
+
+  function handleChangeComment(value: string) {
+    setComment(value.slice(0, COMMENT_MAX_LENGTH));
+  }
+
   function toggleTag(tag: string) {
     setSelectedTags((currentTags) => {
       if (currentTags.includes(tag)) {
@@ -53,13 +73,44 @@ export default function RateServiceScreen() {
     });
   }
 
+  function getValidationError() {
+    const normalizedComment = normalizeComment(comment);
+
+    if (rating <= 0) {
+      return "Selecione uma nota para o serviço.";
+    }
+
+    if (!normalizedComment) {
+      return "Escreva um comentário sobre sua experiência.";
+    }
+
+    if (normalizedComment.length < COMMENT_MIN_LENGTH) {
+      return `O comentário precisa ter pelo menos ${COMMENT_MIN_LENGTH} caracteres.`;
+    }
+
+    if (normalizedComment.length > COMMENT_MAX_LENGTH) {
+      return `O comentário pode ter no máximo ${COMMENT_MAX_LENGTH} caracteres.`;
+    }
+
+    return "";
+  }
+
   function handleSubmitReview() {
+    const validationError = getValidationError();
+
+    if (validationError) {
+      Alert.alert("Atenção", validationError);
+      return;
+    }
+
+    const normalizedComment = normalizeComment(comment);
+
     console.log({
       jobTitle,
       candidateName,
       rating,
       selectedTags,
-      comment,
+      comment: normalizedComment,
     });
 
     router.replace("/company-dashboard");
@@ -78,9 +129,22 @@ export default function RateServiceScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack width={28} height={28} />
+            <ArrowBack
+              width={28}
+              height={28}
+              color={theme.text}
+              fill={theme.text}
+            />
           </Pressable>
 
           <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -93,6 +157,8 @@ export default function RateServiceScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: theme.background }}
         >
           <View
             style={[
@@ -192,7 +258,12 @@ export default function RateServiceScreen() {
               O que se destacou?
             </Text>
 
-            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+            <Text
+              style={[
+                styles.sectionSubtitle,
+                { color: theme.textSecondary },
+              ]}
+            >
               Selecione pontos positivos sobre o atendimento.
             </Text>
 
@@ -229,26 +300,58 @@ export default function RateServiceScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              Comentário
-            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Comentário
+              </Text>
+
+              <Text
+                style={{
+                  color:
+                    comment.length >= COMMENT_MAX_LENGTH
+                      ? "#DC2626"
+                      : theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {comment.length}/{COMMENT_MAX_LENGTH}
+              </Text>
+            </View>
 
             <TextInput
               style={[
                 styles.textArea,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanTextAreaStyle,
               ]}
               placeholder="Escreva um comentário sobre sua experiência..."
               placeholderTextColor={theme.textSecondary}
               value={comment}
-              onChangeText={setComment}
+              onChangeText={handleChangeComment}
               multiline
               textAlignVertical="top"
+              maxLength={COMMENT_MAX_LENGTH}
             />
+
+            <Text
+              style={{
+                color:
+                  normalizeComment(comment).length >= COMMENT_MIN_LENGTH
+                    ? theme.textSecondary
+                    : "#DC2626",
+                fontSize: 12,
+                fontWeight: "700",
+                marginTop: 8,
+              }}
+            >
+              Mínimo de {COMMENT_MIN_LENGTH} caracteres.
+            </Text>
           </View>
 
           <View

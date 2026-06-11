@@ -53,6 +53,19 @@ const defaultSkills: Skill[] = [
   { id: "8", name: "Suporte técnico" },
 ];
 
+const NAME_MAX_LENGTH = 100;
+const BIO_MAX_LENGTH = 1000;
+const EXPERIENCE_MAX_LENGTH = 1000;
+const PORTFOLIO_MAX_LENGTH = 150;
+
+function onlyNumbers(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function removeSpaces(value: string) {
+  return value.replace(/\s/g, "");
+}
+
 export default function EditProfileScreen() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -68,6 +81,14 @@ export default function EditProfileScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  const cleanInputStyle = {
+    backgroundColor: theme.inputBackground,
+    borderColor: "transparent",
+    borderWidth: 0,
+    color: theme.text,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  };
 
   useEffect(() => {
     loadProfile();
@@ -88,13 +109,33 @@ export default function EditProfileScreen() {
 
       const savedFreelancerData = await getFreelancerData(loggedUser.id);
 
-      setName(savedFreelancerData?.name || loggedUser.nome || "");
+      setName(
+        (savedFreelancerData?.name || loggedUser.nome || "").slice(
+          0,
+          NAME_MAX_LENGTH
+        )
+      );
+
       setPhone(
         formatPhone(savedFreelancerData?.phone || loggedUser.telefone || "")
       );
-      setBio(savedFreelancerData?.about || "");
-      setExperience(savedFreelancerData?.experience || "");
-      setPortfolioUrl(savedFreelancerData?.portfolioUrl || "");
+
+      setBio((savedFreelancerData?.about || "").slice(0, BIO_MAX_LENGTH));
+
+      setExperience(
+        (savedFreelancerData?.experience || "").slice(
+          0,
+          EXPERIENCE_MAX_LENGTH
+        )
+      );
+
+      setPortfolioUrl(
+        removeSpaces(savedFreelancerData?.portfolioUrl || "").slice(
+          0,
+          PORTFOLIO_MAX_LENGTH
+        )
+      );
+
       setPhotoUrl(savedFreelancerData?.photoUrl);
       setIsAvailable(savedFreelancerData?.isAvailable ?? true);
       setSelectedSkills(savedFreelancerData?.tags ?? []);
@@ -115,14 +156,21 @@ export default function EditProfileScreen() {
   }
 
   function formatPhone(value: string) {
-    const numbersOnly = value.replace(/\D/g, "").slice(0, 11);
+    const numbersOnly = onlyNumbers(value).slice(0, 11);
 
     if (numbersOnly.length <= 2) {
       return numbersOnly;
     }
 
-    if (numbersOnly.length <= 7) {
+    if (numbersOnly.length <= 6) {
       return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(2)}`;
+    }
+
+    if (numbersOnly.length <= 10) {
+      return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(
+        2,
+        6
+      )}-${numbersOnly.slice(6)}`;
     }
 
     return `(${numbersOnly.slice(0, 2)}) ${numbersOnly.slice(
@@ -131,11 +179,51 @@ export default function EditProfileScreen() {
     )}-${numbersOnly.slice(7)}`;
   }
 
+  function normalizePortfolioUrl(value: string) {
+    const cleanedValue = removeSpaces(value.trim()).slice(
+      0,
+      PORTFOLIO_MAX_LENGTH
+    );
+
+    if (!cleanedValue) {
+      return "";
+    }
+
+    if (
+      cleanedValue.startsWith("http://") ||
+      cleanedValue.startsWith("https://")
+    ) {
+      return cleanedValue;
+    }
+
+    return `https://${cleanedValue}`;
+  }
+
+  function handleChangeName(value: string) {
+    setName(value.slice(0, NAME_MAX_LENGTH));
+  }
+
   function handleChangePhone(value: string) {
     setPhone(formatPhone(value));
   }
 
+  function handleChangeBio(value: string) {
+    setBio(value.slice(0, BIO_MAX_LENGTH));
+  }
+
+  function handleChangeExperience(value: string) {
+    setExperience(value.slice(0, EXPERIENCE_MAX_LENGTH));
+  }
+
+  function handleChangePortfolioUrl(value: string) {
+    setPortfolioUrl(removeSpaces(value).slice(0, PORTFOLIO_MAX_LENGTH));
+  }
+
   function toggleSkill(skillName: string) {
+    if (isSaving || isLoading) {
+      return;
+    }
+
     setSelectedSkills((currentSkills) => {
       if (currentSkills.includes(skillName)) {
         return currentSkills.filter((skill) => skill !== skillName);
@@ -151,14 +239,56 @@ export default function EditProfileScreen() {
       phone: phone.trim(),
       bio: bio.trim(),
       experience: experience.trim(),
-      portfolioUrl: portfolioUrl.trim(),
+      portfolioUrl: normalizePortfolioUrl(portfolioUrl),
       isAvailable,
       selectedSkills,
       photoUrl,
     };
   }
 
+  function getValidationError(profileData: FreelancerProfileForm) {
+    const cleanedPhone = onlyNumbers(profileData.phone);
+
+    if (!profileData.name) {
+      return "Informe seu nome completo.";
+    }
+
+    if (profileData.name.length < 3) {
+      return "O nome precisa ter pelo menos 3 caracteres.";
+    }
+
+    if (profileData.name.length > NAME_MAX_LENGTH) {
+      return `O nome pode ter no máximo ${NAME_MAX_LENGTH} caracteres.`;
+    }
+
+    if (cleanedPhone && cleanedPhone.length < 10) {
+      return "Informe um telefone válido com DDD.";
+    }
+
+    if (cleanedPhone && cleanedPhone.length > 11) {
+      return "O telefone pode ter no máximo 11 números.";
+    }
+
+    if (profileData.bio.length > BIO_MAX_LENGTH) {
+      return `A biografia pode ter no máximo ${BIO_MAX_LENGTH} caracteres.`;
+    }
+
+    if (profileData.experience.length > EXPERIENCE_MAX_LENGTH) {
+      return `A experiência pode ter no máximo ${EXPERIENCE_MAX_LENGTH} caracteres.`;
+    }
+
+    if (profileData.portfolioUrl.length > PORTFOLIO_MAX_LENGTH) {
+      return `O link do portfólio pode ter no máximo ${PORTFOLIO_MAX_LENGTH} caracteres.`;
+    }
+
+    return "";
+  }
+
   async function handleChangePhoto() {
+    if (isSaving || isLoading) {
+      return;
+    }
+
     try {
       if (Platform.OS !== "web") {
         const permissionResult =
@@ -220,13 +350,14 @@ export default function EditProfileScreen() {
     console.log("Clicou em salvar perfil");
 
     const profileData = getCurrentProfileData();
+    const validationError = getValidationError(profileData);
 
-    console.log("Dados do formulário:", profileData);
-
-    if (!profileData.name) {
-      Alert.alert("Campo obrigatório", "Informe seu nome completo.");
+    if (validationError) {
+      Alert.alert("Atenção", validationError);
       return;
     }
+
+    console.log("Dados do formulário:", profileData);
 
     try {
       setIsSaving(true);
@@ -240,6 +371,8 @@ export default function EditProfileScreen() {
         router.replace("/login");
         return;
       }
+
+      setPortfolioUrl(profileData.portfolioUrl);
 
       const savedFreelancerData = await getFreelancerData(loggedUser.id);
 
@@ -294,13 +427,26 @@ export default function EditProfileScreen() {
         style={styles.keyboardArea}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
           <Pressable
             style={styles.backButton}
             onPress={() => router.back()}
             disabled={isSaving}
           >
-            <ArrowBack width={28} height={28} />
+            <ArrowBack
+              width={28}
+              height={28}
+              color={theme.text}
+              fill={theme.text}
+            />
           </Pressable>
 
           <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -314,6 +460,7 @@ export default function EditProfileScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: theme.background }}
         >
           <View style={styles.avatarSection}>
             <View style={styles.avatarArea}>
@@ -349,7 +496,7 @@ export default function EditProfileScreen() {
               <Pressable
                 style={styles.editPhotoButton}
                 onPress={handleChangePhoto}
-                disabled={isSaving}
+                disabled={isSaving || isLoading}
               >
                 <Text style={styles.editPhotoIcon}>✎</Text>
               </Pressable>
@@ -395,18 +542,15 @@ export default function EditProfileScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Digite seu nome"
               placeholderTextColor={theme.textSecondary}
               value={name}
-              onChangeText={setName}
+              onChangeText={handleChangeName}
+              maxLength={NAME_MAX_LENGTH}
               autoCapitalize="words"
-              editable={!isSaving}
+              editable={!isSaving && !isLoading}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -416,11 +560,7 @@ export default function EditProfileScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="(00) 00000-0000"
               placeholderTextColor={theme.textSecondary}
@@ -428,53 +568,89 @@ export default function EditProfileScreen() {
               onChangeText={handleChangePhone}
               keyboardType="phone-pad"
               maxLength={15}
-              editable={!isSaving}
+              editable={!isSaving && !isLoading}
             />
 
-            <Text style={[styles.label, { color: theme.text }]}>
-              Biografia
-            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={[styles.label, { color: theme.text }]}>
+                Biografia
+              </Text>
+
+              <Text
+                style={{
+                  color:
+                    bio.length >= BIO_MAX_LENGTH
+                      ? "#DC2626"
+                      : theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {bio.length}/{BIO_MAX_LENGTH}
+              </Text>
+            </View>
 
             <TextInput
               style={[
                 styles.input,
                 styles.textArea,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Conte um pouco sobre você"
               placeholderTextColor={theme.textSecondary}
               value={bio}
-              onChangeText={setBio}
+              onChangeText={handleChangeBio}
+              maxLength={BIO_MAX_LENGTH}
               multiline
               textAlignVertical="top"
-              editable={!isSaving}
+              editable={!isSaving && !isLoading}
             />
 
-            <Text style={[styles.label, { color: theme.text }]}>
-              Experiência
-            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={[styles.label, { color: theme.text }]}>
+                Experiência
+              </Text>
+
+              <Text
+                style={{
+                  color:
+                    experience.length >= EXPERIENCE_MAX_LENGTH
+                      ? "#DC2626"
+                      : theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {experience.length}/{EXPERIENCE_MAX_LENGTH}
+              </Text>
+            </View>
 
             <TextInput
               style={[
                 styles.input,
                 styles.textArea,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="Descreva suas experiências profissionais"
               placeholderTextColor={theme.textSecondary}
               value={experience}
-              onChangeText={setExperience}
+              onChangeText={handleChangeExperience}
+              maxLength={EXPERIENCE_MAX_LENGTH}
               multiline
               textAlignVertical="top"
-              editable={!isSaving}
+              editable={!isSaving && !isLoading}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -484,20 +660,22 @@ export default function EditProfileScreen() {
             <TextInput
               style={[
                 styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
+                cleanInputStyle,
               ]}
               placeholder="https://seuportfolio.com"
               placeholderTextColor={theme.textSecondary}
               value={portfolioUrl}
-              onChangeText={setPortfolioUrl}
+              onChangeText={handleChangePortfolioUrl}
+              onBlur={() =>
+                setPortfolioUrl((currentValue) =>
+                  normalizePortfolioUrl(currentValue)
+                )
+              }
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
-              editable={!isSaving}
+              maxLength={PORTFOLIO_MAX_LENGTH}
+              editable={!isSaving && !isLoading}
             />
 
             <View
@@ -527,7 +705,7 @@ export default function EditProfileScreen() {
               <Switch
                 value={isAvailable}
                 onValueChange={setIsAvailable}
-                disabled={isSaving}
+                disabled={isSaving || isLoading}
                 trackColor={{
                   false: colors.border,
                   true: "rgba(11,87,208,0.35)",
@@ -566,7 +744,7 @@ export default function EditProfileScreen() {
                         isSelected && styles.skillChipActive,
                       ]}
                       onPress={() => toggleSkill(skill.name)}
-                      disabled={isSaving}
+                      disabled={isSaving || isLoading}
                     >
                       <Text
                         style={[

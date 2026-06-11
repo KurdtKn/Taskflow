@@ -22,7 +22,7 @@ export default function ServiceCompletedScreen() {
   const { isDark, theme } = useTheme();
 
   function handleRateFreelancer() {
-    router.push({
+    router.replace({
       pathname: "/rate-service",
       params: {
         jobTitle,
@@ -50,8 +50,8 @@ export default function ServiceCompletedScreen() {
         </Text>
 
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          O chamado foi encerrado com sucesso. Agora você pode avaliar o
-          freelancer e registrar sua experiência.
+          O chamado foi encerrado com sucesso. Para finalizar o processo, é
+          necessário avaliar o freelancer e registrar sua experiência.
         </Text>
 
         <View
@@ -120,12 +120,13 @@ export default function ServiceCompletedScreen() {
           ]}
         >
           <Text style={[styles.infoTitle, { color: theme.text }]}>
-            Avaliação final
+            Avaliação obrigatória
           </Text>
 
           <Text style={[styles.infoBoxText, { color: theme.textSecondary }]}>
             Sua avaliação ajuda outros usuários a escolherem profissionais com
-            mais segurança dentro do TaskFlow.
+            mais segurança dentro do TaskFlow. Por isso, ela faz parte da
+            finalização do serviço.
           </Text>
         </View>
       </View>
@@ -144,22 +145,6 @@ export default function ServiceCompletedScreen() {
           onPress={handleRateFreelancer}
         >
           <Text style={styles.primaryButtonText}>Avaliar freelancer</Text>
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-            },
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => router.replace("/company-dashboard")}
-        >
-          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
-            Voltar ao painel
-          </Text>
         </Pressable>
       </View>
     </SafeAreaView>

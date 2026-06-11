@@ -39,7 +39,12 @@ export default function AccountTypeScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <ArrowBack width={28} height={28} />
+        <ArrowBack
+          width={28}
+          height={28}
+          color={theme.text}
+          fill={theme.text}
+        />
       </Pressable>
 
       <Text style={[styles.title, { color: theme.text }]}>
