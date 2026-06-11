@@ -15,6 +15,9 @@ export default function TabsLayout() {
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  const tabIconColor = isDark ? colors.white : colors.black;
+  const tabLabelColor = isDark ? colors.white : colors.black;
+
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -45,8 +48,10 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: isDark ? theme.primary : colors.primary,
-        tabBarInactiveTintColor: theme.textSecondary,
+
+        tabBarActiveTintColor: tabLabelColor,
+        tabBarInactiveTintColor: tabLabelColor,
+
         tabBarStyle: {
           height: 70,
           paddingTop: 8,
@@ -55,6 +60,7 @@ export default function TabsLayout() {
           borderTopWidth: 1,
           borderTopColor: theme.border,
         },
+
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "700",
@@ -66,7 +72,13 @@ export default function TabsLayout() {
         options={{
           title: "Início",
           tabBarIcon: ({ focused }) => (
-            <HomeIcon width={24} height={24} opacity={focused ? 1 : 0.7} />
+            <HomeIcon
+              width={24}
+              height={24}
+              color={tabIconColor}
+              fill={tabIconColor}
+              opacity={focused ? 1 : 0.75}
+            />
           ),
         }}
       />
@@ -76,7 +88,13 @@ export default function TabsLayout() {
         options={{
           title: "Mapa",
           tabBarIcon: ({ focused }) => (
-            <MapIcon width={24} height={24} opacity={focused ? 1 : 0.7} />
+            <MapIcon
+              width={24}
+              height={24}
+              color={tabIconColor}
+              fill={tabIconColor}
+              opacity={focused ? 1 : 0.75}
+            />
           ),
         }}
       />
@@ -89,7 +107,9 @@ export default function TabsLayout() {
             <NotificationsIcon
               width={24}
               height={24}
-              opacity={focused ? 1 : 0.7}
+              color={tabIconColor}
+              fill={tabIconColor}
+              opacity={focused ? 1 : 0.75}
             />
           ),
         }}
@@ -100,7 +120,13 @@ export default function TabsLayout() {
         options={{
           title: "Perfil",
           tabBarIcon: ({ focused }) => (
-            <ProfileIcon width={24} height={24} opacity={focused ? 1 : 0.7} />
+            <ProfileIcon
+              width={24}
+              height={24}
+              color={tabIconColor}
+              fill={tabIconColor}
+              opacity={focused ? 1 : 0.75}
+            />
           ),
         }}
       />

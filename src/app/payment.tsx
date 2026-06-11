@@ -18,6 +18,7 @@ import SendIcon from "../../assets/icons/send.svg";
 
 import { styles } from "@/app/styles/payment";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 import { apiPut } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
 
@@ -100,6 +101,10 @@ export default function PaymentScreen() {
 
   const { isDark, theme } = useTheme();
 
+  const iconColor = colors.black;
+  const iconBoxBackground = isDark ? colors.white : colors.lightGray;
+  const iconBoxBorder = isDark ? colors.white : colors.border;
+
   const jobTitle = params.jobTitle ?? "Chamado";
   const candidateName = params.candidateName ?? "Freelancer selecionado";
   const candidaturaId = params.candidaturaId ?? "";
@@ -134,90 +139,90 @@ export default function PaymentScreen() {
   const platformFee = paymentValues.platformFee;
   const totalValue = paymentValues.totalValue;
 
- async function handleConfirmPayment() {
-  if (isConfirming) {
-    return;
-  }
-
-  if (!candidaturaId) {
-    Alert.alert(
-      "Candidatura não encontrada",
-      "Não foi possível identificar a candidatura selecionada."
-    );
-    return;
-  }
-
-  try {
-    setIsConfirming(true);
-
-    const loggedUser = await getLoggedUser();
-
-    if (!loggedUser) {
-      Alert.alert("Sessão expirada", "Faça login novamente.");
-      router.replace("/login");
+  async function handleConfirmPayment() {
+    if (isConfirming) {
       return;
     }
 
-    if (loggedUser.tipoUsuario !== "empresa") {
+    if (!candidaturaId) {
       Alert.alert(
-        "Acesso negado",
-        "Apenas empresas podem aceitar candidaturas."
+        "Candidatura não encontrada",
+        "Não foi possível identificar a candidatura selecionada."
       );
       return;
     }
-
-    console.log("Confirmando pagamento:", {
-      jobId: params.jobId,
-      candidaturaId,
-      freelancerId: params.freelancerId,
-      jobTitle,
-      candidateName,
-      serviceValue,
-      platformFee,
-      totalValue,
-      selectedMethod,
-    });
 
     try {
-      await apiPut(`/api/Candidaturas/${candidaturaId}/status`, {
-        status: "aceita",
-      });
+      setIsConfirming(true);
 
-      console.log("Status da candidatura atualizado para aceita.");
-    } catch (apiError) {
-      console.log(
-        "Não foi possível atualizar status na API, seguindo fluxo mesmo assim:",
-        apiError
-      );
-    }
+      const loggedUser = await getLoggedUser();
 
-    router.push({
-      pathname: "/payment-success",
-      params: {
-        jobId: params.jobId ?? "",
+      if (!loggedUser) {
+        Alert.alert("Sessão expirada", "Faça login novamente.");
+        router.replace("/login");
+        return;
+      }
+
+      if (loggedUser.tipoUsuario !== "empresa") {
+        Alert.alert(
+          "Acesso negado",
+          "Apenas empresas podem aceitar candidaturas."
+        );
+        return;
+      }
+
+      console.log("Confirmando pagamento:", {
+        jobId: params.jobId,
         candidaturaId,
-        freelancerId: params.freelancerId ?? "",
+        freelancerId: params.freelancerId,
         jobTitle,
         candidateName,
         serviceValue,
         platformFee,
         totalValue,
-        paymentMethod: paymentMethodLabel[selectedMethod],
-      },
-    });
-  } catch (error) {
-    console.log("Erro ao confirmar pagamento:", error);
+        selectedMethod,
+      });
 
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Não foi possível confirmar o pagamento agora.";
+      try {
+        await apiPut(`/api/Candidaturas/${candidaturaId}/status`, {
+          status: "aceita",
+        });
 
-    Alert.alert("Erro ao confirmar", errorMessage);
-  } finally {
-    setIsConfirming(false);
+        console.log("Status da candidatura atualizado para aceita.");
+      } catch (apiError) {
+        console.log(
+          "Não foi possível atualizar status na API, seguindo fluxo mesmo assim:",
+          apiError
+        );
+      }
+
+      router.push({
+        pathname: "/payment-success",
+        params: {
+          jobId: params.jobId ?? "",
+          candidaturaId,
+          freelancerId: params.freelancerId ?? "",
+          jobTitle,
+          candidateName,
+          serviceValue,
+          platformFee,
+          totalValue,
+          paymentMethod: paymentMethodLabel[selectedMethod],
+        },
+      });
+    } catch (error) {
+      console.log("Erro ao confirmar pagamento:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível confirmar o pagamento agora.";
+
+      Alert.alert("Erro ao confirmar", errorMessage);
+    } finally {
+      setIsConfirming(false);
+    }
   }
-}
 
   return (
     <SafeAreaView
@@ -228,13 +233,21 @@ export default function PaymentScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+          },
+        ]}
+      >
         <Pressable
           style={styles.backButton}
           onPress={() => router.back()}
           disabled={isConfirming}
         >
-          <ArrowBack width={28} height={28} />
+          <ArrowBack width={28} height={28} color={theme.text} />
         </Pressable>
 
         <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -247,6 +260,7 @@ export default function PaymentScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={{ backgroundColor: theme.background }}
       >
         <View
           style={[
@@ -257,8 +271,22 @@ export default function PaymentScreen() {
             },
           ]}
         >
-          <View style={styles.iconBox}>
-            <CreditCardIcon width={34} height={34} />
+          <View
+            style={[
+              styles.iconBox,
+              {
+                backgroundColor: iconBoxBackground,
+                borderColor: iconBoxBorder,
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <CreditCardIcon
+              width={34}
+              height={34}
+              color={iconColor}
+              fill={iconColor}
+            />
           </View>
 
           <Text style={[styles.introTitle, { color: theme.text }]}>
@@ -290,11 +318,27 @@ export default function PaymentScreen() {
             </Text>
 
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.infoLabel,
+                  {
+                    color: theme.textSecondary,
+                    backgroundColor: "transparent",
+                  },
+                ]}
+              >
                 Freelancer
               </Text>
 
-              <Text style={[styles.infoValue, { color: theme.text }]}>
+              <Text
+                style={[
+                  styles.infoValue,
+                  {
+                    color: theme.text,
+                    backgroundColor: "transparent",
+                  },
+                ]}
+              >
                 {candidateName}
               </Text>
             </View>
@@ -307,11 +351,27 @@ export default function PaymentScreen() {
             />
 
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.infoLabel,
+                  {
+                    color: theme.textSecondary,
+                    backgroundColor: "transparent",
+                  },
+                ]}
+              >
                 Valor do serviço
               </Text>
 
-              <Text style={[styles.infoValue, { color: theme.text }]}>
+              <Text
+                style={[
+                  styles.infoValue,
+                  {
+                    color: theme.text,
+                    backgroundColor: "transparent",
+                  },
+                ]}
+              >
                 {serviceValue}
               </Text>
             </View>
@@ -324,18 +384,64 @@ export default function PaymentScreen() {
             />
 
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.infoLabel,
+                  {
+                    color: theme.textSecondary,
+                    backgroundColor: "transparent",
+                  },
+                ]}
+              >
                 Taxa da plataforma
               </Text>
 
-              <Text style={[styles.infoValue, { color: theme.text }]}>
+              <Text
+                style={[
+                  styles.infoValue,
+                  {
+                    color: theme.text,
+                    backgroundColor: "transparent",
+                  },
+                ]}
+              >
                 {platformFee}
               </Text>
             </View>
 
-            <View style={styles.totalArea}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{totalValue}</Text>
+            <View
+              style={[
+                styles.totalArea,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.totalLabel,
+                  {
+                    color: theme.text,
+                    backgroundColor: "transparent",
+                  },
+                ]}
+              >
+                Total
+              </Text>
+
+              <Text
+                style={[
+                  styles.totalValue,
+                  {
+                    color: theme.primary,
+                    backgroundColor: "transparent",
+                  },
+                ]}
+              >
+                {totalValue}
+              </Text>
             </View>
           </View>
         </View>
@@ -353,29 +459,37 @@ export default function PaymentScreen() {
               return (
                 <Pressable
                   key={method.id}
-                  disabled={isConfirming}
                   style={[
                     styles.methodCard,
                     {
                       backgroundColor: theme.card,
-                      borderColor: theme.border,
+                      borderColor: isSelected ? theme.primary : theme.border,
                     },
                     isSelected && styles.methodCardActive,
-                    isConfirming && { opacity: 0.7 },
                   ]}
                   onPress={() => setSelectedMethod(method.id)}
+                  disabled={isConfirming}
                 >
-                  <View style={styles.methodIconBox}>
-                    <Icon width={24} height={24} />
+                  <View
+                    style={[
+                      styles.methodIconBox,
+                      {
+                        backgroundColor: iconBoxBackground,
+                        borderColor: iconBoxBorder,
+                        borderWidth: 1,
+                      },
+                    ]}
+                  >
+                    <Icon
+                      width={24}
+                      height={24}
+                      color={iconColor}
+                      fill={iconColor}
+                    />
                   </View>
 
                   <View style={styles.methodTextArea}>
-                    <Text
-                      style={[
-                        styles.methodTitle,
-                        { color: theme.text },
-                      ]}
-                    >
+                    <Text style={[styles.methodTitle, { color: theme.text }]}>
                       {method.title}
                     </Text>
 

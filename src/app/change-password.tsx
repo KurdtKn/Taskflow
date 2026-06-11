@@ -18,6 +18,7 @@ import LockIcon from "../../assets/icons/lock-icon.svg";
 import VisibilityIcon from "../../assets/icons/visibility.svg";
 import VisibilityOffIcon from "../../assets/icons/visibility_off.svg";
 
+import { colors } from "@/styles/colors";
 import { styles } from "@/app/styles/changePassword";
 import { useTheme } from "@/app/context/ThemeContext";
 
@@ -33,6 +34,8 @@ export default function ChangePasswordScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  const eyeIconColor = isDark ? colors.white : colors.black;
 
   async function handleChangePassword() {
     const current = currentPassword.trim();
@@ -76,7 +79,6 @@ export default function ChangePasswordScreen() {
         });
 
         A API vai identificar o usuário pelo token salvo após o login.
-        Então não precisa mandar ID do usuário aqui, só a senha atual e a nova.
       */
 
       console.log("Alterar senha:", {
@@ -104,6 +106,30 @@ export default function ChangePasswordScreen() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function renderEyeIcon(isVisible: boolean) {
+    if (isVisible) {
+      return (
+        <VisibilityOffIcon
+          width={22}
+          height={22}
+          color={eyeIconColor}
+          fill={eyeIconColor}
+          stroke={eyeIconColor}
+        />
+      );
+    }
+
+    return (
+      <VisibilityIcon
+        width={22}
+        height={22}
+        color={eyeIconColor}
+        fill={eyeIconColor}
+        stroke={eyeIconColor}
+      />
+    );
   }
 
   return (
@@ -189,17 +215,17 @@ export default function ChangePasswordScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="password"
+                  editable={!isSaving}
                 />
 
                 <Pressable
                   style={styles.eyeButton}
-                  onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                  onPress={() =>
+                    setShowCurrentPassword(!showCurrentPassword)
+                  }
+                  disabled={isSaving}
                 >
-                  {showCurrentPassword ? (
-                    <VisibilityOffIcon width={22} height={22} />
-                  ) : (
-                    <VisibilityIcon width={22} height={22} />
-                  )}
+                  {renderEyeIcon(showCurrentPassword)}
                 </Pressable>
               </View>
             </View>
@@ -228,17 +254,15 @@ export default function ChangePasswordScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="newPassword"
+                  editable={!isSaving}
                 />
 
                 <Pressable
                   style={styles.eyeButton}
                   onPress={() => setShowNewPassword(!showNewPassword)}
+                  disabled={isSaving}
                 >
-                  {showNewPassword ? (
-                    <VisibilityOffIcon width={22} height={22} />
-                  ) : (
-                    <VisibilityIcon width={22} height={22} />
-                  )}
+                  {renderEyeIcon(showNewPassword)}
                 </Pressable>
               </View>
             </View>
@@ -267,17 +291,17 @@ export default function ChangePasswordScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="newPassword"
+                  editable={!isSaving}
                 />
 
                 <Pressable
                   style={styles.eyeButton}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  onPress={() =>
+                    setShowConfirmPassword(!showConfirmPassword)
+                  }
+                  disabled={isSaving}
                 >
-                  {showConfirmPassword ? (
-                    <VisibilityOffIcon width={22} height={22} />
-                  ) : (
-                    <VisibilityIcon width={22} height={22} />
-                  )}
+                  {renderEyeIcon(showConfirmPassword)}
                 </Pressable>
               </View>
             </View>
@@ -297,8 +321,8 @@ export default function ChangePasswordScreen() {
             </Text>
 
             <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-              Evite usar datas de nascimento, nomes simples ou senhas repetidas
-              de outros aplicativos.
+              Use uma senha com letras, números e símbolos. Evite usar datas de
+              nascimento ou informações fáceis de descobrir.
             </Text>
           </View>
 
@@ -313,24 +337,6 @@ export default function ChangePasswordScreen() {
           >
             <Text style={styles.saveButtonText}>
               {isSaving ? "Salvando..." : "Salvar nova senha"}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            disabled={isSaving}
-            style={({ pressed }) => [
-              styles.cancelButton,
-              {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
-              },
-              pressed && styles.buttonPressed,
-              isSaving && { opacity: 0.7 },
-            ]}
-            onPress={() => router.back()}
-          >
-            <Text style={[styles.cancelButtonText, { color: theme.text }]}>
-              Cancelar
             </Text>
           </Pressable>
         </ScrollView>

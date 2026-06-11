@@ -13,6 +13,7 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 
 import { styles } from "@/app/styles/companyReviews";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 
 type ReviewFilter = "all" | "positive" | "recent";
 
@@ -41,6 +42,12 @@ export default function CompanyReviewsScreen() {
 
   const { isDark, theme } = useTheme();
 
+  const ratingCircleBackground = isDark ? colors.blue[700] : colors.primary;
+  const activeFilterBackground = isDark ? colors.blue[700] : colors.primary;
+  const activeFilterTextColor = colors.white;
+  const starActiveColor = colors.warning;
+  const starInactiveColor = theme.textSecondary;
+
   useEffect(() => {
     loadCompanyReviews();
   }, []);
@@ -60,27 +67,6 @@ export default function CompanyReviewsScreen() {
 
         A API deve retornar somente as avaliações da empresa logada,
         usando o token salvo depois do login.
-
-        Formato esperado:
-        {
-          summary: {
-            averageRating: 4.8,
-            totalReviews: 32,
-            fiveStarReviews: 24,
-            satisfactionRate: 96
-          },
-          reviews: [
-            {
-              id: "1",
-              freelancerName: "Nome do freelancer",
-              service: "Nome do serviço",
-              rating: 5,
-              date: "Hoje",
-              comment: "Comentário recebido...",
-              tags: ["Boa comunicação", "Organizada"]
-            }
-          ]
-        }
       */
 
       setReviews([]);
@@ -149,7 +135,10 @@ export default function CompanyReviewsScreen() {
           key={starValue}
           style={[
             styles.star,
-            isActive ? styles.starActive : styles.starInactive,
+            {
+              color: isActive ? starActiveColor : starInactiveColor,
+              backgroundColor: "transparent",
+            },
           ]}
         >
           ★
@@ -175,12 +164,28 @@ export default function CompanyReviewsScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+          },
+        ]}
+      >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} />
+          <ArrowBack width={28} height={28} color={theme.text} />
         </Pressable>
 
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text
+          style={[
+            styles.headerTitle,
+            {
+              color: theme.text,
+              backgroundColor: "transparent",
+            },
+          ]}
+        >
           Avaliações da empresa
         </Text>
 
@@ -190,6 +195,7 @@ export default function CompanyReviewsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={{ backgroundColor: theme.background }}
       >
         <View
           style={[
@@ -200,14 +206,49 @@ export default function CompanyReviewsScreen() {
             },
           ]}
         >
-          <View style={styles.ratingCircle}>
-            <Text style={styles.ratingNumber}>
+          <View
+            style={[
+              styles.ratingCircle,
+              {
+                backgroundColor: ratingCircleBackground,
+                borderColor: ratingCircleBackground,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.ratingNumber,
+                {
+                  color: colors.white,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
               {averageRating.toFixed(1).replace(".", ",")}
             </Text>
-            <Text style={styles.ratingMax}>/5</Text>
+
+            <Text
+              style={[
+                styles.ratingMax,
+                {
+                  color: colors.white,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
+              /5
+            </Text>
           </View>
 
-          <Text style={[styles.summaryTitle, { color: theme.text }]}>
+          <Text
+            style={[
+              styles.summaryTitle,
+              {
+                color: theme.text,
+                backgroundColor: "transparent",
+              },
+            ]}
+          >
             Reputação da empresa
           </Text>
 
@@ -215,7 +256,15 @@ export default function CompanyReviewsScreen() {
             {renderStars(Math.round(averageRating))}
           </View>
 
-          <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
+          <Text
+            style={[
+              styles.summaryText,
+              {
+                color: theme.textSecondary,
+                backgroundColor: "transparent",
+              },
+            ]}
+          >
             Baseado em {totalReviews} avaliações feitas por freelancers após
             serviços concluídos.
           </Text>
@@ -231,11 +280,27 @@ export default function CompanyReviewsScreen() {
               },
             ]}
           >
-            <Text style={[styles.statNumber, { color: theme.text }]}>
+            <Text
+              style={[
+                styles.statNumber,
+                {
+                  color: theme.text,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
               {totalReviews}
             </Text>
 
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <Text
+              style={[
+                styles.statLabel,
+                {
+                  color: theme.textSecondary,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
               Avaliações
             </Text>
           </View>
@@ -249,11 +314,27 @@ export default function CompanyReviewsScreen() {
               },
             ]}
           >
-            <Text style={[styles.statNumber, { color: theme.text }]}>
+            <Text
+              style={[
+                styles.statNumber,
+                {
+                  color: theme.text,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
               {fiveStarReviews}
             </Text>
 
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <Text
+              style={[
+                styles.statLabel,
+                {
+                  color: theme.textSecondary,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
               Nota 5
             </Text>
           </View>
@@ -267,11 +348,27 @@ export default function CompanyReviewsScreen() {
               },
             ]}
           >
-            <Text style={[styles.statNumber, { color: theme.text }]}>
+            <Text
+              style={[
+                styles.statNumber,
+                {
+                  color: theme.text,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
               {satisfactionRate}%
             </Text>
 
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <Text
+              style={[
+                styles.statLabel,
+                {
+                  color: theme.textSecondary,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
               Satisfação
             </Text>
           </View>
@@ -282,18 +379,26 @@ export default function CompanyReviewsScreen() {
             style={[
               styles.filterChip,
               {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
+                backgroundColor:
+                  selectedFilter === "all"
+                    ? activeFilterBackground
+                    : theme.card,
+                borderColor:
+                  selectedFilter === "all" ? activeFilterBackground : theme.border,
               },
-              selectedFilter === "all" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("all")}
           >
             <Text
               style={[
                 styles.filterText,
-                { color: theme.textSecondary },
-                selectedFilter === "all" && styles.filterTextActive,
+                {
+                  color:
+                    selectedFilter === "all"
+                      ? activeFilterTextColor
+                      : theme.textSecondary,
+                  backgroundColor: "transparent",
+                },
               ]}
             >
               Todas
@@ -304,18 +409,28 @@ export default function CompanyReviewsScreen() {
             style={[
               styles.filterChip,
               {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
+                backgroundColor:
+                  selectedFilter === "positive"
+                    ? activeFilterBackground
+                    : theme.card,
+                borderColor:
+                  selectedFilter === "positive"
+                    ? activeFilterBackground
+                    : theme.border,
               },
-              selectedFilter === "positive" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("positive")}
           >
             <Text
               style={[
                 styles.filterText,
-                { color: theme.textSecondary },
-                selectedFilter === "positive" && styles.filterTextActive,
+                {
+                  color:
+                    selectedFilter === "positive"
+                      ? activeFilterTextColor
+                      : theme.textSecondary,
+                  backgroundColor: "transparent",
+                },
               ]}
             >
               Positivas
@@ -326,18 +441,28 @@ export default function CompanyReviewsScreen() {
             style={[
               styles.filterChip,
               {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
+                backgroundColor:
+                  selectedFilter === "recent"
+                    ? activeFilterBackground
+                    : theme.card,
+                borderColor:
+                  selectedFilter === "recent"
+                    ? activeFilterBackground
+                    : theme.border,
               },
-              selectedFilter === "recent" && styles.filterChipActive,
             ]}
             onPress={() => setSelectedFilter("recent")}
           >
             <Text
               style={[
                 styles.filterText,
-                { color: theme.textSecondary },
-                selectedFilter === "recent" && styles.filterTextActive,
+                {
+                  color:
+                    selectedFilter === "recent"
+                      ? activeFilterTextColor
+                      : theme.textSecondary,
+                  backgroundColor: "transparent",
+                },
               ]}
             >
               Recentes
@@ -346,11 +471,27 @@ export default function CompanyReviewsScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: theme.text,
+                backgroundColor: "transparent",
+              },
+            ]}
+          >
             Comentários recebidos
           </Text>
 
-          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+          <Text
+            style={[
+              styles.sectionSubtitle,
+              {
+                color: theme.textSecondary,
+                backgroundColor: "transparent",
+              },
+            ]}
+          >
             Avaliações feitas por freelancers que prestaram serviços.
           </Text>
         </View>
@@ -406,8 +547,15 @@ export default function CompanyReviewsScreen() {
                 ]}
               >
                 <View style={styles.reviewHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
+                  <View
+                    style={[
+                      styles.avatar,
+                      {
+                        backgroundColor: ratingCircleBackground,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.avatarText, { color: colors.white }]}>
                       {getFreelancerInitial(review.freelancerName)}
                     </Text>
                   </View>
@@ -443,7 +591,13 @@ export default function CompanyReviewsScreen() {
                   {renderStars(review.rating)}
 
                   <Text
-                    style={[styles.reviewRatingText, { color: theme.text }]}
+                    style={[
+                      styles.reviewRatingText,
+                      {
+                        color: theme.text,
+                        backgroundColor: "transparent",
+                      },
+                    ]}
                   >
                     {review.rating},0
                   </Text>

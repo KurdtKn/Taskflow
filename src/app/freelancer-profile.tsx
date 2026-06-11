@@ -13,6 +13,7 @@ import AssignmentIcon from "../../assets/icons/assignment.svg";
 
 import { styles } from "@/app/styles/freelancerProfile";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 
 const skills = [
   "Eventos",
@@ -26,7 +27,8 @@ const portfolioItems = [
   {
     id: "1",
     title: "Portfólio não preenchido",
-    description: "Quando o freelancer adicionar experiências, elas aparecerão aqui.",
+    description:
+      "Quando o freelancer adicionar experiências, elas aparecerão aqui.",
   },
 ];
 
@@ -52,6 +54,8 @@ export default function FreelancerProfileScreen() {
   }>();
 
   const { isDark, theme } = useTheme();
+
+  const iconColor = isDark ? colors.white : colors.black;
 
   const jobTitle = params.jobTitle ?? "Chamado não informado";
   const jobCategory = params.jobCategory ?? "Categoria não informada";
@@ -96,9 +100,17 @@ export default function FreelancerProfileScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+          },
+        ]}
+      >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} />
+          <ArrowBack width={28} height={28} color={theme.text} />
         </Pressable>
 
         <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -111,6 +123,7 @@ export default function FreelancerProfileScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={{ backgroundColor: theme.background }}
       >
         <View
           style={[
@@ -145,7 +158,16 @@ export default function FreelancerProfileScreen() {
             </Text>
           </View>
 
-          <View style={styles.statsArea}>
+          <View
+            style={[
+              styles.statsArea,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+                borderWidth: 1,
+              },
+            ]}
+          >
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>
                 0
@@ -262,7 +284,8 @@ export default function FreelancerProfileScreen() {
           </Text>
 
           <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
-            Quando o freelancer preencher a descrição do perfil, ela aparecerá aqui.
+            Quando o freelancer preencher a descrição do perfil, ela aparecerá
+            aqui.
           </Text>
         </View>
 
@@ -278,7 +301,7 @@ export default function FreelancerProfileScreen() {
                 style={[
                   styles.skillChip,
                   {
-                    backgroundColor: theme.card,
+                    backgroundColor: theme.inputBackground,
                     borderColor: theme.border,
                   },
                 ]}
@@ -308,8 +331,22 @@ export default function FreelancerProfileScreen() {
                   },
                 ]}
               >
-                <View style={styles.portfolioIconBox}>
-                  <AssignmentIcon width={24} height={24} />
+                <View
+                  style={[
+                    styles.portfolioIconBox,
+                    {
+                      backgroundColor: colors.white,
+                      borderColor: colors.white,
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <AssignmentIcon
+                    width={24}
+                    height={24}
+                    color={colors.black}
+                    fill={colors.black}
+                  />
                 </View>
 
                 <View style={styles.portfolioTextArea}>

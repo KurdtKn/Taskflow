@@ -207,8 +207,16 @@ export default function ChatScreen() {
             },
           ]}
         >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack width={28} height={28} />
+          <Pressable
+            style={styles.backButton}
+            onPress={() => router.replace("/company-dashboard")}
+          >
+            <ArrowBack
+              width={28}
+              height={28}
+              color={theme.text}
+              fill={theme.text}
+            />
           </Pressable>
 
           <View style={styles.headerInfo}>

@@ -39,6 +39,8 @@ export default function RequestConfirmationScreen() {
 
   const { isDark, theme } = useTheme();
 
+  const infoIconColor = isDark ? colors.white : colors.black;
+
   function getParamValue(value?: string | string[], fallback = "") {
     if (Array.isArray(value)) {
       return value[0] ?? fallback;
@@ -136,12 +138,17 @@ export default function RequestConfirmationScreen() {
         onPress={() => router.back()}
         disabled={isSending}
       >
-        <ArrowBack width={28} height={28} />
+        <ArrowBack width={28} height={28} color={theme.text} />
       </Pressable>
 
       <View style={styles.content}>
         <View style={styles.successCircle}>
-          <CheckIcon width={34} height={34} />
+          <CheckIcon
+            width={34}
+            height={34}
+            color={colors.white}
+            fill={colors.white}
+          />
         </View>
 
         <Text style={[styles.title, { color: theme.text }]}>
@@ -173,7 +180,12 @@ export default function RequestConfirmationScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <WalletIcon width={18} height={18} />
+              <WalletIcon
+                width={18}
+                height={18}
+                color={infoIconColor}
+                fill={infoIconColor}
+              />
             </View>
 
             <Text style={[styles.infoText, { color: theme.text }]}>
@@ -183,7 +195,12 @@ export default function RequestConfirmationScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <LocationIcon width={18} height={18} color={colors.location} />
+              <LocationIcon
+                width={18}
+                height={18}
+                color={infoIconColor}
+                fill={infoIconColor}
+              />
             </View>
 
             <Text style={[styles.infoText, { color: theme.text }]}>
@@ -193,7 +210,12 @@ export default function RequestConfirmationScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <TimeIcon width={18} height={18} />
+              <TimeIcon
+                width={18}
+                height={18}
+                color={infoIconColor}
+                fill={infoIconColor}
+              />
             </View>
 
             <Text style={[styles.infoText, { color: theme.text }]}>

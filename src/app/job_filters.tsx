@@ -54,8 +54,25 @@ export default function JobFilters() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          style={[
+            styles.backButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <Text style={[styles.backText, { color: theme.text }]}>‹</Text>
         </Pressable>
 
@@ -73,6 +90,7 @@ export default function JobFilters() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        style={{ backgroundColor: theme.background }}
       >
         <View
           style={[

@@ -76,6 +76,7 @@ export default function RequestsScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
+  const emptyIconColor = isDark ? colors.white : colors.black;
 
   useEffect(() => {
     loadRequests();
@@ -370,7 +371,13 @@ export default function RequestsScreen() {
               },
             ]}
           >
-            <AssignmentIcon width={38} height={38} />
+            <AssignmentIcon
+              width={38}
+              height={38}
+              color={emptyIconColor}
+              fill={emptyIconColor}
+              stroke={emptyIconColor}
+            />
 
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
               Carregando solicitações...
@@ -390,7 +397,13 @@ export default function RequestsScreen() {
               },
             ]}
           >
-            <AssignmentIcon width={38} height={38} />
+            <AssignmentIcon
+              width={38}
+              height={38}
+              color={emptyIconColor}
+              fill={emptyIconColor}
+              stroke={emptyIconColor}
+            />
 
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
               Nenhuma solicitação

@@ -62,6 +62,7 @@ export default function HomeScreen() {
   const [userName, setUserName] = useState("Usuário");
 
   const { isDark, theme } = useTheme();
+  const homeIconColor = isDark ? colors.white : colors.black;
 
   const hasActiveFilters =
     Boolean(categoria) ||
@@ -320,7 +321,13 @@ export default function HomeScreen() {
             ]}
             onPress={() => router.push("/notifications")}
           >
-            <BellIcon width={24} height={24} />
+            <BellIcon
+              width={24}
+              height={24}
+              color={homeIconColor}
+              fill={homeIconColor}
+              stroke={homeIconColor}
+            />
           </Pressable>
         </View>
 
@@ -334,7 +341,13 @@ export default function HomeScreen() {
               },
             ]}
           >
-            <SearchIcon width={22} height={22} />
+            <SearchIcon
+              width={20}
+              height={20}
+              color={homeIconColor}
+              fill={homeIconColor}
+              stroke={homeIconColor}
+            />
 
             <TextInput
               style={[
@@ -359,7 +372,13 @@ export default function HomeScreen() {
             ]}
             onPress={handleOpenFilters}
           >
-            <FilterIcon width={28} height={28} />
+            <FilterIcon
+              width={24}
+              height={24}
+              color={homeIconColor}
+              fill={homeIconColor}
+              stroke={homeIconColor}
+            />
           </Pressable>
         </View>
 
@@ -489,7 +508,8 @@ export default function HomeScreen() {
                     <LocationIcon
                       width={15}
                       height={15}
-                      color={colors.location}
+                      color={homeIconColor}
+                      fill={homeIconColor}
                     />
 
                     <Text
@@ -503,7 +523,12 @@ export default function HomeScreen() {
                   </View>
 
                   <View style={styles.infoRow}>
-                    <CalendarIcon width={15} height={15} />
+                    <CalendarIcon
+                        width={16}
+                        height={16}
+                        color={homeIconColor}
+                        fill={homeIconColor}
+                      />
 
                     <Text
                       style={[
