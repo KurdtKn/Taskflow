@@ -19,8 +19,8 @@ import AssignmentIcon from "../../../assets/icons/assignment.svg";
 import { styles } from "@/app/styles/companyDashboard";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
-import { apiGet } from "@/services/api";
-import { getLoggedUser } from "@/services/storage";
+import { apiDelete, apiGet } from "@/services/api";
+import { getCompanyData, getLoggedUser } from "@/services/storage";
 
 type JobStatus = "active" | "pending" | "finished";
 
@@ -41,6 +41,8 @@ type ChamadoApi = {
   categoriaId: number;
   titulo: string;
   descricao: string;
+  categoria?: string | null;
+  empresa?: string | null;
   localServico?: string | null;
   cidade?: string | null;
   estado?: string | null;
@@ -48,8 +50,11 @@ type ChamadoApi = {
   horaServico?: string | null;
   valorEstimado?: number | null;
   status?: string | null;
+
+  totalCandidaturas?: number | null;
   quantidadeCandidatos?: number | null;
   totalCandidatos?: number | null;
+  candidates?: number | null;
   candidaturas?: unknown[];
 };
 
@@ -158,12 +163,20 @@ function getJobStatus(status?: string | null): JobStatus {
 }
 
 function getCandidatesCount(chamado: ChamadoApi) {
+  if (typeof chamado.totalCandidaturas === "number") {
+    return chamado.totalCandidaturas;
+  }
+
   if (typeof chamado.quantidadeCandidatos === "number") {
     return chamado.quantidadeCandidatos;
   }
 
   if (typeof chamado.totalCandidatos === "number") {
     return chamado.totalCandidatos;
+  }
+
+  if (typeof chamado.candidates === "number") {
+    return chamado.candidates;
   }
 
   if (Array.isArray(chamado.candidaturas)) {
@@ -178,6 +191,8 @@ export default function CompanyDashboardScreen() {
 
   const [companyJobs, setCompanyJobs] = useState<CompanyJob[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [cancelJobId, setCancelJobId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("Empresa");
 
   useFocusEffect(
     useCallback(() => {
@@ -186,69 +201,73 @@ export default function CompanyDashboardScreen() {
   );
 
   async function loadCompanyJobs() {
-  try {
-    setIsLoading(true);
+    try {
+      setIsLoading(true);
 
-    const loggedUser = await getLoggedUser();
+      const loggedUser = await getLoggedUser();
 
-    if (!loggedUser) {
-      router.replace("/login");
-      return;
-    }
+      if (!loggedUser) {
+        router.replace("/login");
+        return;
+      }
 
-    const response = await apiGet<ChamadosResponse>("/api/Chamados");
-    const chamados = getChamadosFromResponse(response);
+      const savedCompanyData = await getCompanyData(loggedUser.id);
 
-    const companyProfileId = Number(loggedUser.perfilId);
-    const loggedUserId = Number(loggedUser.id);
+      setCompanyName(savedCompanyData?.name || loggedUser.nome || "Empresa");
 
-    console.log("Usuário logado:", loggedUser);
-    console.log("Empresa perfilId:", companyProfileId);
-    console.log("Usuário id:", loggedUserId);
-    console.log("Chamados retornados pela API:", chamados);
+      const response = await apiGet<ChamadosResponse>("/api/Chamados");
+      const chamados = getChamadosFromResponse(response);
 
-    const companyChamados = chamados.filter((chamado) => {
-      const chamadoEmpresaId = Number(chamado.empresaId);
+      const companyProfileId = Number(loggedUser.perfilId);
+      const loggedUserId = Number(loggedUser.id);
 
-      return (
-        chamadoEmpresaId === companyProfileId ||
-        chamadoEmpresaId === loggedUserId
+      console.log("Usuário logado:", loggedUser);
+      console.log("Empresa perfilId:", companyProfileId);
+      console.log("Usuário id:", loggedUserId);
+      console.log("Chamados retornados pela API:", chamados);
+
+      const companyChamados = chamados.filter((chamado) => {
+        const chamadoEmpresaId = Number(chamado.empresaId);
+
+        return (
+          chamadoEmpresaId === companyProfileId ||
+          chamadoEmpresaId === loggedUserId
+        );
+      });
+
+      const chamadosParaMostrar =
+        companyChamados.length > 0 ? companyChamados : chamados;
+
+      const formattedJobs: CompanyJob[] = chamadosParaMostrar
+        .sort((a, b) => Number(b.id) - Number(a.id))
+        .map((chamado) => ({
+          id: String(chamado.id),
+          title: chamado.titulo,
+          category: getCategoryName(chamado.categoriaId),
+          price: formatCurrency(chamado.valorEstimado),
+          location:
+            chamado.localServico ||
+            [chamado.cidade, chamado.estado].filter(Boolean).join(" - ") ||
+            "Local não informado",
+          time: formatJobDate(chamado.dataServico, chamado.horaServico),
+          candidates: getCandidatesCount(chamado),
+          status: getJobStatus(chamado.status),
+        }));
+
+      setCompanyJobs(formattedJobs);
+    } catch (error) {
+      console.log("Erro ao carregar chamados da empresa:", error);
+
+      setCompanyJobs([]);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível carregar os chamados da empresa agora."
       );
-    });
-
-    const chamadosParaMostrar =
-      companyChamados.length > 0 ? companyChamados : chamados;
-
-    const formattedJobs: CompanyJob[] = chamadosParaMostrar
-      .sort((a, b) => Number(b.id) - Number(a.id))
-      .map((chamado) => ({
-        id: String(chamado.id),
-        title: chamado.titulo,
-        category: getCategoryName(chamado.categoriaId),
-        price: formatCurrency(chamado.valorEstimado),
-        location:
-          chamado.localServico ||
-          [chamado.cidade, chamado.estado].filter(Boolean).join(" - ") ||
-          "Local não informado",
-        time: formatJobDate(chamado.dataServico, chamado.horaServico),
-        candidates: getCandidatesCount(chamado),
-        status: getJobStatus(chamado.status),
-      }));
-
-    setCompanyJobs(formattedJobs);
-  } catch (error) {
-    console.log("Erro ao carregar chamados da empresa:", error);
-
-    setCompanyJobs([]);
-
-    Alert.alert(
-      "Erro",
-      "Não foi possível carregar os chamados da empresa agora."
-    );
-  } finally {
-    setIsLoading(false);
+    } finally {
+      setIsLoading(false);
+    }
   }
-}
 
   const activeJobs = useMemo(() => {
     return companyJobs.filter((job) => job.status === "active").length;
@@ -277,6 +296,37 @@ export default function CompanyDashboardScreen() {
     });
   }
 
+  function handleCancelJob(job: CompanyJob) {
+    console.log("Clicou em cancelar chamado:", job.id);
+    setCancelJobId(job.id);
+  }
+
+  async function confirmCancelJob(job: CompanyJob) {
+    try {
+      console.log("Confirmou cancelamento:", job.id);
+
+      await apiDelete(`/api/Chamados/${job.id}`);
+
+      setCancelJobId(null);
+
+      Alert.alert(
+        "Chamado cancelado",
+        "O chamado foi cancelado com sucesso."
+      );
+
+      loadCompanyJobs();
+    } catch (error) {
+      console.log("Erro ao cancelar chamado:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível cancelar o chamado agora.";
+
+      Alert.alert("Erro ao cancelar", errorMessage);
+    }
+  }
+
   return (
     <SafeAreaView
       style={[
@@ -289,11 +339,12 @@ export default function CompanyDashboardScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="always"
       >
         <View style={styles.header}>
           <View>
             <Text style={[styles.greeting, { color: theme.textSecondary }]}>
-              Olá, Empresa
+              Olá, {companyName}
             </Text>
 
             <Text style={[styles.title, { color: theme.text }]}>
@@ -425,17 +476,15 @@ export default function CompanyDashboardScreen() {
               const currentStatus = statusConfig[job.status];
 
               return (
-                <Pressable
+                <View
                   key={job.id}
-                  style={({ pressed }) => [
+                  style={[
                     styles.jobCard,
                     {
                       backgroundColor: theme.card,
                       borderColor: theme.border,
                     },
-                    pressed && styles.jobCardPressed,
                   ]}
-                  onPress={() => handleViewCandidates(job)}
                 >
                   <View style={styles.cardTop}>
                     <View style={styles.cardTitleArea}>
@@ -547,9 +596,122 @@ export default function CompanyDashboardScreen() {
                       </Text>
                     </View>
 
-                    <Text style={styles.detailsText}>Ver candidatos ›</Text>
+                    {cancelJobId === job.id ? (
+                      <View style={{ gap: 8, alignItems: "flex-end" }}>
+                        <Text
+                          style={{
+                            color: "#DC2626",
+                            fontSize: 12,
+                            fontWeight: "800",
+                          }}
+                        >
+                          Confirmar cancelamento?
+                        </Text>
+
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <Pressable
+                            hitSlop={10}
+                            onPress={() => setCancelJobId(null)}
+                            style={({ pressed }) => [
+                              {
+                                paddingVertical: 8,
+                                paddingHorizontal: 12,
+                                borderRadius: 10,
+                                backgroundColor: theme.inputBackground,
+                                borderWidth: 1,
+                                borderColor: theme.border,
+                              },
+                              pressed && { opacity: 0.7 },
+                            ]}
+                          >
+                            <Text
+                              style={{
+                                color: theme.text,
+                                fontSize: 12,
+                                fontWeight: "800",
+                              }}
+                            >
+                              Não
+                            </Text>
+                          </Pressable>
+
+                          <Pressable
+                            hitSlop={10}
+                            onPress={() => confirmCancelJob(job)}
+                            style={({ pressed }) => [
+                              {
+                                paddingVertical: 8,
+                                paddingHorizontal: 12,
+                                borderRadius: 10,
+                                backgroundColor: "#DC2626",
+                              },
+                              pressed && { opacity: 0.7 },
+                            ]}
+                          >
+                            <Text
+                              style={{
+                                color: "#FFFFFF",
+                                fontSize: 12,
+                                fontWeight: "800",
+                              }}
+                            >
+                              Sim, cancelar
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    ) : (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <Pressable
+                          hitSlop={10}
+                          onPress={() => handleCancelJob(job)}
+                          style={({ pressed }) => [
+                            {
+                              paddingVertical: 8,
+                              paddingHorizontal: 12,
+                              borderRadius: 10,
+                              backgroundColor: "rgba(220, 38, 38, 0.08)",
+                              borderWidth: 1,
+                              borderColor: "rgba(220, 38, 38, 0.22)",
+                            },
+                            pressed && { opacity: 0.7 },
+                          ]}
+                        >
+                          <Text
+                            style={{
+                              color: "#DC2626",
+                              fontSize: 12,
+                              fontWeight: "800",
+                            }}
+                          >
+                            Cancelar
+                          </Text>
+                        </Pressable>
+
+                        <Pressable
+                          hitSlop={10}
+                          onPress={() => handleViewCandidates(job)}
+                        >
+                          <Text style={styles.detailsText}>
+                            Ver candidatos ›
+                          </Text>
+                        </Pressable>
+                      </View>
+                    )}
                   </View>
-                </Pressable>
+                </View>
               );
             })
           )}

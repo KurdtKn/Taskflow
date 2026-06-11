@@ -40,31 +40,45 @@ function getCurrentTime() {
 
 export default function ChatScreen() {
   const params = useLocalSearchParams<{
-    jobId?: string;
-    candidaturaId?: string;
-    freelancerId?: string;
-    jobTitle?: string;
-    candidateName?: string;
+    jobId?: string | string[];
+    candidaturaId?: string | string[];
+    freelancerId?: string | string[];
+    jobTitle?: string | string[];
+    candidateName?: string | string[];
+    companyName?: string | string[];
   }>();
-
-  const jobId = params.jobId ?? "";
-  const candidaturaId = params.candidaturaId ?? "";
-  const freelancerId = params.freelancerId ?? "";
-  const jobTitle = params.jobTitle ?? "Chamado";
-  const candidateName = params.candidateName ?? "Freelancer selecionado";
 
   const scrollRef = useRef<ScrollView>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState("");
   const [currentSender, setCurrentSender] = useState<MessageSender>("company");
+  const [currentUserType, setCurrentUserType] = useState<"empresa" | "freelancer" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const { isDark, theme } = useTheme();
 
+  function getParamValue(value?: string | string[], fallback = "") {
+    if (Array.isArray(value)) {
+      return value[0] ?? fallback;
+    }
+
+    return value ?? fallback;
+  }
+
+  const jobId = getParamValue(params.jobId);
+  const candidaturaId = getParamValue(params.candidaturaId);
+  const freelancerId = getParamValue(params.freelancerId);
+  const jobTitle = getParamValue(params.jobTitle, "Chamado");
+  const candidateName = getParamValue(params.candidateName, "Freelancer selecionado");
+  const companyName = getParamValue(params.companyName, "Empresa");
+
   const chatKey = `${CHAT_STORAGE_KEY}:${jobId || "sem-chamado"}:${
     candidaturaId || freelancerId || "sem-candidatura"
   }`;
+
+  const chatHeaderTitle =
+    currentUserType === "freelancer" ? companyName : candidateName;
 
   const systemMessage: Message = {
     id: "system-message",
@@ -89,10 +103,14 @@ export default function ChatScreen() {
         return;
       }
 
-      if (loggedUser.tipoUsuario === "freelancer") {
+      const tipoUsuario = loggedUser.tipoUsuario?.toLowerCase().trim();
+
+      if (tipoUsuario === "freelancer") {
         setCurrentSender("freelancer");
+        setCurrentUserType("freelancer");
       } else {
         setCurrentSender("company");
+        setCurrentUserType("empresa");
       }
 
       const storedMessages = await AsyncStorage.getItem(chatKey);
@@ -127,12 +145,12 @@ export default function ChatScreen() {
   async function handleSendMessage() {
     const trimmedMessage = messageText.trim();
 
-    if (!trimmedMessage) {
+    if (!trimmedMessage || isLoading) {
       return;
     }
 
     const newMessage: Message = {
-      id: String(Date.now()),
+      id: `${Date.now()}-${currentSender}`,
       sender: currentSender,
       text: trimmedMessage,
       time: getCurrentTime(),
@@ -160,6 +178,7 @@ export default function ChatScreen() {
         freelancerId,
         jobTitle,
         candidateName,
+        companyName,
       },
     });
   }
@@ -194,7 +213,7 @@ export default function ChatScreen() {
 
           <View style={styles.headerInfo}>
             <Text style={[styles.headerTitle, { color: theme.text }]}>
-              {candidateName}
+              {chatHeaderTitle}
             </Text>
 
             <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
@@ -379,12 +398,15 @@ export default function ChatScreen() {
             value={messageText}
             onChangeText={setMessageText}
             multiline
+            editable={!isLoading}
           />
 
           <Pressable
+            disabled={isLoading}
             style={({ pressed }) => [
               styles.sendButton,
               pressed && styles.sendButtonPressed,
+              isLoading && { opacity: 0.7 },
             ]}
             onPress={handleSendMessage}
           >

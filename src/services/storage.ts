@@ -6,6 +6,7 @@ const USER_ID_KEY = "@taskflow:user_id";
 const USER_TYPE_KEY = "@taskflow:user_type";
 const PROFILE_ID_KEY = "@taskflow:profile_id";
 const COMPANY_DATA_KEY = "@taskflow:company_data";
+const FREELANCER_DATA_KEY = "@taskflow:freelancer_data";
 
 export type StoredCompanyData = {
   name: string;
@@ -18,6 +19,19 @@ export type StoredCompanyData = {
   isVerified: boolean;
   tags: string[];
   logoUrl?: string;
+};
+
+export type StoredFreelancerData = {
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  about: string;
+  experience?: string;
+  portfolioUrl?: string;
+  isAvailable?: boolean;
+  tags: string[];
+  photoUrl?: string;
 };
 
 export async function saveLoggedUser(user: StoredUser) {
@@ -74,6 +88,28 @@ export async function getCompanyData(userId: string) {
   }
 
   return JSON.parse(companyDataJson) as StoredCompanyData;
+}
+
+export async function saveFreelancerData(
+  userId: string,
+  data: StoredFreelancerData
+) {
+  await AsyncStorage.setItem(
+    `${FREELANCER_DATA_KEY}:${userId}`,
+    JSON.stringify(data)
+  );
+}
+
+export async function getFreelancerData(userId: string) {
+  const freelancerDataJson = await AsyncStorage.getItem(
+    `${FREELANCER_DATA_KEY}:${userId}`
+  );
+
+  if (!freelancerDataJson) {
+    return null;
+  }
+
+  return JSON.parse(freelancerDataJson) as StoredFreelancerData;
 }
 
 export async function clearAuthStorage() {

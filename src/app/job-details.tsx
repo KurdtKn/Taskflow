@@ -1,4 +1,5 @@
 import {
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -18,33 +19,75 @@ import { useTheme } from "@/app/context/ThemeContext";
 
 export default function JobDetailsScreen() {
   const params = useLocalSearchParams<{
-    title?: string;
-    category?: string;
-    price?: string;
-    distance?: string;
-    location?: string;
-    time?: string;
+    id?: string | string[];
+    title?: string | string[];
+    description?: string | string[];
+    company?: string | string[];
+    category?: string | string[];
+    price?: string | string[];
+    distance?: string | string[];
+    location?: string | string[];
+    time?: string | string[];
+    imageUrl?: string | string[];
   }>();
 
   const { isDark, theme } = useTheme();
 
-  const title = params.title ?? "Garçom para Evento";
-  const category = params.category ?? "Evento";
-  const price = params.price ?? "R$200,00";
-  const distance = params.distance ?? "1,5 km";
-  const location = params.location ?? "Centro";
-  const time = params.time ?? "Hoje, 18:00";
+  function getParamValue(value?: string | string[], fallback = "") {
+    if (Array.isArray(value)) {
+      return value[0] ?? fallback;
+    }
+
+    return value ?? fallback;
+  }
+
+  const id = getParamValue(params.id);
+  const title = getParamValue(params.title, "Chamado disponível");
+  const description = getParamValue(
+    params.description,
+    "A empresa está procurando um profissional disponível para atender este chamado de forma pontual, com responsabilidade, boa comunicação e experiência na categoria informada."
+  );
+  const company = getParamValue(params.company, "Empresa não informada");
+  const category = getParamValue(params.category, "Categoria");
+  const price = getParamValue(params.price, "A combinar");
+  const distance = getParamValue(params.distance, "Perto de você");
+  const location = getParamValue(params.location, "Local não informado");
+  const time = getParamValue(params.time, "Data a combinar");
+  const imageUrl = getParamValue(params.imageUrl);
+
+  function getCompanyInitials() {
+    const words = company.trim().split(" ").filter(Boolean);
+
+    if (words.length === 0) {
+      return "TF";
+    }
+
+    if (words.length === 1) {
+      return words[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
+  }
 
   function handleRequestService() {
-    console.log("Solicitar atendimento:", title);
+    console.log("Solicitar atendimento:", {
+      id,
+      title,
+      company,
+    });
 
     router.push({
       pathname: "/request-confirmation",
       params: {
+        id,
         title,
+        description,
+        company,
+        category,
         price,
         location,
         time,
+        imageUrl,
       },
     });
   }
@@ -53,9 +96,9 @@ export default function JobDetailsScreen() {
     router.push({
       pathname: "/company-public-profile",
       params: {
-        companyName: "TaskFlow Eventos",
+        companyName: company,
         companyLocation: location,
-        companyRating: "4,9",
+        companyRating: "4,8",
         jobTitle: title,
       },
     });
@@ -92,10 +135,22 @@ export default function JobDetailsScreen() {
             {
               backgroundColor: theme.card,
               borderColor: theme.border,
+              overflow: "hidden",
             },
           ]}
         >
-          <SettingsIcon width={46} height={46} />
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+              resizeMode="cover"
+            />
+          ) : (
+            <SettingsIcon width={46} height={46} />
+          )}
         </View>
 
         <View style={styles.titleArea}>
@@ -121,7 +176,7 @@ export default function JobDetailsScreen() {
         >
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <LocationIcon width={22} height={22} color="#e62727"/>
+              <LocationIcon width={22} height={22} color="#e62727" />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -165,11 +220,7 @@ export default function JobDetailsScreen() {
           </Text>
 
           <Text style={[styles.description, { color: theme.textSecondary }]}>
-            A empresa está procurando um profissional disponível para atender
-            este chamado de forma pontual, com responsabilidade, boa comunicação
-            e experiência na categoria informada. O freelancer deverá comparecer
-            no local indicado e realizar o serviço conforme os detalhes
-            combinados após a aprovação da solicitação.
+            {description}
           </Text>
         </View>
 
@@ -183,12 +234,14 @@ export default function JobDetailsScreen() {
           ]}
         >
           <View style={styles.companyAvatar}>
-            <Text style={styles.companyAvatarText}>TF</Text>
+            <Text style={styles.companyAvatarText}>
+              {getCompanyInitials()}
+            </Text>
           </View>
 
           <View style={styles.companyInfo}>
             <Text style={[styles.companyName, { color: theme.text }]}>
-              TaskFlow Eventos
+              {company}
             </Text>
 
             <Text style={[styles.companyRating, { color: theme.textSecondary }]}>

@@ -1,4 +1,6 @@
+import { useState } from "react";
 import {
+  Alert,
   Pressable,
   SafeAreaView,
   Text,
@@ -16,21 +18,109 @@ import TimeIcon from "../../assets/icons/access_time.svg";
 import { styles } from "@/app/styles/requestConfirmation";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
+import { apiPost } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
 export default function RequestConfirmationScreen() {
   const params = useLocalSearchParams<{
-    title?: string;
-    price?: string;
-    location?: string;
-    time?: string;
+    id?: string | string[];
+    title?: string | string[];
+    description?: string | string[];
+    company?: string | string[];
+    category?: string | string[];
+    price?: string | string[];
+    location?: string | string[];
+    time?: string | string[];
+    imageUrl?: string | string[];
   }>();
 
-  const title = params.title ?? "Garçom para Evento";
-  const price = params.price ?? "R$200,00";
-  const location = params.location ?? "Centro";
-  const time = params.time ?? "Hoje, 18:00";
+  const [isSending, setIsSending] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  function getParamValue(value?: string | string[], fallback = "") {
+    if (Array.isArray(value)) {
+      return value[0] ?? fallback;
+    }
+
+    return value ?? fallback;
+  }
+
+  const chamadoId = getParamValue(params.id);
+  const title = getParamValue(params.title, "Chamado disponível");
+  const price = getParamValue(params.price, "A combinar");
+  const location = getParamValue(params.location, "Local não informado");
+  const time = getParamValue(params.time, "Data a combinar");
+
+  async function handleConfirmRequest() {
+    if (!chamadoId) {
+      Alert.alert(
+        "Chamado inválido",
+        "Não foi possível identificar o chamado selecionado."
+      );
+      return;
+    }
+
+    try {
+      setIsSending(true);
+
+      const loggedUser = await getLoggedUser();
+
+      if (!loggedUser) {
+        Alert.alert("Sessão expirada", "Faça login novamente.");
+        router.replace("/login");
+        return;
+      }
+
+      if (loggedUser.tipoUsuario !== "freelancer") {
+        Alert.alert(
+          "Acesso negado",
+          "Apenas freelancers podem se candidatar aos chamados."
+        );
+        return;
+      }
+
+      const freelancerId = loggedUser.perfilId ?? loggedUser.id;
+
+      if (!freelancerId) {
+        Alert.alert(
+          "Perfil não encontrado",
+          "Não foi possível identificar seu perfil de freelancer."
+        );
+        return;
+      }
+
+      const response = await apiPost("/api/Candidaturas", {
+        chamadoId: Number(chamadoId),
+        freelancerId: Number(freelancerId),
+      });
+
+      console.log("Candidatura enviada:", response);
+
+      setIsSubmitted(true);
+
+      Alert.alert(
+        "Solicitação enviada",
+        "Sua candidatura foi enviada para a empresa."
+      );
+    } catch (error) {
+      console.log("Erro ao enviar candidatura:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar sua candidatura agora.";
+
+      Alert.alert("Erro ao enviar", errorMessage);
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  function handleGoHome() {
+    router.replace("/home");
+  }
 
   return (
     <SafeAreaView
@@ -41,7 +131,11 @@ export default function RequestConfirmationScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
+      <Pressable
+        style={styles.backButton}
+        onPress={() => router.back()}
+        disabled={isSending}
+      >
         <ArrowBack width={28} height={28} />
       </Pressable>
 
@@ -51,12 +145,13 @@ export default function RequestConfirmationScreen() {
         </View>
 
         <Text style={[styles.title, { color: theme.text }]}>
-          Solicitação enviada!
+          {isSubmitted ? "Solicitação enviada!" : "Confirmar candidatura"}
         </Text>
 
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Sua candidatura foi enviada para a empresa. Agora é só aguardar a
-          análise do seu perfil.
+          {isSubmitted
+            ? "Sua candidatura foi enviada para a empresa. Agora é só aguardar a análise do seu perfil."
+            : "Confira os dados do chamado antes de enviar sua candidatura para a empresa."}
         </Text>
 
         <View
@@ -69,7 +164,7 @@ export default function RequestConfirmationScreen() {
           ]}
         >
           <Text style={[styles.cardLabel, { color: theme.primary }]}>
-            Chamado solicitado
+            Chamado selecionado
           </Text>
 
           <Text style={[styles.cardTitle, { color: theme.text }]}>
@@ -88,7 +183,7 @@ export default function RequestConfirmationScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <LocationIcon width={18} height={18} color={colors.location}/>
+              <LocationIcon width={18} height={18} color={colors.location} />
             </View>
 
             <Text style={[styles.infoText, { color: theme.text }]}>
@@ -129,17 +224,34 @@ export default function RequestConfirmationScreen() {
           { backgroundColor: theme.background },
         ]}
       >
-        <Pressable
-          style={({ pressed }) => [
-            styles.primaryButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => router.replace("/home")}
-        >
-          <Text style={styles.primaryButtonText}>Voltar para início</Text>
-        </Pressable>
+        {!isSubmitted ? (
+          <Pressable
+            disabled={isSending}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              pressed && styles.buttonPressed,
+              isSending && { opacity: 0.7 },
+            ]}
+            onPress={handleConfirmRequest}
+          >
+            <Text style={styles.primaryButtonText}>
+              {isSending ? "Enviando..." : "Confirmar candidatura"}
+            </Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [
+              styles.primaryButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={handleGoHome}
+          >
+            <Text style={styles.primaryButtonText}>Voltar para início</Text>
+          </Pressable>
+        )}
 
         <Pressable
+          disabled={isSending}
           style={({ pressed }) => [
             styles.secondaryButton,
             {
@@ -147,6 +259,7 @@ export default function RequestConfirmationScreen() {
               borderColor: theme.border,
             },
             pressed && styles.buttonPressed,
+            isSending && { opacity: 0.7 },
           ]}
           onPress={() => router.push("/notifications")}
         >

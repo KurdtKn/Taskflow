@@ -12,15 +12,26 @@ import { useTheme } from "@/app/context/ThemeContext";
 
 export default function PaymentSuccessScreen() {
   const params = useLocalSearchParams<{
+    jobId?: string;
+    candidaturaId?: string;
+    freelancerId?: string;
     jobTitle?: string;
     candidateName?: string;
+    serviceValue?: string;
+    platformFee?: string;
     totalValue?: string;
     paymentMethod?: string;
   }>();
 
-  const jobTitle = params.jobTitle ?? "Garçom para Evento";
-  const candidateName = params.candidateName ?? "Usuário TaskFlow";
-  const totalValue = params.totalValue ?? "R$220,00";
+  const jobId = params.jobId ?? "";
+  const candidaturaId = params.candidaturaId ?? "";
+  const freelancerId = params.freelancerId ?? "";
+
+  const jobTitle = params.jobTitle ?? "Chamado";
+  const candidateName = params.candidateName ?? "Freelancer selecionado";
+  const serviceValue = params.serviceValue ?? "Valor a combinar";
+  const platformFee = params.platformFee ?? "A calcular";
+  const totalValue = params.totalValue ?? "A calcular";
   const paymentMethod = params.paymentMethod ?? "Pix";
 
   const { isDark, theme } = useTheme();
@@ -29,10 +40,17 @@ export default function PaymentSuccessScreen() {
     router.push({
       pathname: "/chat",
       params: {
+        jobId,
+        candidaturaId,
+        freelancerId,
         jobTitle,
         candidateName,
       },
     });
+  }
+
+  function handleBackToDashboard() {
+    router.replace("/company-dashboard");
   }
 
   return (
@@ -107,6 +125,40 @@ export default function PaymentSuccessScreen() {
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Valor do serviço
+            </Text>
+
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {serviceValue}
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
+
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Taxa da plataforma
+            </Text>
+
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {platformFee}
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
+
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
               Forma de pagamento
             </Text>
 
@@ -166,7 +218,7 @@ export default function PaymentSuccessScreen() {
             },
             pressed && styles.buttonPressed,
           ]}
-          onPress={() => router.replace("/company-dashboard")}
+          onPress={handleBackToDashboard}
         >
           <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
             Voltar ao painel

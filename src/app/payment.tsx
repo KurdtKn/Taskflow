@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { useMemo, useState } from "react";
 import {
+  Alert,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -17,6 +18,8 @@ import SendIcon from "../../assets/icons/send.svg";
 
 import { styles } from "@/app/styles/payment";
 import { useTheme } from "@/app/context/ThemeContext";
+import { apiPut } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
 type PaymentMethod = "card" | "pix" | "wallet";
 
@@ -93,11 +96,13 @@ export default function PaymentScreen() {
   }>();
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("pix");
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const { isDark, theme } = useTheme();
 
   const jobTitle = params.jobTitle ?? "Chamado";
   const candidateName = params.candidateName ?? "Freelancer selecionado";
+  const candidaturaId = params.candidaturaId ?? "";
 
   const receivedServiceValue =
     params.serviceValue ?? params.candidatePrice ?? params.jobPrice ?? "";
@@ -129,10 +134,41 @@ export default function PaymentScreen() {
   const platformFee = paymentValues.platformFee;
   const totalValue = paymentValues.totalValue;
 
-  function handleConfirmPayment() {
-    console.log({
+ async function handleConfirmPayment() {
+  if (isConfirming) {
+    return;
+  }
+
+  if (!candidaturaId) {
+    Alert.alert(
+      "Candidatura não encontrada",
+      "Não foi possível identificar a candidatura selecionada."
+    );
+    return;
+  }
+
+  try {
+    setIsConfirming(true);
+
+    const loggedUser = await getLoggedUser();
+
+    if (!loggedUser) {
+      Alert.alert("Sessão expirada", "Faça login novamente.");
+      router.replace("/login");
+      return;
+    }
+
+    if (loggedUser.tipoUsuario !== "empresa") {
+      Alert.alert(
+        "Acesso negado",
+        "Apenas empresas podem aceitar candidaturas."
+      );
+      return;
+    }
+
+    console.log("Confirmando pagamento:", {
       jobId: params.jobId,
-      candidaturaId: params.candidaturaId,
+      candidaturaId,
       freelancerId: params.freelancerId,
       jobTitle,
       candidateName,
@@ -142,11 +178,24 @@ export default function PaymentScreen() {
       selectedMethod,
     });
 
+    try {
+      await apiPut(`/api/Candidaturas/${candidaturaId}/status`, {
+        status: "aceita",
+      });
+
+      console.log("Status da candidatura atualizado para aceita.");
+    } catch (apiError) {
+      console.log(
+        "Não foi possível atualizar status na API, seguindo fluxo mesmo assim:",
+        apiError
+      );
+    }
+
     router.push({
       pathname: "/payment-success",
       params: {
         jobId: params.jobId ?? "",
-        candidaturaId: params.candidaturaId ?? "",
+        candidaturaId,
         freelancerId: params.freelancerId ?? "",
         jobTitle,
         candidateName,
@@ -156,7 +205,19 @@ export default function PaymentScreen() {
         paymentMethod: paymentMethodLabel[selectedMethod],
       },
     });
+  } catch (error) {
+    console.log("Erro ao confirmar pagamento:", error);
+
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Não foi possível confirmar o pagamento agora.";
+
+    Alert.alert("Erro ao confirmar", errorMessage);
+  } finally {
+    setIsConfirming(false);
   }
+}
 
   return (
     <SafeAreaView
@@ -168,7 +229,11 @@ export default function PaymentScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.back()}
+          disabled={isConfirming}
+        >
           <ArrowBack width={28} height={28} />
         </Pressable>
 
@@ -288,6 +353,7 @@ export default function PaymentScreen() {
               return (
                 <Pressable
                   key={method.id}
+                  disabled={isConfirming}
                   style={[
                     styles.methodCard,
                     {
@@ -295,6 +361,7 @@ export default function PaymentScreen() {
                       borderColor: theme.border,
                     },
                     isSelected && styles.methodCardActive,
+                    isConfirming && { opacity: 0.7 },
                   ]}
                   onPress={() => setSelectedMethod(method.id)}
                 >
@@ -355,13 +422,17 @@ export default function PaymentScreen() {
         </View>
 
         <Pressable
+          disabled={isConfirming}
           style={({ pressed }) => [
             styles.confirmButton,
             pressed && styles.confirmButtonPressed,
+            isConfirming && { opacity: 0.7 },
           ]}
           onPress={handleConfirmPayment}
         >
-          <Text style={styles.confirmButtonText}>Confirmar pagamento</Text>
+          <Text style={styles.confirmButtonText}>
+            {isConfirming ? "Confirmando..." : "Confirmar pagamento"}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

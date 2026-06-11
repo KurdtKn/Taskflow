@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 
@@ -190,67 +191,123 @@ export default function CompanyDataScreen() {
   }
 
   async function handleSaveCompanyData() {
-  console.log("Clicou em salvar dados da empresa");
+    console.log("Clicou em salvar dados da empresa");
 
-  const companyData = getCurrentCompanyData();
+    const companyData = getCurrentCompanyData();
 
-  if (!companyData.companyName) {
-    Alert.alert("Campo obrigatório", "Informe o nome da empresa.");
-    return;
-  }
-
-  if (companyData.email && !isValidEmail(companyData.email)) {
-    Alert.alert("E-mail inválido", "Informe um e-mail comercial válido.");
-    return;
-  }
-
-  try {
-    setIsSaving(true);
-
-    const loggedUser = await getLoggedUser();
-
-    if (!loggedUser) {
-      Alert.alert("Sessão expirada", "Faça login novamente.");
-      router.replace("/login");
+    if (!companyData.companyName) {
+      Alert.alert("Campo obrigatório", "Informe o nome da empresa.");
       return;
     }
 
-    await saveCompanyData(loggedUser.id, {
-      name: companyData.companyName,
-      cnpj: companyData.cnpj,
-      email: companyData.email || loggedUser.email,
-      phone: companyData.phone,
-      location: companyData.city,
-      address: companyData.address,
-      about: companyData.description,
-      isVerified: companyData.isVerified,
-      tags: companyData.selectedAreas,
-      logoUrl: companyData.logoUrl,
+    if (companyData.email && !isValidEmail(companyData.email)) {
+      Alert.alert("E-mail inválido", "Informe um e-mail comercial válido.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      const loggedUser = await getLoggedUser();
+
+      if (!loggedUser) {
+        Alert.alert("Sessão expirada", "Faça login novamente.");
+        router.replace("/login");
+        return;
+      }
+
+      await saveCompanyData(loggedUser.id, {
+        name: companyData.companyName,
+        cnpj: companyData.cnpj,
+        email: companyData.email || loggedUser.email,
+        phone: companyData.phone,
+        location: companyData.city,
+        address: companyData.address,
+        about: companyData.description,
+        isVerified: companyData.isVerified,
+        tags: companyData.selectedAreas,
+        logoUrl: companyData.logoUrl,
+      });
+
+      console.log("Dados da empresa salvos com sucesso:", companyData);
+
+      Alert.alert("Dados atualizados", "As alterações foram salvas.");
+
+      router.replace("/company-profile");
+    } catch (error) {
+      console.log("Erro ao salvar dados da empresa:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível salvar os dados da empresa agora."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleChangeLogo() {
+  try {
+    if (Platform.OS !== "web") {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permissão necessária",
+          "Permita o acesso à galeria para escolher a logo da empresa."
+        );
+        return;
+      }
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true,
     });
 
-    console.log("Dados da empresa salvos com sucesso:", companyData);
+    if (result.canceled) {
+      return;
+    }
 
-    Alert.alert("Dados atualizados", "As alterações foram salvas.");
+    const selectedImage = result.assets[0];
 
-    router.replace("/company-profile");
+    if (!selectedImage) {
+      Alert.alert("Erro", "Não foi possível carregar a imagem selecionada.");
+      return;
+    }
+
+    if (selectedImage.base64) {
+      const mimeType = selectedImage.mimeType ?? "image/jpeg";
+      const base64Image = `data:${mimeType};base64,${selectedImage.base64}`;
+
+      setLogoUrl(base64Image);
+      return;
+    }
+
+    if (selectedImage.uri) {
+      setLogoUrl(selectedImage.uri);
+      return;
+    }
+
+    Alert.alert("Erro", "Não foi possível carregar a imagem selecionada.");
   } catch (error) {
-    console.log("Erro ao salvar dados da empresa:", error);
+    console.log("Erro ao selecionar logo:", error);
 
     Alert.alert(
       "Erro",
-      "Não foi possível salvar os dados da empresa agora."
+      "Não foi possível selecionar a logo da empresa agora."
     );
-  } finally {
-    setIsSaving(false);
   }
 }
 
-  function handleChangeLogo() {
-    Alert.alert(
-      "Alterar logo",
-      "A seleção da logo será integrada depois com upload de imagem."
-    );
-  }
+  const isProfileActive =
+    companyName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    isValidEmail(email.trim());
 
   return (
     <SafeAreaView
@@ -283,7 +340,7 @@ export default function CompanyDataScreen() {
           keyboardShouldPersistTaps="always"
         >
           <View style={styles.logoSection}>
-            <View style={styles.logoArea}>
+            <View style={[styles.logoArea, { position: "relative" }]}>
               {logoUrl ? (
                 <Image
                   source={{ uri: logoUrl }}
@@ -313,16 +370,47 @@ export default function CompanyDataScreen() {
                 </View>
               )}
 
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  right: 6,
+                  width: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  backgroundColor: isProfileActive ? "#22C55E" : "#A1A1AA",
+                  borderWidth: 3,
+                  borderColor: theme.background,
+                  zIndex: 20,
+                  elevation: 20,
+                }}
+              />
+
               <Pressable
-                style={styles.editLogoButton}
+                style={[
+                  styles.editLogoButton,
+                  {
+                    zIndex: 30,
+                    elevation: 30,
+                  },
+                ]}
                 onPress={handleChangeLogo}
               >
                 <Text style={styles.editLogoIcon}>✎</Text>
               </Pressable>
             </View>
 
-            <Text style={[styles.logoText, { color: theme.textSecondary }]}>
-              Alterar logo da empresa
+            <Text
+              style={[
+                styles.logoText,
+                {
+                  color: isProfileActive ? "#22C55E" : theme.textSecondary,
+                  fontWeight: "800",
+                },
+              ]}
+            >
+              {isProfileActive ? "Perfil ativo" : "Perfil incompleto"}
             </Text>
           </View>
 

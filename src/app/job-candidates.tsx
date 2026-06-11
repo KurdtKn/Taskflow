@@ -26,6 +26,7 @@ type Candidate = {
   freelancerId?: string;
   name: string;
   email?: string;
+  photoUrl?: string;
   role: string;
   rating: number | null;
   reviews: number;
@@ -37,18 +38,62 @@ type Candidate = {
   status: string;
 };
 
+type FreelancerNestedApi = {
+  id?: number | null;
+  nome?: string | null;
+  name?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  fotoUrl?: string | null;
+  photoUrl?: string | null;
+  habilidades?: string[] | string | null;
+  skills?: string[] | string | null;
+  rating?: number | null;
+  nota?: number | null;
+  avaliacoes?: number | null;
+  reviews?: number | null;
+  servicosConcluidos?: number | null;
+  completedJobs?: number | null;
+};
+
 type CandidaturaApi = {
   id: number;
+
   freelancerId?: number | null;
   freelancer_id?: number | null;
-  freelancer?: string | null;
+
+  freelancer?: string | FreelancerNestedApi | null;
+
   nome?: string | null;
+  name?: string | null;
+  nomeFreelancer?: string | null;
+  freelancerNome?: string | null;
+
   email?: string | null;
+  freelancerEmail?: string | null;
+  emailFreelancer?: string | null;
+
+  fotoUrl?: string | null;
+  photoUrl?: string | null;
+
   mensagem?: string | null;
+  descricao?: string | null;
+
   valorProposto?: number | null;
   valor_proposto?: number | null;
+
   status?: string | null;
   dataCandidatura?: string | null;
+
+  habilidades?: string[] | string | null;
+  skills?: string[] | string | null;
+
+  rating?: number | null;
+  nota?: number | null;
+  reviews?: number | null;
+  avaliacoes?: number | null;
+  completedJobs?: number | null;
+  servicosConcluidos?: number | null;
 };
 
 type CandidaturasResponse =
@@ -81,19 +126,165 @@ function formatCurrency(value?: number | null) {
 function getCandidateStatusLabel(status?: string | null) {
   const normalizedStatus = status?.toLowerCase().trim();
 
-  if (normalizedStatus === "aceita") {
+  if (
+    normalizedStatus === "aceita" ||
+    normalizedStatus === "aceito" ||
+    normalizedStatus === "accepted"
+  ) {
     return "Aceita";
   }
 
-  if (normalizedStatus === "recusada") {
+  if (
+    normalizedStatus === "recusada" ||
+    normalizedStatus === "recusado" ||
+    normalizedStatus === "rejected"
+  ) {
     return "Recusada";
   }
 
-  if (normalizedStatus === "cancelada") {
+  if (
+    normalizedStatus === "cancelada" ||
+    normalizedStatus === "cancelado" ||
+    normalizedStatus === "canceled" ||
+    normalizedStatus === "cancelled"
+  ) {
     return "Cancelada";
   }
 
   return "Pendente";
+}
+
+function getNestedFreelancer(apiCandidate: CandidaturaApi) {
+  if (
+    apiCandidate.freelancer &&
+    typeof apiCandidate.freelancer === "object"
+  ) {
+    return apiCandidate.freelancer;
+  }
+
+  return null;
+}
+
+function getFreelancerId(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.freelancerId ??
+    apiCandidate.freelancer_id ??
+    nestedFreelancer?.id ??
+    null
+  );
+}
+
+function getFreelancerName(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  if (typeof apiCandidate.freelancer === "string") {
+    return apiCandidate.freelancer;
+  }
+
+  return (
+    apiCandidate.nomeFreelancer ||
+    apiCandidate.freelancerNome ||
+    apiCandidate.nome ||
+    apiCandidate.name ||
+    nestedFreelancer?.nome ||
+    nestedFreelancer?.name ||
+    "Freelancer não informado"
+  );
+}
+
+function getFreelancerEmail(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.freelancerEmail ||
+    apiCandidate.emailFreelancer ||
+    apiCandidate.email ||
+    nestedFreelancer?.email ||
+    undefined
+  );
+}
+
+function getFreelancerPhoto(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.photoUrl ||
+    apiCandidate.fotoUrl ||
+    nestedFreelancer?.photoUrl ||
+    nestedFreelancer?.fotoUrl ||
+    undefined
+  );
+}
+
+function getFreelancerRating(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.rating ??
+    apiCandidate.nota ??
+    nestedFreelancer?.rating ??
+    nestedFreelancer?.nota ??
+    null
+  );
+}
+
+function getFreelancerReviews(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.reviews ??
+    apiCandidate.avaliacoes ??
+    nestedFreelancer?.reviews ??
+    nestedFreelancer?.avaliacoes ??
+    0
+  );
+}
+
+function getCompletedJobs(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.completedJobs ??
+    apiCandidate.servicosConcluidos ??
+    nestedFreelancer?.completedJobs ??
+    nestedFreelancer?.servicosConcluidos ??
+    0
+  );
+}
+
+function normalizeSkills(value?: string[] | string | null) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.filter(Boolean);
+  }
+
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getFreelancerSkills(
+  apiCandidate: CandidaturaApi,
+  jobCategory: string,
+  statusLabel: string
+) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  const skills =
+    normalizeSkills(apiCandidate.habilidades) ||
+    normalizeSkills(apiCandidate.skills) ||
+    normalizeSkills(nestedFreelancer?.habilidades) ||
+    normalizeSkills(nestedFreelancer?.skills);
+
+  const baseSkills = skills.length > 0 ? skills : [jobCategory];
+
+  return [...baseSkills, `Status: ${statusLabel}`];
 }
 
 function formatCandidate(
@@ -103,45 +294,46 @@ function formatCandidate(
   const valorProposto =
     apiCandidate.valorProposto ?? apiCandidate.valor_proposto ?? null;
 
-  const freelancerId =
-    apiCandidate.freelancerId ?? apiCandidate.freelancer_id ?? null;
-
-  const candidateName =
-    apiCandidate.freelancer ||
-    apiCandidate.nome ||
-    "Freelancer não informado";
-
+  const freelancerId = getFreelancerId(apiCandidate);
+  const candidateName = getFreelancerName(apiCandidate);
+  const candidateEmail = getFreelancerEmail(apiCandidate);
+  const candidatePhoto = getFreelancerPhoto(apiCandidate);
   const statusLabel = getCandidateStatusLabel(apiCandidate.status);
+  const rating = getFreelancerRating(apiCandidate);
+  const reviews = getFreelancerReviews(apiCandidate);
+  const completedJobs = getCompletedJobs(apiCandidate);
 
   return {
     id: String(apiCandidate.id),
     freelancerId: freelancerId ? String(freelancerId) : undefined,
     name: candidateName,
-    email: apiCandidate.email ?? undefined,
-    role: apiCandidate.email ? apiCandidate.email : "Freelancer",
-    rating: null,
-    reviews: 0,
+    email: candidateEmail,
+    photoUrl: candidatePhoto,
+    role: candidateEmail ? candidateEmail : "Freelancer",
+    rating,
+    reviews,
     distance: "Não informado",
-    completedJobs: 0,
+    completedJobs,
     price: formatCurrency(valorProposto),
     description:
       apiCandidate.mensagem ||
+      apiCandidate.descricao ||
       "O freelancer ainda não enviou uma mensagem para essa candidatura.",
-    skills: [jobCategory, `Status: ${statusLabel}`],
+    skills: getFreelancerSkills(apiCandidate, jobCategory, statusLabel),
     status: statusLabel,
   };
 }
 
 export default function JobCandidatesScreen() {
   const params = useLocalSearchParams<{
-    id?: string;
-    chamadoId?: string;
-    title?: string;
-    category?: string;
-    price?: string;
-    location?: string;
-    time?: string;
-    candidates?: string;
+    id?: string | string[];
+    chamadoId?: string | string[];
+    title?: string | string[];
+    category?: string | string[];
+    price?: string | string[];
+    location?: string | string[];
+    time?: string | string[];
+    candidates?: string | string[];
   }>();
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -150,12 +342,20 @@ export default function JobCandidatesScreen() {
 
   const { isDark, theme } = useTheme();
 
-  const jobId = params.id ?? params.chamadoId ?? "";
-  const jobTitle = params.title ?? "Chamado";
-  const jobCategory = params.category ?? "Categoria";
-  const jobPrice = params.price ?? "Valor a combinar";
-  const jobLocation = params.location ?? "Local não informado";
-  const jobTime = params.time ?? "Data não informada";
+  function getParamValue(value?: string | string[], fallback = "") {
+    if (Array.isArray(value)) {
+      return value[0] ?? fallback;
+    }
+
+    return value ?? fallback;
+  }
+
+  const jobId = getParamValue(params.id) || getParamValue(params.chamadoId);
+  const jobTitle = getParamValue(params.title, "Chamado");
+  const jobCategory = getParamValue(params.category, "Categoria");
+  const jobPrice = getParamValue(params.price, "Valor a combinar");
+  const jobLocation = getParamValue(params.location, "Local não informado");
+  const jobTime = getParamValue(params.time, "Data não informada");
 
   const selectedCandidate = candidates.find(
     (candidate) => candidate.id === selectedCandidateId
@@ -291,16 +491,6 @@ export default function JobCandidatesScreen() {
 
               return updatedCandidates;
             });
-
-            /*
-              Quando a API tiver rota para recusar candidatura,
-              a chamada entra aqui.
-
-              Exemplo futuro:
-              await apiPut(`/api/Candidaturas/${candidate.id}/status`, {
-                status: "recusada",
-              });
-            */
           },
         },
       ]
@@ -458,11 +648,19 @@ export default function JobCandidatesScreen() {
                   onPress={() => setSelectedCandidateId(candidate.id)}
                 >
                   <View style={styles.candidateHeader}>
-                    <Image
-                      source={require("../../assets/images/icon.png")}
-                      style={styles.avatar}
-                      resizeMode="contain"
-                    />
+                    {candidate.photoUrl ? (
+                      <Image
+                        source={{ uri: candidate.photoUrl }}
+                        style={styles.avatar}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Image
+                        source={require("../../assets/images/icon.png")}
+                        style={styles.avatar}
+                        resizeMode="contain"
+                      />
+                    )}
 
                     <View style={styles.candidateInfo}>
                       <Text
