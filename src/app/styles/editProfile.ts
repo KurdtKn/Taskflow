@@ -40,7 +40,7 @@ export const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: 36,
   },
 
   avatarSection: {
@@ -58,6 +58,9 @@ export const styles = StyleSheet.create({
     height: 104,
     borderRadius: 52,
     backgroundColor: colors.lightGray,
+    overflow: "hidden",
+    borderWidth: 3,
+    borderColor: colors.white,
   },
 
   editPhotoButton: {
@@ -72,6 +75,11 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: colors.white,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
 
   editPhotoIcon: {
@@ -119,11 +127,14 @@ export const styles = StyleSheet.create({
     minHeight: 78,
     borderRadius: 16,
     backgroundColor: colors.lightGray,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 12,
     marginBottom: 22,
   },
 
@@ -200,6 +211,7 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 5 },
     elevation: 4,
+    marginTop: 2,
   },
 
   saveButtonPressed: {

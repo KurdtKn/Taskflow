@@ -19,16 +19,19 @@ import VisibilityOff from "../../assets/icons/visibility_off.svg";
 
 import { styles } from "./styles/login";
 import { useTheme } from "@/app/context/ThemeContext";
-import { login as loginService } from "@/services/authService";
+import { login as loginService, logout } from "@/services/authService";
 
 type AccountType = "freelancer" | "empresa";
 
 export default function LoginScreen() {
   const params = useLocalSearchParams<{
     accountType?: AccountType;
+    tipo?: AccountType;
+    userType?: AccountType;
   }>();
 
-  const accountType: AccountType = params.accountType ?? "freelancer";
+  const accountType: AccountType =
+    params.accountType ?? params.tipo ?? params.userType ?? "freelancer";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,6 +57,10 @@ export default function LoginScreen() {
         accountType,
       },
     });
+  }
+
+  function getAccountTypeLabel(type: AccountType) {
+    return type === "empresa" ? "empresa" : "freelancer";
   }
 
   async function handleLogin() {
@@ -86,7 +93,25 @@ export default function LoginScreen() {
 
       console.log("Usuário logado:", user);
 
-      const tipoUsuario = user.tipoUsuario?.toLowerCase().trim();
+      const tipoUsuario = user.tipoUsuario?.toLowerCase().trim() as AccountType;
+
+      if (tipoUsuario !== "empresa" && tipoUsuario !== "freelancer") {
+        showFormError(`Tipo de usuário inválido: ${user.tipoUsuario}`);
+        return;
+      }
+
+      if (tipoUsuario !== accountType) {
+        await logout();
+
+        const contaAtual = getAccountTypeLabel(tipoUsuario);
+        const areaEscolhida = getAccountTypeLabel(accountType);
+
+        showFormError(
+          `Este e-mail pertence a uma conta de ${contaAtual}. Entre pela área de ${contaAtual}, não pela área de ${areaEscolhida}.`
+        );
+
+        return;
+      }
 
       if (tipoUsuario === "empresa") {
         router.replace("/company-dashboard");
@@ -97,8 +122,6 @@ export default function LoginScreen() {
         router.replace("/home");
         return;
       }
-
-      showFormError(`Tipo de usuário inválido: ${user.tipoUsuario}`);
     } catch (error) {
       console.log("Erro ao fazer login:", error);
 
@@ -141,7 +164,8 @@ export default function LoginScreen() {
           </Text>
 
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            Acesse sua conta para continuar usando o TaskFlow.
+            Acesse sua conta de {getAccountTypeLabel(accountType)} para
+            continuar usando o TaskFlow.
           </Text>
         </View>
 

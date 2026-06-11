@@ -14,11 +14,17 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/editProfile";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
+import {
+  getFreelancerData,
+  getLoggedUser,
+  saveFreelancerData,
+} from "@/services/storage";
 
 type Skill = {
   id: string;
@@ -35,6 +41,17 @@ type FreelancerProfileForm = {
   selectedSkills: string[];
   photoUrl?: string;
 };
+
+const defaultSkills: Skill[] = [
+  { id: "1", name: "Eventos" },
+  { id: "2", name: "Garçom" },
+  { id: "3", name: "Fotografia" },
+  { id: "4", name: "DJ" },
+  { id: "5", name: "Babá" },
+  { id: "6", name: "Manutenção" },
+  { id: "7", name: "Limpeza" },
+  { id: "8", name: "Suporte técnico" },
+];
 
 export default function EditProfileScreen() {
   const [name, setName] = useState("");
@@ -61,23 +78,26 @@ export default function EditProfileScreen() {
     try {
       setIsLoading(true);
 
-      /*
-        Aqui futuramente entra a API para buscar o perfil do usuário logado.
+      const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        const response = await userService.getMyFreelancerProfile();
+      if (!loggedUser) {
+        Alert.alert("Sessão expirada", "Faça login novamente.");
+        router.replace("/login");
+        return;
+      }
 
-        setName(response.name);
-        setPhone(formatPhone(response.phone ?? ""));
-        setBio(response.bio ?? "");
-        setExperience(response.experience ?? "");
-        setPortfolioUrl(response.portfolioUrl ?? "");
-        setPhotoUrl(response.photoUrl);
-        setIsAvailable(response.isAvailable);
-        setSelectedSkills(response.skills ?? []);
+      const savedFreelancerData = await getFreelancerData(loggedUser.id);
 
-        A API identifica o usuário pelo token salvo após o login.
-      */
+      setName(savedFreelancerData?.name || loggedUser.nome || "");
+      setPhone(
+        formatPhone(savedFreelancerData?.phone || loggedUser.telefone || "")
+      );
+      setBio(savedFreelancerData?.about || "");
+      setExperience(savedFreelancerData?.experience || "");
+      setPortfolioUrl(savedFreelancerData?.portfolioUrl || "");
+      setPhotoUrl(savedFreelancerData?.photoUrl);
+      setIsAvailable(savedFreelancerData?.isAvailable ?? true);
+      setSelectedSkills(savedFreelancerData?.tags ?? []);
     } catch (error) {
       console.log("Erro ao carregar perfil:", error);
 
@@ -91,22 +111,7 @@ export default function EditProfileScreen() {
   }
 
   async function loadAvailableSkills() {
-    try {
-      /*
-        Aqui futuramente entra a API para buscar categorias/habilidades.
-
-        Exemplo:
-        const response = await categoriesService.getCategories();
-        setAvailableSkills(response);
-
-        Por enquanto fica vazio para não manter dados forjados.
-      */
-
-      setAvailableSkills([]);
-    } catch (error) {
-      console.log("Erro ao carregar habilidades:", error);
-      setAvailableSkills([]);
-    }
+    setAvailableSkills(defaultSkills);
   }
 
   function formatPhone(value: string) {
@@ -153,73 +158,127 @@ export default function EditProfileScreen() {
     };
   }
 
+  async function handleChangePhoto() {
+    try {
+      if (Platform.OS !== "web") {
+        const permissionResult =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permissionResult.granted) {
+          Alert.alert(
+            "Permissão necessária",
+            "Permita o acesso à galeria para escolher sua foto de perfil."
+          );
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+        base64: true,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const selectedImage = result.assets[0];
+
+      if (!selectedImage) {
+        Alert.alert("Erro", "Não foi possível carregar a imagem selecionada.");
+        return;
+      }
+
+      if (selectedImage.base64) {
+        const mimeType = selectedImage.mimeType ?? "image/jpeg";
+        const base64Image = `data:${mimeType};base64,${selectedImage.base64}`;
+
+        setPhotoUrl(base64Image);
+        return;
+      }
+
+      if (selectedImage.uri) {
+        setPhotoUrl(selectedImage.uri);
+        return;
+      }
+
+      Alert.alert("Erro", "Não foi possível carregar a imagem selecionada.");
+    } catch (error) {
+      console.log("Erro ao selecionar foto:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível selecionar sua foto de perfil agora."
+      );
+    }
+  }
+
   async function handleSaveProfile() {
+    console.log("Clicou em salvar perfil");
+
     const profileData = getCurrentProfileData();
+
+    console.log("Dados do formulário:", profileData);
 
     if (!profileData.name) {
       Alert.alert("Campo obrigatório", "Informe seu nome completo.");
       return;
     }
 
-    if (!profileData.phone) {
-      Alert.alert("Campo obrigatório", "Informe seu telefone.");
-      return;
-    }
-
     try {
       setIsSaving(true);
 
-      /*
-        Aqui futuramente entra a API para salvar no banco.
+      const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        await userService.updateMyFreelancerProfile({
-          name: profileData.name,
-          phone: profileData.phone.replace(/\D/g, ""),
-          bio: profileData.bio,
-          experience: profileData.experience,
-          portfolioUrl: profileData.portfolioUrl,
-          isAvailable: profileData.isAvailable,
-          skills: profileData.selectedSkills,
-          photoUrl: profileData.photoUrl,
-        });
+      console.log("Usuário logado:", loggedUser);
 
-        A API vai atualizar os dados do usuário logado pelo token.
-      */
+      if (!loggedUser) {
+        Alert.alert("Sessão expirada", "Faça login novamente.");
+        router.replace("/login");
+        return;
+      }
 
-      console.log("Perfil salvo:", profileData);
+      const savedFreelancerData = await getFreelancerData(loggedUser.id);
 
-      Alert.alert("Perfil atualizado", "Suas alterações foram salvas.", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      const dataToSave = {
+        name: profileData.name,
+        email: savedFreelancerData?.email || loggedUser.email,
+        phone: profileData.phone || loggedUser.telefone || "",
+        city: savedFreelancerData?.city || "",
+        about: profileData.bio,
+        experience: profileData.experience,
+        portfolioUrl: profileData.portfolioUrl,
+        isAvailable: profileData.isAvailable,
+        tags: profileData.selectedSkills,
+        photoUrl: profileData.photoUrl,
+      };
+
+      console.log("Objeto enviado para salvar:", dataToSave);
+
+      await saveFreelancerData(loggedUser.id, dataToSave);
+
+      const checkSavedData = await getFreelancerData(loggedUser.id);
+
+      console.log("Dados salvos no AsyncStorage:", checkSavedData);
+
+      Alert.alert("Perfil atualizado", "Suas alterações foram salvas.");
+
+      router.replace("/profile");
     } catch (error) {
       console.log("Erro ao salvar perfil:", error);
 
-      Alert.alert(
-        "Erro",
-        "Não foi possível salvar seu perfil agora. Tente novamente."
-      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar seu perfil agora. Tente novamente.";
+
+      Alert.alert("Erro", errorMessage);
     } finally {
       setIsSaving(false);
     }
-  }
-
-  function handleChangePhoto() {
-    /*
-      Aqui futuramente entra seleção/upload de imagem.
-
-      Exemplo:
-      usar expo-image-picker para escolher imagem
-      e enviar para API ou storage.
-    */
-
-    Alert.alert(
-      "Alterar foto",
-      "A seleção de foto será integrada depois com upload de imagem."
-    );
   }
 
   return (
@@ -236,7 +295,11 @@ export default function EditProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => router.back()}
+            disabled={isSaving}
+          >
             <ArrowBack width={28} height={28} />
           </Pressable>
 
@@ -286,6 +349,7 @@ export default function EditProfileScreen() {
               <Pressable
                 style={styles.editPhotoButton}
                 onPress={handleChangePhoto}
+                disabled={isSaving}
               >
                 <Text style={styles.editPhotoIcon}>✎</Text>
               </Pressable>
@@ -342,6 +406,7 @@ export default function EditProfileScreen() {
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
+              editable={!isSaving}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -363,6 +428,7 @@ export default function EditProfileScreen() {
               onChangeText={handleChangePhone}
               keyboardType="phone-pad"
               maxLength={15}
+              editable={!isSaving}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -385,6 +451,7 @@ export default function EditProfileScreen() {
               onChangeText={setBio}
               multiline
               textAlignVertical="top"
+              editable={!isSaving}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -407,6 +474,7 @@ export default function EditProfileScreen() {
               onChangeText={setExperience}
               multiline
               textAlignVertical="top"
+              editable={!isSaving}
             />
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -429,6 +497,7 @@ export default function EditProfileScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
+              editable={!isSaving}
             />
 
             <View
@@ -458,6 +527,7 @@ export default function EditProfileScreen() {
               <Switch
                 value={isAvailable}
                 onValueChange={setIsAvailable}
+                disabled={isSaving}
                 trackColor={{
                   false: colors.border,
                   true: "rgba(11,87,208,0.35)",
@@ -480,68 +550,37 @@ export default function EditProfileScreen() {
                 Selecione as áreas em que você deseja receber chamados.
               </Text>
 
-              {availableSkills.length === 0 ? (
-                <View
-                  style={[
-                    styles.availabilityCard,
-                    {
-                      backgroundColor: theme.card,
-                      borderColor: theme.border,
-                    },
-                  ]}
-                >
-                  <View>
-                    <Text
-                      style={[
-                        styles.availabilityTitle,
-                        { color: theme.text },
-                      ]}
-                    >
-                      Nenhuma categoria carregada
-                    </Text>
+              <View style={styles.skillsArea}>
+                {availableSkills.map((skill) => {
+                  const isSelected = selectedSkills.includes(skill.name);
 
-                    <Text
+                  return (
+                    <Pressable
+                      key={skill.id}
                       style={[
-                        styles.availabilitySubtitle,
-                        { color: theme.textSecondary },
+                        styles.skillChip,
+                        {
+                          backgroundColor: theme.card,
+                          borderColor: theme.border,
+                        },
+                        isSelected && styles.skillChipActive,
                       ]}
+                      onPress={() => toggleSkill(skill.name)}
+                      disabled={isSaving}
                     >
-                      Quando a API retornar categorias, elas aparecerão aqui.
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.skillsArea}>
-                  {availableSkills.map((skill) => {
-                    const isSelected = selectedSkills.includes(skill.name);
-
-                    return (
-                      <Pressable
-                        key={skill.id}
+                      <Text
                         style={[
-                          styles.skillChip,
-                          {
-                            backgroundColor: theme.card,
-                            borderColor: theme.border,
-                          },
-                          isSelected && styles.skillChipActive,
+                          styles.skillText,
+                          { color: theme.textSecondary },
+                          isSelected && styles.skillTextActive,
                         ]}
-                        onPress={() => toggleSkill(skill.name)}
                       >
-                        <Text
-                          style={[
-                            styles.skillText,
-                            { color: theme.textSecondary },
-                            isSelected && styles.skillTextActive,
-                          ]}
-                        >
-                          {skill.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              )}
+                        {skill.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
 
             <Pressable

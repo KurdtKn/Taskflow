@@ -1,7 +1,7 @@
-import { getLoggedUser } from "@/services/storage";
+import { getFreelancerData, getLoggedUser } from "@/services/storage";
 import { logout } from "@/services/authService";
 import type { ComponentType } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Image,
   Pressable,
@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import { styles } from "@/app/styles/profile";
 import { useTheme } from "@/app/context/ThemeContext";
@@ -51,9 +51,11 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<FreelancerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [])
+  );
 
   async function loadProfile() {
     try {
@@ -67,19 +69,22 @@ export default function ProfileScreen() {
         return;
       }
 
+      const savedFreelancerData = await getFreelancerData(loggedUser.id);
+
       setProfile({
         id: loggedUser.perfilId ?? loggedUser.id,
-        name: loggedUser.nome,
+        name: savedFreelancerData?.name || loggedUser.nome,
         userType: "Freelancer",
-        photoUrl: "",
+        photoUrl: savedFreelancerData?.photoUrl,
         rating: undefined,
         reviewsCount: undefined,
         completedServices: undefined,
         acceptanceRate: undefined,
         punctuality: undefined,
         about:
+          savedFreelancerData?.about ||
           "Quando você preencher a descrição do perfil, ela aparecerá aqui.",
-        tags: [],
+        tags: savedFreelancerData?.tags ?? [],
       });
     } catch (error) {
       console.log("Erro ao carregar perfil:", error);

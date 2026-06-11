@@ -14,6 +14,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { styles } from "../styles/home";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
+import { apiGet } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
 import BellIcon from "../../../assets/icons/notifications.svg";
 import SearchIcon from "../../../assets/icons/search.svg";
@@ -21,9 +23,28 @@ import FilterIcon from "../../../assets/icons/filter.svg";
 import LocationIcon from "../../../assets/icons/Location-check.svg";
 import CalendarIcon from "../../../assets/icons/calendar.svg";
 
+type ChamadoApi = {
+  id: number;
+  empresaId: number;
+  categoriaId: number;
+  titulo: string;
+  descricao: string;
+  categoria: string;
+  empresa: string;
+  localServico?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  dataServico?: string | null;
+  horaServico?: string | null;
+  valorEstimado?: number | null;
+  status: string;
+};
+
 type ServiceItem = {
   id: string;
   title: string;
+  description: string;
+  company: string;
   category: string;
   price: string;
   distance: string;
@@ -38,11 +59,16 @@ export default function HomeScreen() {
   const [search, setSearch] = useState("");
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [userName, setUserName] = useState("Usuário");
 
   const { isDark, theme } = useTheme();
 
   const hasActiveFilters =
-    categoria || cidade || valorMin || valorMax || search;
+    Boolean(categoria) ||
+    Boolean(cidade) ||
+    Boolean(valorMin) ||
+    Boolean(valorMax) ||
+    Boolean(search);
 
   useEffect(() => {
     loadServices();
@@ -52,23 +78,146 @@ export default function HomeScreen() {
     try {
       setIsLoading(true);
 
-      /*
-        Aqui futuramente entra a API.
+      const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        const response = await jobsService.getAvailableJobs();
-        setServices(response);
+      if (loggedUser?.nome) {
+        setUserName(loggedUser.nome.split(" ")[0]);
+      }
 
-        Por enquanto deixamos vazio para remover os dados forjados.
-      */
+      const response = await apiGet<ChamadoApi[]>("/api/Chamados");
 
-      setServices([]);
+      const mappedServices = response.map(mapChamadoToService);
+
+      setServices(mappedServices);
     } catch (error) {
       console.log("Erro ao buscar chamados:", error);
       setServices([]);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function getGenericServiceImageUrl(id: string) {
+    const images = [
+      "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=900&q=80",
+    ];
+
+    const numericId = Number(id);
+
+    if (Number.isNaN(numericId)) {
+      return images[0];
+    }
+
+    return images[numericId % images.length];
+  }
+
+  function mapChamadoToService(chamado: ChamadoApi): ServiceItem {
+    const id = String(chamado.id);
+
+    return {
+      id,
+      title: chamado.titulo,
+      description: chamado.descricao,
+      company: chamado.empresa,
+      category: chamado.categoria,
+      price: formatPrice(chamado.valorEstimado),
+      distance: formatDistance(chamado),
+      location: formatLocation(chamado),
+      time: formatDateTime(chamado.dataServico, chamado.horaServico),
+      imageUrl: getGenericServiceImageUrl(id),
+    };
+  }
+
+  function formatPrice(value?: number | null) {
+    if (!value || value <= 0) {
+      return "A combinar";
+    }
+
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+
+  function formatLocation(chamado: ChamadoApi) {
+    const city = chamado.cidade?.trim();
+    const state = chamado.estado?.trim();
+    const local = chamado.localServico?.trim();
+
+    if (city && state) {
+      return `${city} - ${state}`;
+    }
+
+    if (city) {
+      return city;
+    }
+
+    if (local) {
+      return local;
+    }
+
+    return "Local não informado";
+  }
+
+  function formatDistance(chamado: ChamadoApi) {
+    const city = chamado.cidade?.trim();
+    const state = chamado.estado?.trim();
+
+    if (city && state) {
+      return `${city} - ${state}`;
+    }
+
+    if (city) {
+      return city;
+    }
+
+    return "Perto de você";
+  }
+
+  function formatDateTime(date?: string | null, hour?: string | null) {
+    const formattedDate = formatDate(date);
+    const formattedHour = formatHour(hour);
+
+    if (formattedDate && formattedHour) {
+      return `${formattedDate}, ${formattedHour}`;
+    }
+
+    if (formattedDate) {
+      return formattedDate;
+    }
+
+    if (formattedHour) {
+      return formattedHour;
+    }
+
+    return "Data a combinar";
+  }
+
+  function formatDate(date?: string | null) {
+    if (!date) {
+      return "";
+    }
+
+    const [year, month, day] = date.split("-");
+
+    if (!year || !month || !day) {
+      return date;
+    }
+
+    return `${day}/${month}/${year}`;
+  }
+
+  function formatHour(hour?: string | null) {
+    if (!hour) {
+      return "";
+    }
+
+    return hour.slice(0, 5);
   }
 
   function handleOpenFilters() {
@@ -85,10 +234,14 @@ export default function HomeScreen() {
 
   function handleClearFilters() {
     setSearch("");
-    router.push("/(tabs)/home");
+    router.replace("/home");
   }
 
   function formatServicePriceToNumber(price: string) {
+    if (price === "A combinar") {
+      return 0;
+    }
+
     return Number(price.replace(/\D/g, "")) / 100;
   }
 
@@ -122,6 +275,7 @@ export default function HomeScreen() {
         filtroBusca === "" ||
         service.title.toLowerCase().includes(filtroBusca) ||
         service.category.toLowerCase().includes(filtroBusca) ||
+        service.company.toLowerCase().includes(filtroBusca) ||
         service.location.toLowerCase().includes(filtroBusca) ||
         service.distance.toLowerCase().includes(filtroBusca);
 
@@ -147,7 +301,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={[styles.greeting, { color: theme.text }]}>
-              Olá, Usuário
+              Olá, {userName}
             </Text>
 
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
@@ -279,7 +433,7 @@ export default function HomeScreen() {
                 textAlign: "center",
               }}
             >
-              Quando a API retornar chamados disponíveis, eles aparecerão aqui.
+              Quando empresas publicarem chamados disponíveis, eles aparecerão aqui.
             </Text>
           </View>
         ) : (
@@ -299,12 +453,16 @@ export default function HomeScreen() {
                   router.push({
                     pathname: "/job-details",
                     params: {
+                      id: service.id,
                       title: service.title,
+                      description: service.description,
+                      company: service.company,
                       category: service.category,
                       price: service.price,
                       distance: service.distance,
                       location: service.location,
                       time: service.time,
+                      imageUrl: service.imageUrl ?? "",
                     },
                   });
                 }}
@@ -312,6 +470,17 @@ export default function HomeScreen() {
                 <View style={styles.serviceContent}>
                   <Text style={[styles.serviceTitle, { color: theme.text }]}>
                     {service.title}
+                  </Text>
+
+                  <Text
+                    style={{
+                      color: theme.textSecondary,
+                      fontSize: 12,
+                      fontWeight: "800",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {service.company} • {service.category}
                   </Text>
 
                   <Text style={styles.servicePrice}>{service.price}</Text>
@@ -347,15 +516,13 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                {service.imageUrl && (
-                  <View style={styles.serviceImageBox}>
-                    <Image
-                      source={{ uri: service.imageUrl }}
-                      style={styles.serviceImage}
-                      resizeMode="cover"
-                    />
-                  </View>
-                )}
+                <View style={styles.serviceImageBox}>
+                  <Image
+                    source={{ uri: service.imageUrl }}
+                    style={styles.serviceImage}
+                    resizeMode="cover"
+                  />
+                </View>
               </Pressable>
             ))}
           </View>
