@@ -51,6 +51,7 @@ export default function NotificationsScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
+  const emptyBellColor = isDark ? colors.white : colors.black;
 
   useEffect(() => {
     loadNotifications();
@@ -284,7 +285,13 @@ export default function NotificationsScreen() {
               },
             ]}
           >
-            <BellIcon width={38} height={38} />
+            <BellIcon
+              width={34}
+              height={34}
+              color={emptyBellColor}
+              fill={emptyBellColor}
+              stroke={emptyBellColor}
+            />
 
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
               Carregando notificações...
@@ -304,7 +311,13 @@ export default function NotificationsScreen() {
               },
             ]}
           >
-            <BellIcon width={38} height={38} />
+            <BellIcon
+              width={34}
+              height={34}
+              color={emptyBellColor}
+              fill={emptyBellColor}
+              stroke={emptyBellColor}
+            />
 
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
               Nenhuma notificação

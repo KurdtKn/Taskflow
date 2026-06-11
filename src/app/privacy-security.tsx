@@ -12,7 +12,6 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
-import LockIcon from "../../assets/icons/lock-icon.svg";
 import CheckIcon from "../../assets/icons/check.svg";
 import NotificationIcon from "../../assets/icons/notifications.svg";
 import LocationIcon from "../../assets/icons/Location-check.svg";
@@ -39,6 +38,10 @@ export default function PrivacySecurityScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  const iconColor = colors.black;
+  const iconBoxBackground = isDark ? colors.white : colors.lightGray;
+  const iconBoxBorder = isDark ? colors.white : colors.border;
 
   useEffect(() => {
     loadPrivacySettings();
@@ -158,12 +161,28 @@ export default function PrivacySecurityScreen() {
             </Text>
 
             <Text style={[styles.heroText, { color: theme.textSecondary }]}>
-              Gerencie visibilidade, localização e alertas importantes da sua conta.
+              Gerencie visibilidade, localização e alertas importantes da sua
+              conta.
             </Text>
           </View>
 
-          <View style={styles.heroIconBox}>
-            <LockIcon width={34} height={34} />
+          <View
+            style={[
+              styles.heroIconBox,
+              {
+                backgroundColor: iconBoxBackground,
+                borderColor: iconBoxBorder,
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <SettingsIcon
+              width={34}
+              height={34}
+              color={iconColor}
+              fill={iconColor}
+              stroke={iconColor}
+            />
           </View>
         </View>
 
@@ -201,8 +220,23 @@ export default function PrivacySecurityScreen() {
               },
             ]}
           >
-            <View style={styles.optionIconBox}>
-              <CheckIcon width={22} height={22} />
+            <View
+              style={[
+                styles.optionIconBox,
+                {
+                  backgroundColor: iconBoxBackground,
+                  borderColor: iconBoxBorder,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <CheckIcon
+                width={22}
+                height={22}
+                color={iconColor}
+                fill={iconColor}
+                stroke={iconColor}
+              />
             </View>
 
             <View style={styles.optionTextArea}>
@@ -240,11 +274,22 @@ export default function PrivacySecurityScreen() {
               },
             ]}
           >
-            <View style={styles.optionIconBox}>
+            <View
+              style={[
+                styles.optionIconBox,
+                {
+                  backgroundColor: iconBoxBackground,
+                  borderColor: iconBoxBorder,
+                  borderWidth: 1,
+                },
+              ]}
+            >
               <LocationIcon
                 width={22}
                 height={22}
-                color={colors.location}
+                color={iconColor}
+                fill={iconColor}
+                stroke={iconColor}
               />
             </View>
 
@@ -289,8 +334,23 @@ export default function PrivacySecurityScreen() {
               },
             ]}
           >
-            <View style={styles.optionIconBox}>
-              <NotificationIcon width={22} height={22} />
+            <View
+              style={[
+                styles.optionIconBox,
+                {
+                  backgroundColor: iconBoxBackground,
+                  borderColor: iconBoxBorder,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <NotificationIcon
+                width={22}
+                height={22}
+                color={iconColor}
+                fill={iconColor}
+                stroke={iconColor}
+              />
             </View>
 
             <View style={styles.optionTextArea}>
@@ -328,8 +388,23 @@ export default function PrivacySecurityScreen() {
               },
             ]}
           >
-            <View style={styles.optionIconBox}>
-              <SettingsIcon width={22} height={22} />
+            <View
+              style={[
+                styles.optionIconBox,
+                {
+                  backgroundColor: iconBoxBackground,
+                  borderColor: iconBoxBorder,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <SettingsIcon
+                width={22}
+                height={22}
+                color={iconColor}
+                fill={iconColor}
+                stroke={iconColor}
+              />
             </View>
 
             <View style={styles.optionTextArea}>
@@ -343,7 +418,8 @@ export default function PrivacySecurityScreen() {
                   { color: theme.textSecondary },
                 ]}
               >
-                Avise quando houver alteração de senha, login ou dados sensíveis.
+                Avise quando houver alteração de senha, login ou dados
+                sensíveis.
               </Text>
             </View>
 

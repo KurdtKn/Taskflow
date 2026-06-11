@@ -1,6 +1,7 @@
 import {
   Pressable,
   SafeAreaView,
+  ScrollView,
   Text,
   View,
 } from "react-native";
@@ -9,14 +10,17 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { styles } from "@/app/styles/paymentSuccess";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 
 export default function PaymentSuccessScreen() {
   const params = useLocalSearchParams<{
     jobId?: string;
     candidaturaId?: string;
     freelancerId?: string;
+
     jobTitle?: string;
     candidateName?: string;
+
     serviceValue?: string;
     platformFee?: string;
     totalValue?: string;
@@ -31,7 +35,7 @@ export default function PaymentSuccessScreen() {
   const candidateName = params.candidateName ?? "Freelancer selecionado";
   const serviceValue = params.serviceValue ?? "Valor a combinar";
   const platformFee = params.platformFee ?? "A calcular";
-  const totalValue = params.totalValue ?? "A calcular";
+  const totalValue = params.totalValue ?? "Valor a combinar";
   const paymentMethod = params.paymentMethod ?? "Pix";
 
   const { isDark, theme } = useTheme();
@@ -49,10 +53,6 @@ export default function PaymentSuccessScreen() {
     });
   }
 
-  function handleBackToDashboard() {
-    router.replace("/company-dashboard");
-  }
-
   return (
     <SafeAreaView
       style={[
@@ -62,7 +62,11 @@ export default function PaymentSuccessScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.content}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+        style={{ backgroundColor: theme.background }}
+      >
         <View style={styles.successCircle}>
           <Text style={styles.successIcon}>✓</Text>
         </View>
@@ -167,9 +171,39 @@ export default function PaymentSuccessScreen() {
             </Text>
           </View>
 
-          <View style={styles.totalArea}>
-            <Text style={styles.totalLabel}>Total pago</Text>
-            <Text style={styles.totalValue}>{totalValue}</Text>
+          <View
+            style={[
+              styles.totalArea,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.totalLabel,
+                {
+                  color: theme.text,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
+              Total pago
+            </Text>
+
+            <Text
+              style={[
+                styles.totalValue,
+                {
+                  color: theme.primary,
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
+              {totalValue}
+            </Text>
           </View>
         </View>
 
@@ -191,12 +225,15 @@ export default function PaymentSuccessScreen() {
             detalhes finais do serviço.
           </Text>
         </View>
-      </View>
+      </ScrollView>
 
       <View
         style={[
           styles.footer,
-          { backgroundColor: theme.background },
+          {
+            backgroundColor: theme.background,
+            borderTopColor: theme.border,
+          },
         ]}
       >
         <Pressable
@@ -218,7 +255,7 @@ export default function PaymentSuccessScreen() {
             },
             pressed && styles.buttonPressed,
           ]}
-          onPress={handleBackToDashboard}
+          onPress={() => router.replace("/company-dashboard")}
         >
           <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
             Voltar ao painel

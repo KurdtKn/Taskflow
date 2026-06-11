@@ -20,6 +20,7 @@ import { styles } from "./styles/createAccount";
 import { useTheme } from "@/app/context/ThemeContext";
 import { register } from "@/services/authService";
 import { saveCompanyData } from "@/services/storage";
+import { colors } from "@/styles/colors";
 
 type AccountType = "freelancer" | "empresa";
 
@@ -58,6 +59,7 @@ export default function CreateAccountScreen() {
   const [formError, setFormError] = useState("");
 
   const { isDark, theme } = useTheme();
+  const eyeIconColor = isDark ? colors.white : colors.black;
 
   function isValidEmail(value: string) {
     return /\S+@\S+\.\S+/.test(value);
@@ -382,9 +384,21 @@ export default function CreateAccountScreen() {
               disabled={isLoading}
             >
               {showPassword ? (
-                <Visibility width={22} height={22} />
+                <Visibility
+                  width={22}
+                  height={22}
+                  color={eyeIconColor}
+                  fill={eyeIconColor}
+                  stroke={eyeIconColor}
+                />
               ) : (
-                <VisibilityOff width={22} height={22} />
+                <VisibilityOff
+                  width={22}
+                  height={22}
+                  color={eyeIconColor}
+                  fill={eyeIconColor}
+                  stroke={eyeIconColor}
+                />
               )}
             </Pressable>
           </View>
@@ -426,9 +440,21 @@ export default function CreateAccountScreen() {
               disabled={isLoading}
             >
               {showConfirmPassword ? (
-                <Visibility width={22} height={22} />
+                <Visibility
+                  width={22}
+                  height={22}
+                  color={eyeIconColor}
+                  fill={eyeIconColor}
+                  stroke={eyeIconColor}
+                />
               ) : (
-                <VisibilityOff width={22} height={22} />
+                <VisibilityOff
+                  width={22}
+                  height={22}
+                  color={eyeIconColor}
+                  fill={eyeIconColor}
+                  stroke={eyeIconColor}
+                />
               )}
             </Pressable>
           </View>

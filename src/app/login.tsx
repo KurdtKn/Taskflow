@@ -20,6 +20,7 @@ import VisibilityOff from "../../assets/icons/visibility_off.svg";
 import { styles } from "./styles/login";
 import { useTheme } from "@/app/context/ThemeContext";
 import { login as loginService, logout } from "@/services/authService";
+import { colors } from "@/styles/colors";
 
 type AccountType = "freelancer" | "empresa";
 
@@ -40,6 +41,7 @@ export default function LoginScreen() {
   const [formError, setFormError] = useState("");
 
   const { isDark, theme } = useTheme();
+  const eyeIconColor = isDark ? colors.white : colors.black;
 
   function showFormError(message: string) {
     setFormError(message);
@@ -233,9 +235,21 @@ export default function LoginScreen() {
               disabled={isLoading}
             >
               {showPassword ? (
-                <Visibility width={22} height={22} />
+                <Visibility
+                  width={22}
+                  height={22}
+                  color={eyeIconColor}
+                  fill={eyeIconColor}
+                  stroke={eyeIconColor}
+                />
               ) : (
-                <VisibilityOff width={22} height={22} />
+                <VisibilityOff
+                  width={22}
+                  height={22}
+                  color={eyeIconColor}
+                  fill={eyeIconColor}
+                  stroke={eyeIconColor}
+                />
               )}
             </Pressable>
           </View>

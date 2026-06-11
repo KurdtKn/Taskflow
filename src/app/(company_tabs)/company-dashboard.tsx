@@ -194,6 +194,9 @@ export default function CompanyDashboardScreen() {
   const [cancelJobId, setCancelJobId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("Empresa");
 
+  const infoIconColor = isDark ? colors.white : colors.black;
+  const emptyIconColor = isDark ? colors.white : colors.black;
+
   useFocusEffect(
     useCallback(() => {
       loadCompanyJobs();
@@ -460,7 +463,12 @@ export default function CompanyDashboardScreen() {
               ]}
             >
               <View style={{ alignItems: "center", marginBottom: 10 }}>
-                <AssignmentIcon width={34} height={34} />
+                <AssignmentIcon
+                  width={34}
+                  height={34}
+                  color={emptyIconColor}
+                  fill={emptyIconColor}
+                />
               </View>
 
               <Text style={[styles.infoTitle, { color: theme.text }]}>
@@ -522,7 +530,12 @@ export default function CompanyDashboardScreen() {
                   <View style={styles.infoArea}>
                     <View style={styles.infoRow}>
                       <View style={styles.infoIconBox}>
-                        <WalletIcon width={18} height={18} />
+                        <WalletIcon
+                          width={18}
+                          height={18}
+                          color={infoIconColor}
+                          fill={infoIconColor}
+                        />
                       </View>
 
                       <Text
@@ -540,7 +553,8 @@ export default function CompanyDashboardScreen() {
                         <LocationIcon
                           width={18}
                           height={18}
-                          color={colors.location}
+                          color={infoIconColor}
+                          fill={infoIconColor}
                         />
                       </View>
 
@@ -556,7 +570,12 @@ export default function CompanyDashboardScreen() {
 
                     <View style={styles.infoRow}>
                       <View style={styles.infoIconBox}>
-                        <TimeIcon width={18} height={18} />
+                        <TimeIcon
+                          width={18}
+                          height={18}
+                          color={infoIconColor}
+                          fill={infoIconColor}
+                        />
                       </View>
 
                       <Text

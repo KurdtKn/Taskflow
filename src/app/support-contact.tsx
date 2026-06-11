@@ -11,6 +11,7 @@ import { router } from "expo-router";
 
 import { styles } from "@/app/styles/supportContact";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import SendIcon from "../../assets/icons/send.svg";
@@ -21,6 +22,10 @@ const supportPhone = "(15) 99123-4567";
 
 export default function SupportJobIssueScreen() {
   const { isDark, theme } = useTheme();
+
+  const iconColor = colors.black;
+  const iconBoxBackground = isDark ? colors.white : colors.lightGray;
+  const iconBoxBorder = isDark ? colors.white : colors.border;
 
   function handleOpenEmail() {
     Linking.openURL(`mailto:${supportEmail}`);
@@ -41,9 +46,17 @@ export default function SupportJobIssueScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.keyboardArea}>
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack width={28} height={28} />
+            <ArrowBack width={28} height={28} color={theme.text} />
           </Pressable>
 
           <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -56,6 +69,7 @@ export default function SupportJobIssueScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          style={{ backgroundColor: theme.background }}
         >
           <View
             style={[
@@ -80,8 +94,22 @@ export default function SupportJobIssueScreen() {
               </Text>
             </View>
 
-            <View style={styles.heroIconBox}>
-              <SupportIcon width={34} height={34} />
+            <View
+              style={[
+                styles.heroIconBox,
+                {
+                  backgroundColor: iconBoxBackground,
+                  borderColor: iconBoxBorder,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <SupportIcon
+                width={34}
+                height={34}
+                color={iconColor}
+                fill={iconColor}
+              />
             </View>
           </View>
 
@@ -106,12 +134,18 @@ export default function SupportJobIssueScreen() {
                   style={[
                     styles.issueIconBox,
                     {
-                      backgroundColor: theme.inputBackground,
-                      borderColor: theme.border,
+                      backgroundColor: iconBoxBackground,
+                      borderColor: iconBoxBorder,
+                      borderWidth: 1,
                     },
                   ]}
                 >
-                  <SendIcon width={24} height={24} />
+                  <SendIcon
+                    width={24}
+                    height={24}
+                    color={iconColor}
+                    fill={iconColor}
+                  />
                 </View>
 
                 <View style={styles.issueTextArea}>
@@ -145,12 +179,18 @@ export default function SupportJobIssueScreen() {
                   style={[
                     styles.issueIconBox,
                     {
-                      backgroundColor: theme.inputBackground,
-                      borderColor: theme.border,
+                      backgroundColor: iconBoxBackground,
+                      borderColor: iconBoxBorder,
+                      borderWidth: 1,
                     },
                   ]}
                 >
-                  <SupportIcon width={24} height={24} />
+                  <SupportIcon
+                    width={24}
+                    height={24}
+                    color={iconColor}
+                    fill={iconColor}
+                  />
                 </View>
 
                 <View style={styles.issueTextArea}>

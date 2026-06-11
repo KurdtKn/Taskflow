@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/reviews";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 
 type ReviewType = "received" | "sent";
 
@@ -46,6 +47,11 @@ export default function ReviewsScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  const ratingCircleBackground = isDark ? colors.blue[700] : colors.primary;
+  const activeFilterBackground = isDark ? colors.blue[700] : colors.primary;
+  const activeFilterTextColor = colors.white;
+  const starsColor = colors.warning;
 
   useEffect(() => {
     loadReviews();
@@ -128,9 +134,17 @@ export default function ReviewsScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+          },
+        ]}
+      >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} />
+          <ArrowBack width={28} height={28} color={theme.text} />
         </Pressable>
 
         <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -143,6 +157,7 @@ export default function ReviewsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={{ backgroundColor: theme.background }}
       >
         <View
           style={[
@@ -153,8 +168,22 @@ export default function ReviewsScreen() {
             },
           ]}
         >
-          <View style={styles.ratingCircle}>
-            <Text style={styles.averageRating}>
+          <View
+            style={[
+              styles.ratingCircle,
+              {
+                backgroundColor: ratingCircleBackground,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.averageRating,
+                {
+                  color: colors.white,
+                },
+              ]}
+            >
               {averageRating.toFixed(1).replace(".", ",")}
             </Text>
           </View>
@@ -164,7 +193,14 @@ export default function ReviewsScreen() {
               Reputação no TaskFlow
             </Text>
 
-            <Text style={styles.summaryStars}>
+            <Text
+              style={[
+                styles.summaryStars,
+                {
+                  color: starsColor,
+                },
+              ]}
+            >
               {renderStars(Math.round(averageRating))}
             </Text>
 
@@ -248,14 +284,21 @@ export default function ReviewsScreen() {
             style={[
               styles.filterButton,
               selectedType === "received" && styles.filterButtonActive,
+              selectedType === "received" && {
+                backgroundColor: activeFilterBackground,
+              },
             ]}
             onPress={() => setSelectedType("received")}
           >
             <Text
               style={[
                 styles.filterText,
-                { color: theme.textSecondary },
-                selectedType === "received" && styles.filterTextActive,
+                {
+                  color:
+                    selectedType === "received"
+                      ? activeFilterTextColor
+                      : theme.textSecondary,
+                },
               ]}
             >
               Recebidas
@@ -266,14 +309,21 @@ export default function ReviewsScreen() {
             style={[
               styles.filterButton,
               selectedType === "sent" && styles.filterButtonActive,
+              selectedType === "sent" && {
+                backgroundColor: activeFilterBackground,
+              },
             ]}
             onPress={() => setSelectedType("sent")}
           >
             <Text
               style={[
                 styles.filterText,
-                { color: theme.textSecondary },
-                selectedType === "sent" && styles.filterTextActive,
+                {
+                  color:
+                    selectedType === "sent"
+                      ? activeFilterTextColor
+                      : theme.textSecondary,
+                },
               ]}
             >
               Enviadas
@@ -332,8 +382,15 @@ export default function ReviewsScreen() {
                 ]}
               >
                 <View style={styles.reviewHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
+                  <View
+                    style={[
+                      styles.avatar,
+                      {
+                        backgroundColor: ratingCircleBackground,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.avatarText, { color: colors.white }]}>
                       {review.type === "received"
                         ? review.author.charAt(0).toUpperCase()
                         : review.target.charAt(0).toUpperCase()}
@@ -367,7 +424,9 @@ export default function ReviewsScreen() {
                   </Text>
                 </View>
 
-                <Text style={styles.stars}>{renderStars(review.rating)}</Text>
+                <Text style={[styles.stars, { color: starsColor }]}>
+                  {renderStars(review.rating)}
+                </Text>
 
                 <Text style={[styles.comment, { color: theme.text }]}>
                   {review.comment}

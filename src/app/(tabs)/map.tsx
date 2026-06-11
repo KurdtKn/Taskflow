@@ -39,6 +39,7 @@ export default function MapScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
+  const searchIconColor = isDark ? colors.white : colors.black;
 
   useEffect(() => {
     loadMapServices();
@@ -214,7 +215,13 @@ export default function MapScreen() {
             },
           ]}
         >
-          <SearchIcon width={22} height={22} />
+          <SearchIcon
+            width={22}
+            height={22}
+            color={searchIconColor}
+            fill={searchIconColor}
+            stroke={searchIconColor}
+          />
 
           <TextInput
             style={[

@@ -15,6 +15,9 @@ export default function CompanyTabsLayout() {
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  const tabIconColor = isDark ? colors.white : colors.black;
+  const tabLabelColor = isDark ? colors.white : colors.black;
+
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -45,8 +48,10 @@ export default function CompanyTabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: isDark ? theme.primary : colors.primary,
-        tabBarInactiveTintColor: theme.textSecondary,
+
+        tabBarActiveTintColor: tabLabelColor,
+        tabBarInactiveTintColor: tabLabelColor,
+
         tabBarStyle: {
           height: 70,
           paddingTop: 8,
@@ -55,6 +60,7 @@ export default function CompanyTabsLayout() {
           borderTopWidth: 1,
           borderTopColor: theme.border,
         },
+
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "700",
@@ -69,7 +75,9 @@ export default function CompanyTabsLayout() {
             <AssignmentIcon
               width={24}
               height={24}
-              opacity={focused ? 1 : 0.7}
+              color={tabIconColor}
+              fill={tabIconColor}
+              opacity={focused ? 1 : 0.75}
             />
           ),
         }}
@@ -83,7 +91,9 @@ export default function CompanyTabsLayout() {
             <CreditCardIcon
               width={24}
               height={24}
-              opacity={focused ? 1 : 0.7}
+              color={tabIconColor}
+              fill={tabIconColor}
+              opacity={focused ? 1 : 0.75}
             />
           ),
         }}
@@ -97,7 +107,9 @@ export default function CompanyTabsLayout() {
             <NotificationsIcon
               width={24}
               height={24}
-              opacity={focused ? 1 : 0.7}
+              color={tabIconColor}
+              fill={tabIconColor}
+              opacity={focused ? 1 : 0.75}
             />
           ),
         }}
@@ -111,7 +123,9 @@ export default function CompanyTabsLayout() {
             <ProfileIcon
               width={24}
               height={24}
-              opacity={focused ? 1 : 0.7}
+              color={tabIconColor}
+              fill={tabIconColor}
+              opacity={focused ? 1 : 0.75}
             />
           ),
         }}

@@ -34,6 +34,9 @@ export default function JobDetailsScreen() {
 
   const { isDark, theme } = useTheme();
 
+  const infoIconColor = colors.black;
+  const fallbackIconColor = isDark ? colors.white : colors.black;
+
   function getParamValue(value?: string | string[], fallback = "") {
     if (Array.isArray(value)) {
       return value[0] ?? fallback;
@@ -121,10 +124,19 @@ export default function JobDetailsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={{ backgroundColor: theme.background }}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack width={28} height={28} />
+            <ArrowBack width={28} height={28} color={theme.text} />
           </Pressable>
 
           <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -154,7 +166,12 @@ export default function JobDetailsScreen() {
               resizeMode="cover"
             />
           ) : (
-            <SettingsIcon width={46} height={46} />
+            <SettingsIcon
+              width={46}
+              height={46}
+              color={fallbackIconColor}
+              fill={fallbackIconColor}
+            />
           )}
         </View>
 
@@ -181,7 +198,12 @@ export default function JobDetailsScreen() {
         >
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <LocationIcon width={22} height={22} color={colors.location} />
+              <LocationIcon
+                width={22}
+                height={22}
+                color={infoIconColor}
+                fill={infoIconColor}
+              />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -204,7 +226,12 @@ export default function JobDetailsScreen() {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <TimeIcon width={22} height={22} />
+              <TimeIcon
+                width={22}
+                height={22}
+                color={infoIconColor}
+                fill={infoIconColor}
+              />
             </View>
 
             <View style={styles.infoTextArea}>

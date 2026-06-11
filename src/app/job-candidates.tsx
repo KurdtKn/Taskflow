@@ -18,6 +18,7 @@ import TimeIcon from "../../assets/icons/access_time.svg";
 
 import { styles } from "@/app/styles/jobCandidates";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 import { apiGet } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
 
@@ -276,11 +277,15 @@ function getFreelancerSkills(
 ) {
   const nestedFreelancer = getNestedFreelancer(apiCandidate);
 
+  const skillsOptions = [
+    normalizeSkills(apiCandidate.habilidades),
+    normalizeSkills(apiCandidate.skills),
+    normalizeSkills(nestedFreelancer?.habilidades),
+    normalizeSkills(nestedFreelancer?.skills),
+  ];
+
   const skills =
-    normalizeSkills(apiCandidate.habilidades) ||
-    normalizeSkills(apiCandidate.skills) ||
-    normalizeSkills(nestedFreelancer?.habilidades) ||
-    normalizeSkills(nestedFreelancer?.skills);
+    skillsOptions.find((skillsList) => skillsList.length > 0) ?? [];
 
   const baseSkills = skills.length > 0 ? skills : [jobCategory];
 
@@ -341,6 +346,8 @@ export default function JobCandidatesScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  const infoIconColor = isDark ? colors.white : colors.black;
 
   function getParamValue(value?: string | string[], fallback = "") {
     if (Array.isArray(value)) {
@@ -506,9 +513,17 @@ export default function JobCandidatesScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+          },
+        ]}
+      >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} />
+          <ArrowBack width={28} height={28} color={theme.text} />
         </Pressable>
 
         <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -522,6 +537,7 @@ export default function JobCandidatesScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="always"
+        style={{ backgroundColor: theme.background }}
       >
         <View
           style={[
@@ -543,7 +559,12 @@ export default function JobCandidatesScreen() {
           <View style={styles.jobInfoArea}>
             <View style={styles.jobInfoRow}>
               <View style={styles.jobInfoIconBox}>
-                <WalletIcon width={18} height={18} />
+                <WalletIcon
+                  width={18}
+                  height={18}
+                  color={infoIconColor}
+                  fill={infoIconColor}
+                />
               </View>
 
               <Text style={[styles.jobInfoText, { color: theme.text }]}>
@@ -553,7 +574,12 @@ export default function JobCandidatesScreen() {
 
             <View style={styles.jobInfoRow}>
               <View style={styles.jobInfoIconBox}>
-                <LocationIcon width={18} height={18} />
+                <LocationIcon
+                  width={18}
+                  height={18}
+                  color={infoIconColor}
+                  fill={infoIconColor}
+                />
               </View>
 
               <Text style={[styles.jobInfoText, { color: theme.text }]}>
@@ -563,7 +589,12 @@ export default function JobCandidatesScreen() {
 
             <View style={styles.jobInfoRow}>
               <View style={styles.jobInfoIconBox}>
-                <TimeIcon width={18} height={18} />
+                <TimeIcon
+                  width={18}
+                  height={18}
+                  color={infoIconColor}
+                  fill={infoIconColor}
+                />
               </View>
 
               <Text style={[styles.jobInfoText, { color: theme.text }]}>
@@ -697,7 +728,12 @@ export default function JobCandidatesScreen() {
                       </View>
                     </View>
 
-                    <Text style={styles.candidatePrice}>
+                    <Text
+                      style={[
+                        styles.candidatePrice,
+                        { color: theme.primary },
+                      ]}
+                    >
                       {candidate.price}
                     </Text>
                   </View>
@@ -735,7 +771,15 @@ export default function JobCandidatesScreen() {
                     ))}
                   </View>
 
-                  <View style={styles.statsArea}>
+                  <View
+                    style={[
+                      styles.statsArea,
+                      {
+                        backgroundColor: theme.background,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
                     <View style={styles.statItem}>
                       <Text style={[styles.statNumber, { color: theme.text }]}>
                         {candidate.completedJobs}

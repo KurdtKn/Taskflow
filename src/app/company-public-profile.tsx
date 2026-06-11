@@ -60,6 +60,10 @@ export default function CompanyPublicProfileScreen() {
   const companyId = params.companyId ?? params.empresaId ?? "";
   const jobTitle = params.jobTitle ?? "Chamado selecionado";
 
+  const iconColor = colors.black;
+  const iconBoxBackground = isDark ? colors.white : colors.lightGray;
+  const iconBoxBorder = isDark ? colors.white : colors.border;
+
   const [companyProfile, setCompanyProfile] =
     useState<CompanyPublicProfile | null>(null);
 
@@ -74,35 +78,19 @@ export default function CompanyPublicProfileScreen() {
       Quando a API tiver uma rota para buscar o perfil público da empresa,
       a chamada deve entrar aqui.
 
-      Exemplo de rota futura:
-
+      Exemplo:
       const response = await apiGet<CompanyPublicProfile>(
         `/api/Empresas/${companyId}/perfil-publico`
       );
 
       setCompanyProfile(response);
-
-      Dados esperados da API:
-      - nome da empresa
-      - localização
-      - nota média
-      - quantidade de avaliações
-      - total de chamados publicados
-      - chamados concluídos
-      - taxa de satisfação
-      - descrição da empresa
-      - tags
-      - se é verificada
-      - tempo médio de resposta
-      - avaliações dos freelancers
-      - logo da empresa
     */
 
     setCompanyProfile({
       id: companyId,
-      name: params.companyName ?? "Empresa não informada",
-      location: params.companyLocation ?? "Localização não informada",
-      rating: params.companyRating,
+      name: "Empresa não informada",
+      location: "Localização não informada",
+      rating: undefined,
       reviewsCount: undefined,
       totalJobs: undefined,
       completedJobs: undefined,
@@ -150,7 +138,7 @@ export default function CompanyPublicProfileScreen() {
         ]}
       >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} />
+          <ArrowBack width={28} height={28} color={theme.text} />
         </Pressable>
 
         <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -163,6 +151,7 @@ export default function CompanyPublicProfileScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={{ backgroundColor: theme.background }}
       >
         <View
           style={[
@@ -190,7 +179,7 @@ export default function CompanyPublicProfileScreen() {
 
             {isVerified && (
               <View style={styles.verifiedBadge}>
-                <CheckIcon width={13} height={13} />
+                <CheckIcon width={13} height={13} color={colors.white} />
               </View>
             )}
           </View>
@@ -348,8 +337,22 @@ export default function CompanyPublicProfileScreen() {
           </Text>
 
           <View style={styles.infoRow}>
-            <View style={styles.infoIconBox}>
-              <LocationIcon width={22} height={22} color={colors.location} />
+            <View
+              style={[
+                styles.infoIconBox,
+                {
+                  backgroundColor: iconBoxBackground,
+                  borderColor: iconBoxBorder,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <LocationIcon
+                width={22}
+                height={22}
+                color={iconColor}
+                fill={iconColor}
+              />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -371,8 +374,22 @@ export default function CompanyPublicProfileScreen() {
           />
 
           <View style={styles.infoRow}>
-            <View style={styles.infoIconBox}>
-              <BadgeIcon width={22} height={22} />
+            <View
+              style={[
+                styles.infoIconBox,
+                {
+                  backgroundColor: iconBoxBackground,
+                  borderColor: iconBoxBorder,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <BadgeIcon
+                width={22}
+                height={22}
+                color={iconColor}
+                fill={iconColor}
+              />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -394,8 +411,22 @@ export default function CompanyPublicProfileScreen() {
           />
 
           <View style={styles.infoRow}>
-            <View style={styles.infoIconBox}>
-              <ChatIcon width={22} height={22} />
+            <View
+              style={[
+                styles.infoIconBox,
+                {
+                  backgroundColor: iconBoxBackground,
+                  borderColor: iconBoxBorder,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <ChatIcon
+                width={22}
+                height={22}
+                color={iconColor}
+                fill={iconColor}
+              />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -432,8 +463,7 @@ export default function CompanyPublicProfileScreen() {
                 ]}
               >
                 <Text style={[styles.reviewComment, { color: theme.textSecondary }]}>
-                  As avaliações reais da empresa serão exibidas aqui quando a API
-                  retornar esses dados.
+                  Nenhuma avaliação pública disponível no momento.
                 </Text>
               </View>
             ) : (
@@ -473,7 +503,7 @@ export default function CompanyPublicProfileScreen() {
                     </View>
 
                     <Text style={styles.reviewRating}>
-                      ⭐ {review.rating.toFixed(1).replace(".", ",")}
+                      ⭐ {review.rating},0
                     </Text>
                   </View>
 

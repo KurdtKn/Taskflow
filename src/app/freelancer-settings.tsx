@@ -245,7 +245,12 @@ export default function FreelancerSettingsScreen() {
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} />
+          <ArrowBack
+            width={28}
+            height={28}
+            color={theme.text}
+            fill={theme.text}
+          />
         </Pressable>
 
         <Text style={[styles.headerTitle, { color: theme.text }]}>
