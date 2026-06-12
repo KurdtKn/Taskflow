@@ -60,6 +60,11 @@ export const styles = StyleSheet.create({
     fontWeight: "900",
   },
 
+  finishButtonPlaceholder: {
+    width: 86,
+    height: 36,
+  },
+
   jobCard: {
     borderRadius: 18,
     backgroundColor: colors.primary,
@@ -107,6 +112,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     marginBottom: 4,
+    borderWidth: 1,
   },
 
   systemMessageText: {
@@ -119,6 +125,7 @@ export const styles = StyleSheet.create({
   messageRow: {
     width: "100%",
     flexDirection: "row",
+    alignItems: "flex-end",
   },
 
   messageRowCompany: {
@@ -129,27 +136,62 @@ export const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
 
+  messageGroup: {
+    maxWidth: "76%",
+    justifyContent: "flex-end",
+  },
+
+  senderName: {
+    fontSize: 11,
+    fontWeight: "800",
+    marginBottom: 4,
+    paddingHorizontal: 6,
+  },
+
+  senderAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 3,
+    marginBottom: 18,
+    alignSelf: "flex-end",
+  },
+
+  senderAvatarText: {
+    fontSize: 13,
+    fontWeight: "900",
+  },
+
   messageBubble: {
-    maxWidth: "78%",
+    minWidth: 0,
+    maxWidth: "100%",
+    alignSelf: "flex-start",
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderWidth: 1,
   },
 
   companyBubble: {
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 5,
+    borderColor: colors.primary,
+    borderBottomRightRadius: 6,
+    alignSelf: "flex-end",
   },
 
   freelancerBubble: {
     backgroundColor: colors.lightGray,
-    borderBottomLeftRadius: 5,
+    borderColor: colors.border,
+    borderBottomLeftRadius: 6,
+    alignSelf: "flex-start",
   },
 
   messageText: {
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 5,
   },
 
   companyMessageText: {
@@ -163,15 +205,23 @@ export const styles = StyleSheet.create({
   messageTime: {
     fontSize: 10,
     fontWeight: "700",
-    alignSelf: "flex-end",
+    marginTop: 3,
+    paddingHorizontal: 6,
   },
 
   companyMessageTime: {
     color: "rgba(255,255,255,0.75)",
+    alignSelf: "flex-end",
+  },
+
+  companyMessageTimeOutside: {
+    color: colors.gray,
+    alignSelf: "flex-end",
   },
 
   freelancerMessageTime: {
     color: colors.gray,
+    alignSelf: "flex-start",
   },
 
   inputArea: {
@@ -214,6 +264,10 @@ export const styles = StyleSheet.create({
   sendButtonPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.96 }],
+  },
+
+  sendButtonDisabled: {
+    opacity: 0.45,
   },
 
   sendButtonText: {

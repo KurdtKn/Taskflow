@@ -24,6 +24,14 @@ import FilterIcon from "../../../assets/icons/filter.svg";
 import LocationIcon from "../../../assets/icons/Location-check.svg";
 import CalendarIcon from "../../../assets/icons/calendar.svg";
 
+type CandidaturaApi = {
+  id?: number;
+  freelancerId?: number;
+  status?: string | null;
+  situacao?: string | null;
+  statusCandidatura?: string | null;
+};
+
 type ChamadoApi = {
   id: number;
   empresaId: number;
@@ -39,7 +47,28 @@ type ChamadoApi = {
   horaServico?: string | null;
   valorEstimado?: number | null;
   status: string;
+
+  quantidadeProfissionais?: number | string | null;
+  totalProfissionais?: number | string | null;
+  totalVagas?: number | string | null;
+  vagasTotais?: number | string | null;
+  professionals?: number | string | null;
+
+  totalAceitos?: number | string | null;
+  quantidadeAceitos?: number | string | null;
+  profissionaisAceitos?: number | string | null;
+  vagasPreenchidas?: number | string | null;
+
+  candidaturas?: CandidaturaApi[];
 };
+
+type ChamadosResponse =
+  | ChamadoApi[]
+  | {
+      data?: ChamadoApi[];
+      dados?: ChamadoApi[];
+      chamados?: ChamadoApi[];
+    };
 
 type ServiceItem = {
   id: string;
@@ -52,12 +81,137 @@ type ServiceItem = {
   location: string;
   time: string;
   imageUrl?: string;
+  totalProfessionals: number;
+  acceptedProfessionals: number;
+  availableSpots: number;
+  vacanciesText: string;
+  status: string;
 };
 
 const SEARCH_MAX_LENGTH = 60;
 
 function normalizeSearchText(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function getChamadosFromResponse(response: ChamadosResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.chamados ?? [];
+}
+
+function parseNumberValue(value: unknown, fallback = 0) {
+  const parsedValue = Number(value);
+
+  if (Number.isNaN(parsedValue)) {
+    return fallback;
+  }
+
+  return parsedValue;
+}
+
+function isAcceptedStatus(status?: string | null) {
+  const normalizedStatus = status?.toLowerCase().trim();
+
+  return (
+    normalizedStatus === "aceito" ||
+    normalizedStatus === "aceita" ||
+    normalizedStatus === "aprovado" ||
+    normalizedStatus === "aprovada" ||
+    normalizedStatus === "accepted" ||
+    normalizedStatus === "contratado" ||
+    normalizedStatus === "contratada"
+  );
+}
+
+function isUnavailableStatus(status?: string | null) {
+  const normalizedStatus = status?.toLowerCase().trim();
+
+  return (
+    normalizedStatus === "finalizado" ||
+    normalizedStatus === "finished" ||
+    normalizedStatus === "concluido" ||
+    normalizedStatus === "concluído" ||
+    normalizedStatus === "cancelado" ||
+    normalizedStatus === "cancelada" ||
+    normalizedStatus === "canceled" ||
+    normalizedStatus === "cancelled"
+  );
+}
+
+function getTotalProfessionals(chamado: ChamadoApi) {
+  const rawTotal =
+    chamado.quantidadeProfissionais ??
+    chamado.totalProfissionais ??
+    chamado.totalVagas ??
+    chamado.vagasTotais ??
+    chamado.professionals ??
+    1;
+
+  const total = parseNumberValue(rawTotal, 1);
+
+  if (total <= 0) {
+    return 1;
+  }
+
+  return total;
+}
+
+function getAcceptedProfessionals(chamado: ChamadoApi) {
+  const rawAccepted =
+    chamado.totalAceitos ??
+    chamado.quantidadeAceitos ??
+    chamado.profissionaisAceitos ??
+    chamado.vagasPreenchidas;
+
+  if (rawAccepted !== undefined && rawAccepted !== null) {
+    const accepted = parseNumberValue(rawAccepted, 0);
+
+    if (accepted <= 0) {
+      return 0;
+    }
+
+    return accepted;
+  }
+
+  if (Array.isArray(chamado.candidaturas)) {
+    return chamado.candidaturas.filter((candidatura) => {
+      return (
+        isAcceptedStatus(candidatura.status) ||
+        isAcceptedStatus(candidatura.situacao) ||
+        isAcceptedStatus(candidatura.statusCandidatura)
+      );
+    }).length;
+  }
+
+  return 0;
+}
+
+function getAvailableSpots(chamado: ChamadoApi) {
+  const totalProfessionals = getTotalProfessionals(chamado);
+  const acceptedProfessionals = getAcceptedProfessionals(chamado);
+
+  const availableSpots = totalProfessionals - acceptedProfessionals;
+
+  if (availableSpots <= 0) {
+    return 0;
+  }
+
+  return availableSpots;
+}
+
+function getVacanciesText(availableSpots: number) {
+  if (availableSpots <= 0) {
+    return "Sem vagas disponíveis";
+  }
+
+  if (availableSpots === 1) {
+    return "1 vaga disponível";
+  }
+
+  return `${availableSpots} vagas disponíveis`;
 }
 
 export default function HomeScreen() {
@@ -99,9 +253,10 @@ export default function HomeScreen() {
         setUserName(loggedUser.nome.split(" ")[0]);
       }
 
-      const response = await apiGet<ChamadoApi[]>("/api/Chamados");
+      const response = await apiGet<ChamadosResponse>("/api/Chamados");
+      const chamados = getChamadosFromResponse(response);
 
-      const mappedServices = response.map(mapChamadoToService);
+      const mappedServices = chamados.map(mapChamadoToService);
 
       setServices(mappedServices);
     } catch (error) {
@@ -143,6 +298,9 @@ export default function HomeScreen() {
 
   function mapChamadoToService(chamado: ChamadoApi): ServiceItem {
     const id = String(chamado.id);
+    const totalProfessionals = getTotalProfessionals(chamado);
+    const acceptedProfessionals = getAcceptedProfessionals(chamado);
+    const availableSpots = getAvailableSpots(chamado);
 
     return {
       id,
@@ -155,6 +313,11 @@ export default function HomeScreen() {
       location: formatLocation(chamado),
       time: formatDateTime(chamado.dataServico, chamado.horaServico),
       imageUrl: getGenericServiceImageUrl(id),
+      totalProfessionals,
+      acceptedProfessionals,
+      availableSpots,
+      vacanciesText: getVacanciesText(availableSpots),
+      status: chamado.status,
     };
   }
 
@@ -304,8 +467,17 @@ export default function HomeScreen() {
         service.location.toLowerCase().includes(filtroBusca) ||
         service.distance.toLowerCase().includes(filtroBusca);
 
+      const temVagaDisponivel = service.availableSpots > 0;
+      const estaDisponivel = !isUnavailableStatus(service.status);
+
       return (
-        bateCategoria && bateCidade && bateValorMin && bateValorMax && bateBusca
+        temVagaDisponivel &&
+        estaDisponivel &&
+        bateCategoria &&
+        bateCidade &&
+        bateValorMin &&
+        bateValorMax &&
+        bateBusca
       );
     });
   }, [services, categoria, cidade, valorMin, valorMax, search]);
@@ -514,6 +686,11 @@ export default function HomeScreen() {
                       location: service.location,
                       time: service.time,
                       imageUrl: service.imageUrl ?? "",
+                      totalProfessionals: String(service.totalProfessionals),
+                      acceptedProfessionals: String(
+                        service.acceptedProfessionals
+                      ),
+                      availableSpots: String(service.availableSpots),
                     },
                   });
                 }}
@@ -535,6 +712,14 @@ export default function HomeScreen() {
                   </Text>
 
                   <Text style={styles.servicePrice}>{service.price}</Text>
+
+                  <View style={styles.vacancyBadge}>
+                    <View style={styles.vacancyDot} />
+
+                    <Text style={styles.vacancyText}>
+                      {service.vacanciesText}
+                    </Text>
+                  </View>
 
                   <View style={styles.infoRow}>
                     <LocationIcon

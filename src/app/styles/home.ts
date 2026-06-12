@@ -183,4 +183,29 @@ clearFiltersHomeText: {
   fontSize: 13,
   fontWeight: "700",
 },
+
+vacancyBadge: {
+  alignSelf: "flex-start",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+  paddingHorizontal: 10,
+  paddingVertical: 5,
+  borderRadius: 999,
+  backgroundColor: "rgba(34,197,94,0.12)",
+  marginBottom: 8,
+},
+
+vacancyDot: {
+  width: 7,
+  height: 7,
+  borderRadius: 999,
+  backgroundColor: colors.success,
+},
+
+vacancyText: {
+  color: colors.success,
+  fontSize: 12,
+  fontWeight: "900",
+},
 });

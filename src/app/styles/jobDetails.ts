@@ -264,4 +264,54 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "900",
   },
+
+  vacancyBadge: {
+  alignSelf: "flex-start",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 7,
+  paddingHorizontal: 12,
+  paddingVertical: 7,
+  borderRadius: 999,
+  marginTop: 10,
+},
+
+vacancyBadgeOpen: {
+  backgroundColor: "rgba(34,197,94,0.12)",
+},
+
+vacancyBadgeClosed: {
+  backgroundColor: "rgba(220,38,38,0.1)",
+},
+
+vacancyDot: {
+  width: 7,
+  height: 7,
+  borderRadius: 999,
+},
+
+vacancyDotOpen: {
+  backgroundColor: colors.success,
+},
+
+vacancyDotClosed: {
+  backgroundColor: "#DC2626",
+},
+
+vacancyText: {
+  fontSize: 12,
+  fontWeight: "900",
+},
+
+vacancyTextOpen: {
+  color: colors.success,
+},
+
+vacancyTextClosed: {
+  color: "#DC2626",
+},
+
+buttonDisabled: {
+  opacity: 0.45,
+},
 });

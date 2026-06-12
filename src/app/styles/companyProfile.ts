@@ -17,7 +17,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 18,
+    marginBottom: 22,
   },
 
   backButton: {
@@ -28,9 +28,17 @@ export const styles = StyleSheet.create({
     marginLeft: -8,
   },
 
+  settingsButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   headerTitle: {
     color: colors.black,
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: "900",
   },
 
@@ -40,12 +48,10 @@ export const styles = StyleSheet.create({
   },
 
   companyCard: {
-    backgroundColor: colors.white,
     borderRadius: 22,
     padding: 20,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F1F1F1",
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 9,
@@ -64,6 +70,27 @@ export const styles = StyleSheet.create({
     height: 92,
     borderRadius: 46,
     backgroundColor: colors.lightGray,
+  },
+
+  logoFallback: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  logoInitial: {
+    color: colors.primary,
+    fontSize: 34,
+    fontWeight: "900",
+  },
+
+  logoInitialSmall: {
+    color: colors.primary,
+    fontSize: 32,
+    fontWeight: "900",
   },
 
   verifiedBadge: {
@@ -91,6 +118,15 @@ export const styles = StyleSheet.create({
     fontSize: 21,
     fontWeight: "900",
     marginBottom: 4,
+    textAlign: "center",
+  },
+
+  companyNameInverted: {
+    color: colors.white,
+    fontSize: 21,
+    fontWeight: "900",
+    marginBottom: 4,
+    textAlign: "center",
   },
 
   companyType: {
@@ -98,6 +134,24 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     marginBottom: 10,
+    textAlign: "center",
+  },
+
+  companyTypeInverted: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+
+  companyTypeCentered: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 10,
+    textAlign: "center",
+    lineHeight: 20,
   },
 
   ratingArea: {
@@ -117,8 +171,20 @@ export const styles = StyleSheet.create({
     fontWeight: "900",
   },
 
+  ratingTextInverted: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+
   ratingSubtext: {
     color: colors.gray,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  ratingSubtextInverted: {
+    color: "rgba(255,255,255,0.86)",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -127,7 +193,6 @@ export const styles = StyleSheet.create({
     width: "100%",
     minHeight: 70,
     borderRadius: 16,
-    backgroundColor: colors.lightGray,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -196,13 +261,40 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: "rgba(11,87,208,0.1)",
+    borderWidth: 1,
   },
 
   tagText: {
     color: colors.primary,
     fontSize: 12,
     fontWeight: "800",
+  },
+
+  quickActionsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 18,
+  },
+
+  quickActionButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+
+  quickActionButtonPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
+  },
+
+  quickActionText: {
+    fontSize: 15,
+    fontWeight: "900",
   },
 
   contactCard: {
@@ -226,6 +318,16 @@ export const styles = StyleSheet.create({
 
   contactIcon: {
     fontSize: 20,
+    marginRight: 12,
+  },
+
+  contactIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    backgroundColor: colors.lightGray,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
 
@@ -293,16 +395,6 @@ export const styles = StyleSheet.create({
     fontSize: 21,
   },
 
-  contactIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    backgroundColor: colors.lightGray,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-
   menuTextArea: {
     flex: 1,
   },
@@ -335,7 +427,6 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "#EF4444",
-
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,

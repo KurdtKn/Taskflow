@@ -339,6 +339,9 @@ export default function JobCandidatesScreen() {
     location?: string | string[];
     time?: string | string[];
     candidates?: string | string[];
+    totalProfessionals?: string | string[];
+    acceptedProfessionals?: string | string[];
+    availableSpots?: string | string[];
   }>();
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -357,12 +360,68 @@ export default function JobCandidatesScreen() {
     return value ?? fallback;
   }
 
+  function getParamNumber(value?: string | string[], fallback = 0) {
+    const paramValue = getParamValue(value);
+    const parsedValue = Number(paramValue);
+
+    if (Number.isNaN(parsedValue)) {
+      return fallback;
+    }
+
+    return parsedValue;
+  }
+
+  function getVacanciesText(value: number) {
+    if (value <= 0) {
+      return "Vagas preenchidas";
+    }
+
+    if (value === 1) {
+      return "1 vaga aberta";
+    }
+
+    return `${value} vagas abertas`;
+  }
+
+  function canAcceptCandidate(candidate: Candidate) {
+    return (
+      availableSpots > 0 &&
+      candidate.status !== "Aceita" &&
+      candidate.status !== "Recusada" &&
+      candidate.status !== "Cancelada"
+    );
+  }
+
   const jobId = getParamValue(params.id) || getParamValue(params.chamadoId);
   const jobTitle = getParamValue(params.title, "Chamado");
   const jobCategory = getParamValue(params.category, "Categoria");
   const jobPrice = getParamValue(params.price, "Valor a combinar");
   const jobLocation = getParamValue(params.location, "Local não informado");
   const jobTime = getParamValue(params.time, "Data não informada");
+
+  const totalProfessionals = getParamNumber(params.totalProfessionals, 1);
+  const acceptedProfessionalsFromParams = getParamNumber(
+    params.acceptedProfessionals,
+    -1
+  );
+  const availableSpotsFromParams = getParamNumber(params.availableSpots, -1);
+
+  const acceptedProfessionalsFromCandidates = candidates.filter(
+    (candidate) => candidate.status === "Aceita"
+  ).length;
+
+  const acceptedProfessionals =
+    acceptedProfessionalsFromParams >= 0
+      ? acceptedProfessionalsFromParams
+      : acceptedProfessionalsFromCandidates;
+
+  const availableSpots =
+    availableSpotsFromParams >= 0
+      ? availableSpotsFromParams
+      : Math.max(totalProfessionals - acceptedProfessionals, 0);
+
+  const hasAvailableSpots = availableSpots > 0;
+  const vacanciesText = getVacanciesText(availableSpots);
 
   const selectedCandidate = candidates.find(
     (candidate) => candidate.id === selectedCandidateId
@@ -427,6 +486,10 @@ export default function JobCandidatesScreen() {
   }
 
   function handleAcceptCandidate(candidate: Candidate) {
+    if (!canAcceptCandidate(candidate)) {
+      return;
+    }
+
     router.push({
       pathname: "/payment",
       params: {
@@ -439,6 +502,9 @@ export default function JobCandidatesScreen() {
         jobPrice,
         jobLocation,
         jobTime,
+        totalProfessionals: String(totalProfessionals),
+        acceptedProfessionals: String(acceptedProfessionals),
+        availableSpots: String(availableSpots),
 
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
@@ -463,6 +529,9 @@ export default function JobCandidatesScreen() {
         jobPrice,
         jobLocation,
         jobTime,
+        totalProfessionals: String(totalProfessionals),
+        acceptedProfessionals: String(acceptedProfessionals),
+        availableSpots: String(availableSpots),
 
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
@@ -601,6 +670,43 @@ export default function JobCandidatesScreen() {
                 {jobTime}
               </Text>
             </View>
+          </View>
+
+          <View
+            style={[
+              styles.vacancyBadge,
+              hasAvailableSpots
+                ? styles.vacancyBadgeOpen
+                : styles.vacancyBadgeClosed,
+            ]}
+          >
+            <View
+              style={[
+                styles.vacancyDot,
+                hasAvailableSpots
+                  ? styles.vacancyDotOpen
+                  : styles.vacancyDotClosed,
+              ]}
+            />
+
+            <Text
+              style={[
+                styles.vacancyText,
+                hasAvailableSpots
+                  ? styles.vacancyTextOpen
+                  : styles.vacancyTextClosed,
+              ]}
+            >
+              {vacanciesText}
+            </Text>
+          </View>
+
+          <View style={styles.vacancyInfoBox}>
+            <Text style={styles.vacancyInfoText}>
+              {hasAvailableSpots
+                ? `Ainda há ${vacanciesText.toLowerCase()} neste chamado. Você pode aceitar mais freelancers até preencher o limite.`
+                : "O limite de profissionais deste chamado já foi preenchido."}
+            </Text>
           </View>
         </View>
 
@@ -877,13 +983,30 @@ export default function JobCandidatesScreen() {
                     </Pressable>
 
                     <Pressable
+                      disabled={!canAcceptCandidate(candidate)}
                       style={({ pressed }) => [
                         styles.acceptButton,
-                        pressed && styles.acceptButtonPressed,
+                        !canAcceptCandidate(candidate) &&
+                          styles.acceptButtonDisabled,
+                        pressed &&
+                          canAcceptCandidate(candidate) &&
+                          styles.acceptButtonPressed,
                       ]}
                       onPress={() => handleAcceptCandidate(candidate)}
                     >
-                      <Text style={styles.acceptButtonText}>Aceitar</Text>
+                      <Text
+                        style={[
+                          styles.acceptButtonText,
+                          !canAcceptCandidate(candidate) &&
+                            styles.acceptButtonDisabledText,
+                        ]}
+                      >
+                        {candidate.status === "Aceita"
+                          ? "Aceito"
+                          : hasAvailableSpots
+                          ? "Aceitar"
+                          : "Limite atingido"}
+                      </Text>
                     </Pressable>
                   </View>
                 </Pressable>
