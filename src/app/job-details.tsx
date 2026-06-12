@@ -30,6 +30,9 @@ export default function JobDetailsScreen() {
     location?: string | string[];
     time?: string | string[];
     imageUrl?: string | string[];
+    totalProfessionals?: string | string[];
+    acceptedProfessionals?: string | string[];
+    availableSpots?: string | string[];
   }>();
 
   const { isDark, theme } = useTheme();
@@ -43,6 +46,29 @@ export default function JobDetailsScreen() {
     }
 
     return value ?? fallback;
+  }
+
+  function getParamNumber(value?: string | string[], fallback = 0) {
+    const paramValue = getParamValue(value);
+    const parsedValue = Number(paramValue);
+
+    if (Number.isNaN(parsedValue)) {
+      return fallback;
+    }
+
+    return parsedValue;
+  }
+
+  function getVacanciesText(value: number) {
+    if (value <= 0) {
+      return "Sem vagas disponíveis";
+    }
+
+    if (value === 1) {
+      return "1 vaga disponível";
+    }
+
+    return `${value} vagas disponíveis`;
   }
 
   const id = getParamValue(params.id);
@@ -59,6 +85,18 @@ export default function JobDetailsScreen() {
   const time = getParamValue(params.time, "Data a combinar");
   const imageUrl = getParamValue(params.imageUrl);
 
+  const totalProfessionals = getParamNumber(params.totalProfessionals, 1);
+  const acceptedProfessionals = getParamNumber(params.acceptedProfessionals, 0);
+  const availableSpotsFromParams = getParamNumber(params.availableSpots, -1);
+
+  const availableSpots =
+    availableSpotsFromParams >= 0
+      ? availableSpotsFromParams
+      : Math.max(totalProfessionals - acceptedProfessionals, 0);
+
+  const hasAvailableSpots = availableSpots > 0;
+  const vacanciesText = getVacanciesText(availableSpots);
+
   function getCompanyInitials() {
     const words = company.trim().split(" ").filter(Boolean);
 
@@ -74,10 +112,15 @@ export default function JobDetailsScreen() {
   }
 
   function handleRequestService() {
+    if (!hasAvailableSpots) {
+      return;
+    }
+
     console.log("Solicitar atendimento:", {
       id,
       title,
       company,
+      availableSpots,
     });
 
     router.push({
@@ -92,6 +135,9 @@ export default function JobDetailsScreen() {
         location,
         time,
         imageUrl,
+        totalProfessionals: String(totalProfessionals),
+        acceptedProfessionals: String(acceptedProfessionals),
+        availableSpots: String(availableSpots),
       },
     });
   }
@@ -185,6 +231,35 @@ export default function JobDetailsScreen() {
           </Text>
 
           <Text style={styles.price}>{price}</Text>
+
+          <View
+            style={[
+              styles.vacancyBadge,
+              hasAvailableSpots
+                ? styles.vacancyBadgeOpen
+                : styles.vacancyBadgeClosed,
+            ]}
+          >
+            <View
+              style={[
+                styles.vacancyDot,
+                hasAvailableSpots
+                  ? styles.vacancyDotOpen
+                  : styles.vacancyDotClosed,
+              ]}
+            />
+
+            <Text
+              style={[
+                styles.vacancyText,
+                hasAvailableSpots
+                  ? styles.vacancyTextOpen
+                  : styles.vacancyTextClosed,
+              ]}
+            >
+              {vacanciesText}
+            </Text>
+          </View>
         </View>
 
         <View
@@ -308,19 +383,26 @@ export default function JobDetailsScreen() {
           ]}
         >
           <Text style={[styles.warningText, { color: theme.textSecondary }]}>
-            O chat será liberado somente após a empresa aceitar sua solicitação e
-            confirmar o fluxo do chamado.
+            {hasAvailableSpots
+              ? "O chat será liberado somente após a empresa aceitar sua solicitação e confirmar o fluxo do chamado."
+              : "Este chamado não possui vagas disponíveis no momento."}
           </Text>
         </View>
 
         <Pressable
+          disabled={!hasAvailableSpots}
           style={({ pressed }) => [
             styles.button,
-            pressed && styles.buttonPressed,
+            !hasAvailableSpots && styles.buttonDisabled,
+            pressed && hasAvailableSpots && styles.buttonPressed,
           ]}
           onPress={handleRequestService}
         >
-          <Text style={styles.buttonText}>Solicitar atendimento</Text>
+          <Text style={styles.buttonText}>
+            {hasAvailableSpots
+              ? "Solicitar atendimento"
+              : "Sem vagas disponíveis"}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

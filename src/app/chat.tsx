@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   View,
+  Image,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
@@ -17,11 +18,28 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 
 import { styles } from "@/app/styles/chat";
 import { useTheme } from "@/app/context/ThemeContext";
-import { getLoggedUser } from "@/services/storage";
+import {
+  getCompanyData,
+  getFreelancerData,
+  getLoggedUser,
+} from "@/services/storage";
+import { colors } from "@/styles/colors";
 
 type MessageSender = "company" | "freelancer" | "system";
 
 type Message = {
+  id: string;
+  chatId: string;
+  senderId: string;
+  senderName: string;
+  senderType: MessageSender;
+  senderPhotoUrl?: string;
+  text: string;
+  time: string;
+  createdAt: string;
+};
+
+type LegacyMessage = {
   id: string;
   sender: MessageSender;
   text: string;
@@ -48,6 +66,14 @@ function normalizeMessage(value: string) {
     .trim();
 }
 
+function getInitial(name: string) {
+  if (!name.trim()) {
+    return "?";
+  }
+
+  return name.trim().charAt(0).toUpperCase();
+}
+
 export default function ChatScreen() {
   const params = useLocalSearchParams<{
     jobId?: string | string[];
@@ -66,6 +92,9 @@ export default function ChatScreen() {
   const [currentUserType, setCurrentUserType] = useState<
     "empresa" | "freelancer" | null
   >(null);
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [currentUserName, setCurrentUserName] = useState("Usuário");
+  const [currentUserPhotoUrl, setCurrentUserPhotoUrl] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
 
   const { isDark, theme } = useTheme();
@@ -96,16 +125,25 @@ export default function ChatScreen() {
   );
   const companyName = getParamValue(params.companyName, "Empresa");
 
-  const chatKey = `${CHAT_STORAGE_KEY}:${jobId || "sem-chamado"}:${
-    candidaturaId || freelancerId || "sem-candidatura"
-  }`;
+  const chatId = jobId || "sem-chamado";
+
+  // Agora o chat é por chamado. Isso permite chat em grupo.
+  const chatKey = `${CHAT_STORAGE_KEY}:${chatId}`;
 
   const chatHeaderTitle =
-    currentUserType === "freelancer" ? companyName : candidateName;
+    currentUserType === "freelancer" ? companyName : "Grupo do chamado";
+
+  const chatHeaderSubtitle =
+    currentUserType === "freelancer"
+      ? "Chat com a empresa"
+      : "Chat com freelancers aceitos";
 
   const systemMessage: Message = {
     id: "system-message",
-    sender: "system",
+    chatId,
+    senderId: "system",
+    senderName: "TaskFlow",
+    senderType: "system",
     text: "Chat liberado para combinar os detalhes finais do serviço.",
     time: "Agora",
     createdAt: new Date().toISOString(),
@@ -129,13 +167,24 @@ export default function ChatScreen() {
       }
 
       const tipoUsuario = loggedUser.tipoUsuario?.toLowerCase().trim();
+      const userId = loggedUser.id;
+      const userName = loggedUser.nome || "Usuário";
+
+      setCurrentUserId(userId);
+      setCurrentUserName(userName);
 
       if (tipoUsuario === "freelancer") {
         setCurrentSender("freelancer");
         setCurrentUserType("freelancer");
+
+        const freelancerData = await getFreelancerData(userId);
+        setCurrentUserPhotoUrl(freelancerData?.photoUrl);
       } else {
         setCurrentSender("company");
         setCurrentUserType("empresa");
+
+        const companyData = await getCompanyData(userId);
+        setCurrentUserPhotoUrl(companyData?.logoUrl);
       }
 
       const storedMessages = await AsyncStorage.getItem(chatKey);
@@ -145,8 +194,15 @@ export default function ChatScreen() {
         return;
       }
 
-      const parsedMessages = JSON.parse(storedMessages) as Message[];
-      setMessages(parsedMessages);
+      const parsedMessages = JSON.parse(storedMessages) as Array<
+        Message | LegacyMessage
+      >;
+
+      const normalizedMessages = parsedMessages.map((message) =>
+        normalizeStoredMessage(message)
+      );
+
+      setMessages(normalizedMessages);
     } catch (error) {
       console.log("Erro ao carregar mensagens do chat:", error);
       setMessages([]);
@@ -157,6 +213,30 @@ export default function ChatScreen() {
         scrollRef.current?.scrollToEnd({ animated: false });
       }, 100);
     }
+  }
+
+  function normalizeStoredMessage(message: Message | LegacyMessage): Message {
+    if ("senderType" in message) {
+      return message;
+    }
+
+    const senderName =
+      message.sender === "company"
+        ? companyName
+        : message.sender === "freelancer"
+        ? candidateName
+        : "TaskFlow";
+
+    return {
+      id: message.id,
+      chatId,
+      senderId: message.sender,
+      senderName,
+      senderType: message.sender,
+      text: message.text,
+      time: message.time,
+      createdAt: message.createdAt,
+    };
   }
 
   async function saveMessages(updatedMessages: Message[]) {
@@ -179,8 +259,12 @@ export default function ChatScreen() {
     }
 
     const newMessage: Message = {
-      id: `${Date.now()}-${currentSender}`,
-      sender: currentSender,
+      id: `${Date.now()}-${currentUserId || currentSender}`,
+      chatId,
+      senderId: currentUserId || currentSender,
+      senderName: currentUserName,
+      senderType: currentSender,
+      senderPhotoUrl: currentUserPhotoUrl,
       text: normalizedMessage,
       time: getCurrentTime(),
       createdAt: new Date().toISOString(),
@@ -212,6 +296,48 @@ export default function ChatScreen() {
     });
   }
 
+  function handleGoBack() {
+    if (currentUserType === "freelancer") {
+      router.replace("/requests");
+      return;
+    }
+
+    router.replace("/company-dashboard");
+  }
+
+  function renderAvatar(message: Message, isCurrentUser: boolean) {
+    if (message.senderPhotoUrl) {
+      return (
+        <Image
+          source={{ uri: message.senderPhotoUrl }}
+          style={styles.senderAvatar}
+          resizeMode="cover"
+        />
+      );
+    }
+
+    return (
+      <View
+        style={[
+          styles.senderAvatar,
+          {
+            backgroundColor: isCurrentUser ? colors.primary : theme.inputBackground,
+            borderColor: isCurrentUser ? colors.primary : theme.border,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.senderAvatarText,
+            { color: isCurrentUser ? colors.white : theme.text },
+          ]}
+        >
+          {getInitial(message.senderName)}
+        </Text>
+      </View>
+    );
+  }
+
   const visibleMessages = [systemMessage, ...messages];
 
   return (
@@ -236,10 +362,7 @@ export default function ChatScreen() {
             },
           ]}
         >
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.replace("/company-dashboard")}
-          >
+          <Pressable style={styles.backButton} onPress={handleGoBack}>
             <ArrowBack
               width={28}
               height={28}
@@ -254,17 +377,21 @@ export default function ChatScreen() {
             </Text>
 
             <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-              Chat do chamado
+              {chatHeaderSubtitle}
             </Text>
           </View>
 
-          <Pressable
-            style={styles.finishButton}
-            onPress={handleFinishService}
-            disabled={isLoading}
-          >
-            <Text style={styles.finishButtonText}>Finalizar</Text>
-          </Pressable>
+          {currentUserType === "empresa" ? (
+            <Pressable
+              style={styles.finishButton}
+              onPress={handleFinishService}
+              disabled={isLoading}
+            >
+              <Text style={styles.finishButtonText}>Finalizar</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.finishButtonPlaceholder} />
+          )}
         </View>
 
         <View
@@ -285,7 +412,7 @@ export default function ChatScreen() {
           </Text>
 
           <Text style={[styles.jobText, { color: theme.textSecondary }]}>
-            Combine os detalhes finais do serviço diretamente pelo chat.
+            Combine os detalhes finais do serviço diretamente pelo chat em grupo.
           </Text>
         </View>
 
@@ -320,9 +447,8 @@ export default function ChatScreen() {
             </View>
           ) : (
             visibleMessages.map((message) => {
-              const isCompany = message.sender === "company";
-              const isFreelancer = message.sender === "freelancer";
-              const isSystem = message.sender === "system";
+              const isSystem = message.senderType === "system";
+              const isCurrentUser = message.senderId === currentUserId;
 
               if (isSystem) {
                 return (
@@ -353,43 +479,67 @@ export default function ChatScreen() {
                   key={message.id}
                   style={[
                     styles.messageRow,
-                    isCompany && styles.messageRowCompany,
-                    isFreelancer && styles.messageRowFreelancer,
+                    isCurrentUser
+                      ? styles.messageRowCompany
+                      : styles.messageRowFreelancer,
                   ]}
                 >
-                  <View
-                    style={[
-                      styles.messageBubble,
-                      isCompany && styles.companyBubble,
-                      isFreelancer && styles.freelancerBubble,
-                      isFreelancer && {
-                        backgroundColor: theme.card,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                  >
+                  {!isCurrentUser && renderAvatar(message, isCurrentUser)}
+
+                  <View style={styles.messageGroup}>
                     <Text
                       style={[
-                        styles.messageText,
-                        isCompany && styles.companyMessageText,
-                        isFreelancer && styles.freelancerMessageText,
-                        isFreelancer && { color: theme.text },
+                        styles.senderName,
+                        {
+                          color: isCurrentUser
+                            ? theme.textSecondary
+                            : theme.textSecondary,
+                          textAlign: isCurrentUser ? "right" : "left",
+                        },
                       ]}
                     >
-                      {message.text}
+                      {message.senderName}
                     </Text>
+
+                    <View
+                      style={[
+                        styles.messageBubble,
+                        isCurrentUser
+                          ? styles.companyBubble
+                          : styles.freelancerBubble,
+                        !isCurrentUser && {
+                          backgroundColor: theme.card,
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.messageText,
+                          isCurrentUser
+                            ? styles.companyMessageText
+                            : styles.freelancerMessageText,
+                          !isCurrentUser && { color: theme.text },
+                        ]}
+                      >
+                        {message.text}
+                      </Text>
+                    </View>
 
                     <Text
                       style={[
                         styles.messageTime,
-                        isCompany && styles.companyMessageTime,
-                        isFreelancer && styles.freelancerMessageTime,
-                        isFreelancer && { color: theme.textSecondary },
+                        isCurrentUser
+                          ? styles.companyMessageTimeOutside
+                          : styles.freelancerMessageTime,
+                        !isCurrentUser && { color: theme.textSecondary },
                       ]}
                     >
                       {message.time}
                     </Text>
                   </View>
+
+                  {isCurrentUser && renderAvatar(message, isCurrentUser)}
                 </View>
               );
             })
@@ -444,7 +594,7 @@ export default function ChatScreen() {
             style={({ pressed }) => [
               styles.sendButton,
               pressed && canSendMessage && styles.sendButtonPressed,
-              !canSendMessage && { opacity: 0.45 },
+              !canSendMessage && styles.sendButtonDisabled,
             ]}
             onPress={handleSendMessage}
           >

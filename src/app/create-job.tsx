@@ -351,6 +351,16 @@ export default function CreateJobScreen() {
     return Number(numbersOnly);
   }
 
+  function getProfessionalsText() {
+    const quantity = getProfessionalsQuantity();
+
+    if (quantity <= 1) {
+      return "1 freelancer";
+    }
+
+    return `${quantity} freelancers`;
+  }
+
   function getCityAndState() {
     const [cityValue, stateValue] = location.split("-");
 
@@ -442,6 +452,7 @@ export default function CreateJobScreen() {
 
     const normalizedDate = normalizeDate(date);
     const normalizedHour = normalizeHour(hour);
+    const professionalsQuantity = getProfessionalsQuantity();
 
     setDate(normalizedDate);
     setHour(normalizedHour);
@@ -486,13 +497,15 @@ export default function CreateJobScreen() {
         dataServico: getServiceDate(),
         horaServico: normalizedHour,
         valorEstimado: getEstimatedValue(),
+        quantidadeProfissionais: professionalsQuantity,
+        status: "Aberto",
       });
 
       console.log("Chamado publicado:", response);
 
       Alert.alert(
         "Chamado publicado",
-        "Seu chamado foi publicado com sucesso."
+        `Seu chamado foi publicado com sucesso para ${getProfessionalsText()}.`
       );
 
       router.replace("/company-dashboard");
@@ -773,9 +786,10 @@ export default function CreateJobScreen() {
               </Text>
 
               <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                Após publicar o chamado, freelancers da região poderão
-                visualizar a demanda e enviar uma solicitação. Você poderá
-                analisar os candidatos antes de aceitar um profissional.
+                Após publicar o chamado, freelancers da região poderão se
+                candidatar. Você poderá aceitar até {getProfessionalsText()}.
+                Enquanto ainda houver vaga disponível, o chamado continuará
+                aparecendo para outros freelancers.
               </Text>
             </View>
 

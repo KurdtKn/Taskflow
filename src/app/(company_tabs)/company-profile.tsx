@@ -59,6 +59,23 @@ export default function CompanyProfileScreen() {
   const [company, setCompany] = useState<CompanyProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const profileCardBackground = isDark ? colors.blue[700] : colors.primary;
+  const profileCardBorder = isDark ? colors.blue[600] : colors.primary;
+
+  const iconColor = colors.black;
+  const iconBoxBackground = isDark ? colors.white : colors.lightGray;
+  const iconBoxBorder = isDark ? colors.white : colors.border;
+
+  const actionButtonBackground = isDark
+    ? "rgba(255,255,255,0.08)"
+    : "rgba(11,87,208,0.10)";
+
+  const actionButtonBorder = isDark
+    ? "rgba(255,255,255,0.18)"
+    : "rgba(11,87,208,0.18)";
+
+  const actionButtonTextColor = isDark ? colors.white : colors.primary;
+
   useFocusEffect(
     useCallback(() => {
       loadCompanyProfile();
@@ -85,7 +102,8 @@ export default function CompanyProfileScreen() {
         type: "Empresa contratante",
         logoUrl: savedCompanyData?.logoUrl,
         isVerified: savedCompanyData?.isVerified ?? false,
-        reviewsCount: 0,
+        rating: undefined,
+        reviewsCount: undefined,
         totalJobs: 0,
         completedJobs: 0,
         satisfactionRate: 0,
@@ -104,10 +122,6 @@ export default function CompanyProfileScreen() {
       setIsLoading(false);
     }
   }
-
-  const iconColor = colors.black;
-  const iconBoxBackground = isDark ? colors.white : colors.lightGray;
-  const iconBoxBorder = isDark ? colors.white : colors.border;
 
   const menuOptions: MenuOption[] = [
     {
@@ -150,6 +164,10 @@ export default function CompanyProfileScreen() {
     }
   }
 
+  function handleOpenSettings() {
+    router.push("/company-settings");
+  }
+
   function getCompanyInitial() {
     if (!company?.name) {
       return "?";
@@ -158,22 +176,24 @@ export default function CompanyProfileScreen() {
     return company.name.charAt(0).toUpperCase();
   }
 
-  function getRatingText() {
-    if (!company?.rating) {
-      return "Sem avaliações";
+  function formatRating(value?: number) {
+    if (value === undefined || value === null) {
+      return "—";
     }
 
-    return company.rating.toFixed(1).replace(".", ",");
+    return value.toFixed(1).replace(".", ",");
   }
 
-  function getReviewsText() {
-    const reviewsCount = company?.reviewsCount ?? 0;
-
-    if (reviewsCount === 0) {
-      return "";
+  function formatStat(value?: number, suffix = "") {
+    if (value === undefined || value === null) {
+      return "—";
     }
 
-    return `• ${reviewsCount} avaliações`;
+    return `${value}${suffix}`;
+  }
+
+  function hasRatingData() {
+    return company?.rating !== undefined && company?.rating !== null;
   }
 
   return (
@@ -190,330 +210,473 @@ export default function CompanyProfileScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.header}>
-          <View style={styles.headerPlaceholder} />
-
           <Text style={[styles.headerTitle, { color: theme.text }]}>
-            Perfil da empresa
+            Perfil
           </Text>
 
-          <View style={styles.headerPlaceholder} />
+          <Pressable
+            style={({ pressed }) => [
+              styles.settingsButton,
+              {
+                backgroundColor: iconBoxBackground,
+                borderColor: iconBoxBorder,
+                borderWidth: 1,
+              },
+              pressed && {
+                opacity: 0.75,
+                transform: [{ scale: 0.96 }],
+              },
+            ]}
+            onPress={handleOpenSettings}
+          >
+            <SettingsIcon width={24} height={24} color={iconColor} />
+          </Pressable>
         </View>
 
-        <View
-          style={[
-            styles.companyCard,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <View style={styles.logoArea}>
-            {company?.logoUrl ? (
-              <Image
-                source={{ uri: company.logoUrl }}
-                style={styles.logo}
-                resizeMode="cover"
-              />
-            ) : (
-              <View
-                style={[
-                  styles.logo,
-                  {
-                    backgroundColor: theme.inputBackground,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderWidth: 1,
-                    borderColor: theme.border,
-                  },
-                ]}
-              >
-                <Text
-                  style={{
-                    color: theme.text,
-                    fontSize: 28,
-                    fontWeight: "900",
-                  }}
-                >
-                  {getCompanyInitial()}
-                </Text>
-              </View>
-            )}
-
-            {company?.isVerified && (
-              <View style={styles.verifiedBadge}>
-                <CheckIcon width={13} height={13} color={colors.white} />
-              </View>
-            )}
-          </View>
-
-          <Text style={[styles.companyName, { color: theme.text }]}>
-            {isLoading
-              ? "Carregando..."
-              : company?.name ?? "Perfil não carregado"}
-          </Text>
-
-          <Text style={[styles.companyType, { color: theme.textSecondary }]}>
-            {company?.type ?? "Empresa contratante"}
-          </Text>
-
-          <View style={styles.ratingArea}>
-            <StarIcon width={17} height={17} color={colors.warning} />
-
-            <Text style={[styles.ratingText, { color: theme.text }]}>
-              {getRatingText()}
-            </Text>
-
-            {getReviewsText() !== "" && (
-              <Text
-                style={[
-                  styles.ratingSubtext,
-                  { color: theme.textSecondary },
-                ]}
-              >
-                {getReviewsText()}
-              </Text>
-            )}
-          </View>
-
+        {isLoading ? (
           <View
             style={[
-              styles.statsArea,
+              styles.companyCard,
               {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                borderWidth: 1,
+                backgroundColor: profileCardBackground,
+                borderColor: profileCardBorder,
               },
             ]}
           >
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.text }]}>
-                {company?.totalJobs ?? 0}
-              </Text>
+            <Text style={styles.companyNameInverted}>
+              Carregando perfil...
+            </Text>
 
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                Chamados
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.statDivider,
-                { backgroundColor: theme.border },
-              ]}
-            />
-
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.text }]}>
-                {company?.completedJobs ?? 0}
-              </Text>
-
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                Concluídos
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.statDivider,
-                { backgroundColor: theme.border },
-              ]}
-            />
-
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.text }]}>
-                {company?.satisfactionRate ?? 0}%
-              </Text>
-
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                Satisfação
-              </Text>
-            </View>
+            <Text style={styles.companyTypeInverted}>
+              Buscando dados da sua empresa.
+            </Text>
           </View>
-        </View>
+        ) : !company ? (
+          <View
+            style={[
+              styles.companyCard,
+              {
+                backgroundColor: profileCardBackground,
+                borderColor: profileCardBorder,
+              },
+            ]}
+          >
+            <View style={styles.logoArea}>
+              <View style={styles.logoFallback}>
+                <Text style={styles.logoInitialSmall}>?</Text>
+              </View>
+            </View>
 
-        <View
-          style={[
-            styles.aboutCard,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Sobre a empresa
-          </Text>
+            <Text style={styles.companyNameInverted}>
+              Perfil não carregado
+            </Text>
 
-          <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
-            {company?.about ??
-              "Quando a empresa preencher a descrição, ela aparecerá aqui."}
-          </Text>
+            <Text style={styles.companyTypeCentered}>
+              Faça login novamente para carregar os dados da empresa.
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View
+              style={[
+                styles.companyCard,
+                {
+                  backgroundColor: profileCardBackground,
+                  borderColor: profileCardBorder,
+                },
+              ]}
+            >
+              <View style={styles.logoArea}>
+                {company.logoUrl ? (
+                  <Image
+                    source={{ uri: company.logoUrl }}
+                    style={styles.logo}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.logoFallback}>
+                    <Text style={styles.logoInitial}>
+                      {getCompanyInitial()}
+                    </Text>
+                  </View>
+                )}
 
-          {company?.tags && company.tags.length > 0 && (
-            <View style={styles.tagsArea}>
-              {company.tags.map((tag) => (
-                <View
-                  key={tag}
-                  style={[
-                    styles.tag,
-                    {
-                      backgroundColor: theme.inputBackground,
-                      borderColor: theme.border,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.tagText, { color: theme.text }]}>
-                    {tag}
+                {company.isVerified && (
+                  <View style={styles.verifiedBadge}>
+                    <CheckIcon width={13} height={13} color={colors.white} />
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.companyNameInverted}>{company.name}</Text>
+
+              <Text style={styles.companyTypeInverted}>{company.type}</Text>
+
+              <View style={styles.ratingArea}>
+                <Text style={styles.ratingIcon}>⭐</Text>
+
+                {hasRatingData() ? (
+                  <>
+                    <Text style={styles.ratingTextInverted}>
+                      {formatRating(company.rating)}
+                    </Text>
+
+                    <Text style={styles.ratingSubtextInverted}>
+                      {" "}
+                      ({company.reviewsCount ?? 0} avaliações)
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.ratingSubtextInverted}>
+                    Sem avaliações ainda
+                  </Text>
+                )}
+              </View>
+
+              <View
+                style={[
+                  styles.statsArea,
+                  {
+                    backgroundColor: isDark
+                      ? colors.white
+                      : "rgba(255,255,255,0.96)",
+                    borderColor: isDark
+                      ? colors.white
+                      : "rgba(255,255,255,0.75)",
+                    borderWidth: 1,
+                  },
+                ]}
+              >
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: colors.black }]}>
+                    {formatStat(company.totalJobs)}
+                  </Text>
+
+                  <Text style={[styles.statLabel, { color: colors.gray }]}>
+                    Chamados
                   </Text>
                 </View>
-              ))}
-            </View>
-          )}
-        </View>
 
-        <View
-          style={[
-            styles.contactCard,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Informações principais
-          </Text>
+                <View
+                  style={[
+                    styles.statDivider,
+                    { backgroundColor: colors.border },
+                  ]}
+                />
 
-          <View style={styles.contactRow}>
-            <View style={styles.contactIconBox}>
-              <LocationIcon width={22} height={22} color={colors.black} />
-            </View>
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: colors.black }]}>
+                    {formatStat(company.completedJobs)}
+                  </Text>
 
-            <View style={styles.contactTextArea}>
-              <Text
-                style={[
-                  styles.contactLabel,
-                  { color: theme.textSecondary },
-                ]}
-              >
-                Localização
-              </Text>
+                  <Text style={[styles.statLabel, { color: colors.gray }]}>
+                    Concluídos
+                  </Text>
+                </View>
 
-              <Text style={[styles.contactValue, { color: theme.text }]}>
-                {company?.location ?? "Não informado"}
-              </Text>
-            </View>
-          </View>
+                <View
+                  style={[
+                    styles.statDivider,
+                    { backgroundColor: colors.border },
+                  ]}
+                />
 
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: colors.black }]}>
+                    {formatStat(company.satisfactionRate, "%")}
+                  </Text>
 
-          <View style={styles.contactRow}>
-            <View style={styles.contactIconBox}>
-              <SupportIcon width={22} height={22} color={colors.black} />
+                  <Text style={[styles.statLabel, { color: colors.gray }]}>
+                    Satisfação
+                  </Text>
+                </View>
+              </View>
             </View>
 
-            <View style={styles.contactTextArea}>
-              <Text
-                style={[
-                  styles.contactLabel,
-                  { color: theme.textSecondary },
-                ]}
-              >
-                Telefone
-              </Text>
-
-              <Text style={[styles.contactValue, { color: theme.text }]}>
-                {company?.phone ?? "Não informado"}
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
-
-          <View style={styles.contactRow}>
-            <View style={styles.contactIconBox}>
-              <SendIcon width={22} height={22} color={iconColor} />
-            </View>
-
-            <View style={styles.contactTextArea}>
-              <Text
-                style={[
-                  styles.contactLabel,
-                  { color: theme.textSecondary },
-                ]}
-              >
-                E-mail
-              </Text>
-
-              <Text style={[styles.contactValue, { color: theme.text }]}>
-                {company?.email ?? "Não informado"}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.menuArea}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Opções da empresa
-          </Text>
-
-          {menuOptions.map((option) => (
-            <Pressable
-              key={option.id}
-              style={({ pressed }) => [
-                styles.menuItem,
+            <View
+              style={[
+                styles.aboutCard,
                 {
                   backgroundColor: theme.card,
                   borderColor: theme.border,
                 },
-                pressed && styles.menuItemPressed,
               ]}
-              onPress={option.action}
             >
-              <View
-                style={[
-                  styles.menuIconBox,
-                  {
-                    backgroundColor: iconBoxBackground,
-                    borderColor: iconBoxBorder,
-                    borderWidth: 1,
-                  },
-                ]}
-              >
-                <option.Icon width={24} height={24} color={iconColor} />
-              </View>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Áreas de atuação
+              </Text>
 
-              <View style={styles.menuTextArea}>
-                <Text style={[styles.menuTitle, { color: theme.text }]}>
-                  {option.title}
+              {company.tags && company.tags.length > 0 ? (
+                <View style={styles.tagsArea}>
+                  {company.tags.map((tag) => (
+                    <View
+                      key={tag}
+                      style={[
+                        styles.tag,
+                        {
+                          backgroundColor: theme.inputBackground,
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.tagText, { color: theme.text }]}>
+                        {tag}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
+                  Nenhuma área de atuação cadastrada ainda.
                 </Text>
+              )}
 
-                <Text
+              <View style={styles.quickActionsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.quickActionButton,
+                    {
+                      backgroundColor: actionButtonBackground,
+                      borderColor: actionButtonBorder,
+                    },
+                    pressed && styles.quickActionButtonPressed,
+                  ]}
+                  onPress={() => router.push("/company-data")}
+                >
+                  <BadgeIcon
+                    width={22}
+                    height={22}
+                    color={actionButtonTextColor}
+                  />
+
+                  <Text
+                    style={[
+                      styles.quickActionText,
+                      { color: actionButtonTextColor },
+                    ]}
+                  >
+                    Dados
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.quickActionButton,
+                    {
+                      backgroundColor: actionButtonBackground,
+                      borderColor: actionButtonBorder,
+                    },
+                    pressed && styles.quickActionButtonPressed,
+                  ]}
+                  onPress={() => router.push("/company-settings")}
+                >
+                  <SettingsIcon
+                    width={22}
+                    height={22}
+                    color={actionButtonTextColor}
+                  />
+
+                  <Text
+                    style={[
+                      styles.quickActionText,
+                      { color: actionButtonTextColor },
+                    ]}
+                  >
+                    Configurar
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.aboutCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Sobre a empresa
+              </Text>
+
+              <Text style={[styles.aboutText, { color: theme.textSecondary }]}>
+                {company.about}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.contactCard,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Informações principais
+              </Text>
+
+              <View style={styles.contactRow}>
+                <View
                   style={[
-                    styles.menuSubtitle,
-                    { color: theme.textSecondary },
+                    styles.contactIconBox,
+                    {
+                      backgroundColor: iconBoxBackground,
+                      borderColor: iconBoxBorder,
+                      borderWidth: 1,
+                    },
                   ]}
                 >
-                  {option.subtitle}
-                </Text>
+                  <LocationIcon width={22} height={22} color={iconColor} />
+                </View>
+
+                <View style={styles.contactTextArea}>
+                  <Text
+                    style={[
+                      styles.contactLabel,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    Localização
+                  </Text>
+
+                  <Text style={[styles.contactValue, { color: theme.text }]}>
+                    {company.location ?? "Não informado"}
+                  </Text>
+                </View>
               </View>
 
-              <Text style={[styles.menuArrow, { color: theme.textSecondary }]}>
-                ›
-              </Text>
-            </Pressable>
-          ))}
+              <View
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.border },
+                ]}
+              />
+
+              <View style={styles.contactRow}>
+                <View
+                  style={[
+                    styles.contactIconBox,
+                    {
+                      backgroundColor: iconBoxBackground,
+                      borderColor: iconBoxBorder,
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <SupportIcon width={22} height={22} color={iconColor} />
+                </View>
+
+                <View style={styles.contactTextArea}>
+                  <Text
+                    style={[
+                      styles.contactLabel,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    Telefone
+                  </Text>
+
+                  <Text style={[styles.contactValue, { color: theme.text }]}>
+                    {company.phone ?? "Não informado"}
+                  </Text>
+                </View>
+              </View>
+
+              <View
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.border },
+                ]}
+              />
+
+              <View style={styles.contactRow}>
+                <View
+                  style={[
+                    styles.contactIconBox,
+                    {
+                      backgroundColor: iconBoxBackground,
+                      borderColor: iconBoxBorder,
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <SendIcon width={22} height={22} color={iconColor} />
+                </View>
+
+                <View style={styles.contactTextArea}>
+                  <Text
+                    style={[
+                      styles.contactLabel,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    E-mail
+                  </Text>
+
+                  <Text style={[styles.contactValue, { color: theme.text }]}>
+                    {company.email ?? "Não informado"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </>
+        )}
+
+        <View style={styles.menuArea}>
+          {menuOptions.map((option) => {
+            const Icon = option.Icon;
+
+            return (
+              <Pressable
+                key={option.id}
+                style={({ pressed }) => [
+                  styles.menuItem,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                  pressed && styles.menuItemPressed,
+                ]}
+                onPress={option.action}
+              >
+                <View
+                  style={[
+                    styles.menuIconBox,
+                    {
+                      backgroundColor: iconBoxBackground,
+                      borderColor: iconBoxBorder,
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <Icon width={24} height={24} color={iconColor} />
+                </View>
+
+                <View style={styles.menuTextArea}>
+                  <Text style={[styles.menuTitle, { color: theme.text }]}>
+                    {option.title}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.menuSubtitle,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {option.subtitle}
+                  </Text>
+                </View>
+
+                <Text style={[styles.menuArrow, { color: theme.textSecondary }]}>
+                  ›
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <Pressable

@@ -32,7 +32,18 @@ type CompanyJob = {
   location: string;
   time: string;
   candidates: number;
+  totalProfessionals: number;
+  acceptedProfessionals: number;
+  availableSpots: number;
   status: JobStatus;
+};
+
+type CandidaturaApi = {
+  id?: number;
+  freelancerId?: number;
+  status?: string | null;
+  situacao?: string | null;
+  statusCandidatura?: string | null;
 };
 
 type ChamadoApi = {
@@ -51,11 +62,22 @@ type ChamadoApi = {
   valorEstimado?: number | null;
   status?: string | null;
 
+  quantidadeProfissionais?: number | null;
+  totalProfissionais?: number | null;
+  totalVagas?: number | null;
+  vagasTotais?: number | null;
+  professionals?: number | null;
+
+  totalAceitos?: number | null;
+  quantidadeAceitos?: number | null;
+  profissionaisAceitos?: number | null;
+  vagasPreenchidas?: number | null;
+
   totalCandidaturas?: number | null;
   quantidadeCandidatos?: number | null;
   totalCandidatos?: number | null;
   candidates?: number | null;
-  candidaturas?: unknown[];
+  candidaturas?: CandidaturaApi[];
 };
 
 type ChamadosResponse =
@@ -186,6 +208,95 @@ function getCandidatesCount(chamado: ChamadoApi) {
   return 0;
 }
 
+function getTotalProfessionals(chamado: ChamadoApi) {
+  const total =
+    chamado.quantidadeProfissionais ??
+    chamado.totalProfissionais ??
+    chamado.totalVagas ??
+    chamado.vagasTotais ??
+    chamado.professionals ??
+    1;
+
+  if (typeof total !== "number" || Number.isNaN(total) || total <= 0) {
+    return 1;
+  }
+
+  return total;
+}
+
+function isAcceptedStatus(status?: string | null) {
+  const normalizedStatus = status?.toLowerCase().trim();
+
+  return (
+    normalizedStatus === "aceito" ||
+    normalizedStatus === "aceita" ||
+    normalizedStatus === "aprovado" ||
+    normalizedStatus === "aprovada" ||
+    normalizedStatus === "accepted" ||
+    normalizedStatus === "contratado" ||
+    normalizedStatus === "contratada"
+  );
+}
+
+function getAcceptedProfessionals(chamado: ChamadoApi) {
+  if (typeof chamado.totalAceitos === "number") {
+    return chamado.totalAceitos;
+  }
+
+  if (typeof chamado.quantidadeAceitos === "number") {
+    return chamado.quantidadeAceitos;
+  }
+
+  if (typeof chamado.profissionaisAceitos === "number") {
+    return chamado.profissionaisAceitos;
+  }
+
+  if (typeof chamado.vagasPreenchidas === "number") {
+    return chamado.vagasPreenchidas;
+  }
+
+  if (Array.isArray(chamado.candidaturas)) {
+    return chamado.candidaturas.filter((candidatura) => {
+      return (
+        isAcceptedStatus(candidatura.status) ||
+        isAcceptedStatus(candidatura.situacao) ||
+        isAcceptedStatus(candidatura.statusCandidatura)
+      );
+    }).length;
+  }
+
+  return 0;
+}
+
+function getAvailableSpots(chamado: ChamadoApi) {
+  const totalProfessionals = getTotalProfessionals(chamado);
+  const acceptedProfessionals = getAcceptedProfessionals(chamado);
+
+  const availableSpots = totalProfessionals - acceptedProfessionals;
+
+  if (availableSpots <= 0) {
+    return 0;
+  }
+
+  return availableSpots;
+}
+
+function getAvailableSpotsText(job: CompanyJob) {
+  if (job.status === "finished") {
+    return "Serviço concluído";
+  }
+
+  if (job.availableSpots <= 0) {
+    return "Vagas preenchidas";
+  }
+
+  if (job.availableSpots === 1) {
+    return "1 vaga disponível";
+  }
+
+  return `${job.availableSpots} vagas disponíveis`;
+}
+
 export default function CompanyDashboardScreen() {
   const { isDark, theme } = useTheme();
 
@@ -243,19 +354,28 @@ export default function CompanyDashboardScreen() {
 
       const formattedJobs: CompanyJob[] = chamadosParaMostrar
         .sort((a, b) => Number(b.id) - Number(a.id))
-        .map((chamado) => ({
-          id: String(chamado.id),
-          title: chamado.titulo,
-          category: getCategoryName(chamado.categoriaId),
-          price: formatCurrency(chamado.valorEstimado),
-          location:
-            chamado.localServico ||
-            [chamado.cidade, chamado.estado].filter(Boolean).join(" - ") ||
-            "Local não informado",
-          time: formatJobDate(chamado.dataServico, chamado.horaServico),
-          candidates: getCandidatesCount(chamado),
-          status: getJobStatus(chamado.status),
-        }));
+        .map((chamado) => {
+          const totalProfessionals = getTotalProfessionals(chamado);
+          const acceptedProfessionals = getAcceptedProfessionals(chamado);
+          const availableSpots = getAvailableSpots(chamado);
+
+          return {
+            id: String(chamado.id),
+            title: chamado.titulo,
+            category: getCategoryName(chamado.categoriaId),
+            price: formatCurrency(chamado.valorEstimado),
+            location:
+              chamado.localServico ||
+              [chamado.cidade, chamado.estado].filter(Boolean).join(" - ") ||
+              "Local não informado",
+            time: formatJobDate(chamado.dataServico, chamado.horaServico),
+            candidates: getCandidatesCount(chamado),
+            totalProfessionals,
+            acceptedProfessionals,
+            availableSpots,
+            status: getJobStatus(chamado.status),
+          };
+        });
 
       setCompanyJobs(formattedJobs);
     } catch (error) {
@@ -295,6 +415,9 @@ export default function CompanyDashboardScreen() {
         location: job.location,
         time: job.time,
         candidates: String(job.candidates),
+        totalProfessionals: String(job.totalProfessionals),
+        acceptedProfessionals: String(job.acceptedProfessionals),
+        availableSpots: String(job.availableSpots),
       },
     });
   }
@@ -595,23 +718,39 @@ export default function CompanyDashboardScreen() {
                       { borderTopColor: theme.border },
                     ]}
                   >
-                    <View style={styles.candidatesArea}>
-                      <Text
-                        style={[
-                          styles.candidatesNumber,
-                          { color: theme.text },
-                        ]}
-                      >
-                        {job.candidates}
-                      </Text>
+                    <View>
+                      <View style={styles.candidatesArea}>
+                        <Text
+                          style={[
+                            styles.candidatesNumber,
+                            { color: theme.text },
+                          ]}
+                        >
+                          {job.candidates}
+                        </Text>
+
+                        <Text
+                          style={[
+                            styles.candidatesText,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          candidatos
+                        </Text>
+                      </View>
 
                       <Text
-                        style={[
-                          styles.candidatesText,
-                          { color: theme.textSecondary },
-                        ]}
+                        style={{
+                          color:
+                            job.availableSpots > 0
+                              ? colors.success
+                              : theme.textSecondary,
+                          fontSize: 12,
+                          fontWeight: "900",
+                          marginTop: 3,
+                        }}
                       >
-                        candidatos
+                        {getAvailableSpotsText(job)}
                       </Text>
                     </View>
 
