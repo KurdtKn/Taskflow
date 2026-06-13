@@ -28,9 +28,15 @@ const categories = [
   "Serviços gerais",
 ];
 
+const TITLE_MIN_LENGTH = 5;
 const TITLE_MAX_LENGTH = 100;
+
+const DESCRIPTION_MIN_LENGTH = 20;
 const DESCRIPTION_MAX_LENGTH = 1000;
+
+const LOCATION_MIN_LENGTH = 3;
 const LOCATION_MAX_LENGTH = 60;
+
 const MAX_PRICE = 9999999;
 const MAX_PROFESSIONALS = 99;
 
@@ -45,7 +51,20 @@ export default function CreateJobScreen() {
   const [professionals, setProfessionals] = useState("1");
   const [isPublishing, setIsPublishing] = useState(false);
 
+  const [dateTouched, setDateTouched] = useState(false);
+  const [hourTouched, setHourTouched] = useState(false);
+  const [hasTriedSubmit, setHasTriedSubmit] = useState(false);
+
   const { isDark, theme } = useTheme();
+
+  const currentYear = new Date().getFullYear();
+  const descriptionTrimmedLength = description.trim().length;
+
+  const descriptionHelperColor =
+    descriptionTrimmedLength > 0 &&
+    descriptionTrimmedLength < DESCRIPTION_MIN_LENGTH
+      ? "#DC2626"
+      : theme.textSecondary;
 
   const cleanInputStyle = {
     backgroundColor: theme.inputBackground,
@@ -95,7 +114,6 @@ export default function CreateJobScreen() {
         return currentValue;
       }
 
-      const currentYear = new Date().getFullYear();
       const maxDaysInMonth = new Date(currentYear, month, 0).getDate();
 
       if (day > maxDaysInMonth) {
@@ -123,7 +141,6 @@ export default function CreateJobScreen() {
       return value;
     }
 
-    const currentYear = new Date().getFullYear();
     const maxDaysInMonth = new Date(currentYear, month, 0).getDate();
 
     if (day > maxDaysInMonth) {
@@ -200,6 +217,182 @@ export default function CreateJobScreen() {
     return `${padTwo(hourNumber)}:${padTwo(minuteNumber)}`;
   }
 
+  function getDateParts() {
+    const normalizedDate = normalizeDate(date);
+
+    if (!/^\d{2}\/\d{2}$/.test(normalizedDate)) {
+      return null;
+    }
+
+    const [dayText, monthText] = normalizedDate.split("/");
+    const day = Number(dayText);
+    const month = Number(monthText);
+
+    if (day < 1 || day > 31 || month < 1 || month > 12) {
+      return null;
+    }
+
+    const maxDaysInMonth = new Date(currentYear, month, 0).getDate();
+
+    if (day > maxDaysInMonth) {
+      return null;
+    }
+
+    return {
+      day,
+      month,
+    };
+  }
+
+  function getHourParts() {
+    const normalizedHour = normalizeHour(hour);
+
+    if (!/^\d{2}:\d{2}$/.test(normalizedHour)) {
+      return null;
+    }
+
+    const [hourText, minuteText] = normalizedHour.split(":");
+    const hourNumber = Number(hourText);
+    const minute = Number(minuteText);
+
+    if (hourNumber < 0 || hourNumber > 23) {
+      return null;
+    }
+
+    if (minute < 0 || minute > 59) {
+      return null;
+    }
+
+    return {
+      hourNumber,
+      minute,
+    };
+  }
+
+  function getParsedServiceDateTime() {
+    const dateParts = getDateParts();
+    const hourParts = getHourParts();
+
+    if (!dateParts || !hourParts) {
+      return null;
+    }
+
+    const serviceDateTime = new Date(
+      currentYear,
+      dateParts.month - 1,
+      dateParts.day,
+      hourParts.hourNumber,
+      hourParts.minute,
+      0,
+      0
+    );
+
+    const isRealDate =
+      serviceDateTime.getFullYear() === currentYear &&
+      serviceDateTime.getMonth() === dateParts.month - 1 &&
+      serviceDateTime.getDate() === dateParts.day &&
+      serviceDateTime.getHours() === hourParts.hourNumber &&
+      serviceDateTime.getMinutes() === hourParts.minute;
+
+    if (!isRealDate) {
+      return null;
+    }
+
+    return serviceDateTime;
+  }
+
+  function isServiceDateToday() {
+    const serviceDateTime = getParsedServiceDateTime();
+
+    if (!serviceDateTime) {
+      return false;
+    }
+
+    const today = new Date();
+
+    return (
+      serviceDateTime.getFullYear() === today.getFullYear() &&
+      serviceDateTime.getMonth() === today.getMonth() &&
+      serviceDateTime.getDate() === today.getDate()
+    );
+  }
+
+  function isServiceDateTimeFromNowOrFuture() {
+    const serviceDateTime = getParsedServiceDateTime();
+
+    if (!serviceDateTime) {
+      return false;
+    }
+
+    const now = new Date();
+
+    now.setSeconds(0, 0);
+    serviceDateTime.setSeconds(0, 0);
+
+    return serviceDateTime.getTime() >= now.getTime();
+  }
+
+  function getDateFieldError() {
+    if (!date.trim()) {
+      return "";
+    }
+
+    const normalizedDate = normalizeDate(date);
+
+    if (!/^\d{2}\/\d{2}$/.test(normalizedDate)) {
+      return "Informe uma data válida no formato DD/MM.";
+    }
+
+    const dateParts = getDateParts();
+
+    if (!dateParts) {
+      return "Informe uma data válida.";
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const serviceDate = new Date(
+      currentYear,
+      dateParts.month - 1,
+      dateParts.day,
+      0,
+      0,
+      0,
+      0
+    );
+
+    if (serviceDate.getTime() < today.getTime()) {
+      return `O app usa o ano atual (${currentYear}). A data precisa ser hoje ou futura.`;
+    }
+
+    return "";
+  }
+
+  function getHourFieldError() {
+    if (!hour.trim()) {
+      return "";
+    }
+
+    const normalizedHour = normalizeHour(hour);
+
+    if (!/^\d{2}:\d{2}$/.test(normalizedHour)) {
+      return "Informe um horário válido no formato HH:MM.";
+    }
+
+    const hourParts = getHourParts();
+
+    if (!hourParts) {
+      return "Informe um horário válido.";
+    }
+
+    if (getDateParts() && isServiceDateToday() && !isServiceDateTimeFromNowOrFuture()) {
+      return "Para hoje, o horário precisa ser de agora em diante.";
+    }
+
+    return "";
+  }
+
   function handleChangeDate(value: string) {
     setDate((currentValue) => formatDate(value, currentValue));
   }
@@ -260,61 +453,6 @@ export default function CreateJobScreen() {
     };
 
     return categoryMap[category] ?? 1;
-  }
-
-  function getParsedServiceDateTime() {
-    const normalizedDate = normalizeDate(date);
-    const normalizedHour = normalizeHour(hour);
-
-    if (!/^\d{2}\/\d{2}$/.test(normalizedDate)) {
-      return null;
-    }
-
-    if (!/^\d{2}:\d{2}$/.test(normalizedHour)) {
-      return null;
-    }
-
-    const [dayText, monthText] = normalizedDate.split("/");
-    const [hourText, minuteText] = normalizedHour.split(":");
-
-    const day = Number(dayText);
-    const month = Number(monthText);
-    const hourNumber = Number(hourText);
-    const minute = Number(minuteText);
-    const currentYear = new Date().getFullYear();
-
-    const serviceDateTime = new Date(
-      currentYear,
-      month - 1,
-      day,
-      hourNumber,
-      minute,
-      0,
-      0
-    );
-
-    const isRealDate =
-      serviceDateTime.getFullYear() === currentYear &&
-      serviceDateTime.getMonth() === month - 1 &&
-      serviceDateTime.getDate() === day &&
-      serviceDateTime.getHours() === hourNumber &&
-      serviceDateTime.getMinutes() === minute;
-
-    if (!isRealDate) {
-      return null;
-    }
-
-    return serviceDateTime;
-  }
-
-  function isServiceDateTimeInFuture() {
-    const serviceDateTime = getParsedServiceDateTime();
-
-    if (!serviceDateTime) {
-      return false;
-    }
-
-    return serviceDateTime.getTime() > new Date().getTime();
   }
 
   function getServiceDate() {
@@ -381,40 +519,52 @@ export default function CreateJobScreen() {
       return "Informe o título do chamado.";
     }
 
-    if (trimmedTitle.length < 5) {
-      return "O título precisa ter pelo menos 5 caracteres.";
+    if (trimmedTitle.length < TITLE_MIN_LENGTH) {
+      return `O título precisa ter pelo menos ${TITLE_MIN_LENGTH} caracteres.`;
     }
 
     if (!trimmedDescription) {
       return "Informe a descrição do serviço.";
     }
 
-    if (trimmedDescription.length < 20) {
-      return "A descrição precisa ter pelo menos 20 caracteres.";
+    if (trimmedDescription.length < DESCRIPTION_MIN_LENGTH) {
+      return `A descrição precisa ter pelo menos ${DESCRIPTION_MIN_LENGTH} caracteres.`;
     }
 
     if (!trimmedLocation) {
       return "Informe o local do serviço.";
     }
 
-    if (trimmedLocation.length < 3) {
-      return "O local precisa ter pelo menos 3 caracteres.";
+    if (trimmedLocation.length < LOCATION_MIN_LENGTH) {
+      return `O local precisa ter pelo menos ${LOCATION_MIN_LENGTH} caracteres.`;
     }
 
-    if (!/^\d{2}\/\d{1,2}$/.test(date)) {
-      return "Informe uma data no formato DD/MM.";
+    if (!date.trim()) {
+      return "Informe a data do chamado.";
     }
 
-    if (!/^\d{1,2}(:\d{1,2})?$/.test(hour)) {
-      return "Informe um horário no formato HH:MM.";
+    const dateError = getDateFieldError();
+
+    if (dateError) {
+      return dateError;
+    }
+
+    if (!hour.trim()) {
+      return "Informe o horário do chamado.";
+    }
+
+    const hourError = getHourFieldError();
+
+    if (hourError) {
+      return hourError;
     }
 
     if (!getParsedServiceDateTime()) {
       return "Informe uma data e um horário válidos.";
     }
 
-    if (!isServiceDateTimeInFuture()) {
-      return "A data e o horário do chamado precisam ser futuros.";
+    if (!isServiceDateTimeFromNowOrFuture()) {
+      return "A data e o horário do chamado precisam ser de agora em diante.";
     }
 
     if (estimatedValue === null) {
@@ -440,9 +590,17 @@ export default function CreateJobScreen() {
     return "";
   }
 
+  const dateError = getDateFieldError();
+  const hourError = getHourFieldError();
+
+  const showDateError = (dateTouched || hasTriedSubmit) && dateError !== "";
+  const showHourError = (hourTouched || hasTriedSubmit) && hourError !== "";
+
   const isFormValid = getValidationError() === "";
 
   async function handlePublishJob() {
+    setHasTriedSubmit(true);
+
     const validationError = getValidationError();
 
     if (validationError) {
@@ -603,6 +761,18 @@ export default function CreateJobScreen() {
               editable={!isPublishing}
             />
 
+            <Text
+              style={{
+                color: theme.textSecondary,
+                fontSize: 12,
+                fontWeight: "700",
+                marginTop: -8,
+                marginBottom: 12,
+              }}
+            >
+              Mínimo de {TITLE_MIN_LENGTH} caracteres.
+            </Text>
+
             <Text style={[styles.label, { color: theme.text }]}>
               Categoria
             </Text>
@@ -678,6 +848,18 @@ export default function CreateJobScreen() {
               editable={!isPublishing}
             />
 
+            <Text
+              style={{
+                color: descriptionHelperColor,
+                fontSize: 12,
+                fontWeight: "700",
+                marginTop: -8,
+                marginBottom: 12,
+              }}
+            >
+              Mínimo de {DESCRIPTION_MIN_LENGTH} caracteres.
+            </Text>
+
             <Text style={[styles.label, { color: theme.text }]}>
               Local do serviço
             </Text>
@@ -694,6 +876,18 @@ export default function CreateJobScreen() {
               editable={!isPublishing}
             />
 
+            <Text
+              style={{
+                color: theme.textSecondary,
+                fontSize: 12,
+                fontWeight: "700",
+                marginTop: -8,
+                marginBottom: 12,
+              }}
+            >
+              Mínimo de {LOCATION_MIN_LENGTH} caracteres.
+            </Text>
+
             <View style={styles.doubleInputArea}>
               <View style={styles.doubleInputBox}>
                 <Text style={[styles.label, { color: theme.text }]}>
@@ -706,13 +900,28 @@ export default function CreateJobScreen() {
                   placeholderTextColor={theme.textSecondary}
                   value={date}
                   onChangeText={handleChangeDate}
-                  onBlur={() =>
-                    setDate((currentValue) => normalizeDate(currentValue))
-                  }
+                  onBlur={() => {
+                    setDateTouched(true);
+                    setDate((currentValue) => normalizeDate(currentValue));
+                  }}
                   keyboardType="numeric"
                   maxLength={5}
                   editable={!isPublishing}
                 />
+
+                {showDateError && (
+                  <Text
+                    style={{
+                      color: "#DC2626",
+                      fontSize: 11,
+                      fontWeight: "800",
+                      lineHeight: 15,
+                      marginTop: -8,
+                    }}
+                  >
+                    {dateError}
+                  </Text>
+                )}
               </View>
 
               <View style={styles.doubleInputBox}>
@@ -726,13 +935,28 @@ export default function CreateJobScreen() {
                   placeholderTextColor={theme.textSecondary}
                   value={hour}
                   onChangeText={handleChangeHour}
-                  onBlur={() =>
-                    setHour((currentValue) => normalizeHour(currentValue))
-                  }
+                  onBlur={() => {
+                    setHourTouched(true);
+                    setHour((currentValue) => normalizeHour(currentValue));
+                  }}
                   keyboardType="numeric"
                   maxLength={5}
                   editable={!isPublishing}
                 />
+
+                {showHourError && (
+                  <Text
+                    style={{
+                      color: "#DC2626",
+                      fontSize: 11,
+                      fontWeight: "800",
+                      lineHeight: 15,
+                      marginTop: -8,
+                    }}
+                  >
+                    {hourError}
+                  </Text>
+                )}
               </View>
             </View>
 

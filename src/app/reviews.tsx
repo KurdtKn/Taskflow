@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -7,12 +7,14 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/reviews";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
+import { apiGet } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
 type ReviewType = "received" | "sent";
 
@@ -34,10 +36,201 @@ type ReviewsSummary = {
   completedServices: number;
 };
 
+type AvaliacaoApi = {
+  id?: number;
+  contratoId?: number;
+  contrato_id?: number;
+
+  avaliadorId?: number;
+  avaliador_id?: number;
+  avaliadoId?: number;
+  avaliado_id?: number;
+
+  avaliador?: string | null;
+  avaliadorNome?: string | null;
+  nomeAvaliador?: string | null;
+  author?: string | null;
+
+  avaliado?: string | null;
+  avaliadoNome?: string | null;
+  nomeAvaliado?: string | null;
+  target?: string | null;
+
+  chamado?: string | null;
+  servico?: string | null;
+  service?: string | null;
+  tituloChamado?: string | null;
+  jobTitle?: string | null;
+
+  nota?: number;
+  rating?: number;
+
+  comentario?: string | null;
+  comment?: string | null;
+
+  dataAvaliacao?: string | null;
+  data_avaliacao?: string | null;
+  createdAt?: string | null;
+};
+
+type AvaliacoesResponse =
+  | AvaliacaoApi[]
+  | {
+      data?: AvaliacaoApi[];
+      dados?: AvaliacaoApi[];
+      avaliacoes?: AvaliacaoApi[];
+      media?: number;
+      averageRating?: number;
+      totalAvaliacoes?: number;
+      totalReviews?: number;
+    };
+
+type ContratoApi = {
+  id?: number;
+  status?: string | null;
+};
+
+type ContratosResponse =
+  | ContratoApi[]
+  | {
+      data?: ContratoApi[];
+      dados?: ContratoApi[];
+      contratos?: ContratoApi[];
+    };
+
+function getAvaliacoesFromResponse(response: AvaliacoesResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.avaliacoes ?? [];
+}
+
+function getContratosFromResponse(response: ContratosResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.contratos ?? [];
+}
+
+function isFinishedStatus(status?: string | null) {
+  const normalizedStatus = status?.toLowerCase().trim();
+
+  return (
+    normalizedStatus === "finalizado" ||
+    normalizedStatus === "concluido" ||
+    normalizedStatus === "concluído" ||
+    normalizedStatus === "finished" ||
+    normalizedStatus === "completed"
+  );
+}
+
 function renderStars(rating: number) {
-  const normalizedRating = Math.max(0, Math.min(5, rating));
+  const normalizedRating = Math.max(0, Math.min(5, Math.round(rating)));
 
   return "★".repeat(normalizedRating) + "☆".repeat(5 - normalizedRating);
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "Data não informada";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("pt-BR");
+}
+
+function getReviewAuthor(review: AvaliacaoApi) {
+  return (
+    review.avaliadorNome ||
+    review.nomeAvaliador ||
+    review.avaliador ||
+    review.author ||
+    "Usuário TaskFlow"
+  );
+}
+
+function getReviewTarget(review: AvaliacaoApi) {
+  return (
+    review.avaliadoNome ||
+    review.nomeAvaliado ||
+    review.avaliado ||
+    review.target ||
+    "Você"
+  );
+}
+
+function getReviewService(review: AvaliacaoApi) {
+  return (
+    review.chamado ||
+    review.servico ||
+    review.service ||
+    review.tituloChamado ||
+    review.jobTitle ||
+    "Serviço TaskFlow"
+  );
+}
+
+function formatReceivedReview(review: AvaliacaoApi): ReviewItem {
+  const rating = Number(review.nota ?? review.rating ?? 0);
+
+  return {
+    id: String(review.id ?? `${review.contratoId ?? review.contrato_id}-${Date.now()}`),
+    type: "received",
+    author: getReviewAuthor(review),
+    target: "Você",
+    service: getReviewService(review),
+    rating: Math.max(0, Math.min(5, Math.round(rating))),
+    comment:
+      review.comentario ||
+      review.comment ||
+      "Avaliação sem comentário.",
+    date: formatDate(
+      review.dataAvaliacao ||
+        review.data_avaliacao ||
+        review.createdAt
+    ),
+  };
+}
+
+function calculateSummary(
+  receivedReviews: ReviewItem[],
+  completedServices: number
+): ReviewsSummary {
+  if (receivedReviews.length === 0) {
+    return {
+      averageRating: 0,
+      totalReviews: 0,
+      satisfactionRate: 0,
+      completedServices,
+    };
+  }
+
+  const totalRating = receivedReviews.reduce(
+    (total, review) => total + review.rating,
+    0
+  );
+
+  const averageRating = totalRating / receivedReviews.length;
+
+  const satisfactionRate = Math.round(
+    (receivedReviews.filter((review) => review.rating >= 4).length /
+      receivedReviews.length) *
+      100
+  );
+
+  return {
+    averageRating,
+    totalReviews: receivedReviews.length,
+    satisfactionRate,
+    completedServices,
+  };
 }
 
 export default function ReviewsScreen() {
@@ -53,29 +246,86 @@ export default function ReviewsScreen() {
   const activeFilterTextColor = colors.white;
   const starsColor = colors.warning;
 
-  useEffect(() => {
-    loadReviews();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadReviews();
+    }, [])
+  );
 
   async function loadReviews() {
     try {
       setIsLoading(true);
 
-      /*
-        Aqui futuramente entra a API.
+      const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        const response = await reviewsService.getMyReviews();
+      if (!loggedUser) {
+        setReviews([]);
+        setSummary(null);
+        router.replace("/login");
+        return;
+      }
 
-        setReviews(response.reviews);
-        setSummary(response.summary);
+      const userId = loggedUser.id;
+      const perfilId = loggedUser.perfilId ?? loggedUser.id;
+      const tipoUsuario = loggedUser.tipoUsuario?.toLowerCase().trim();
 
-        A API vai identificar o usuário pelo token salvo no login.
-        Assim ela retorna as avaliações recebidas e enviadas daquele usuário.
-      */
+      let completedServices = 0;
 
-      setReviews([]);
-      setSummary(null);
+      try {
+        const contratosEndpoint =
+          tipoUsuario === "empresa"
+            ? `/api/Contratos/empresa/${perfilId}`
+            : `/api/Contratos/freelancer/${perfilId}`;
+
+        const contratosResponse = await apiGet<ContratosResponse>(
+          contratosEndpoint
+        );
+
+        const contratos = getContratosFromResponse(contratosResponse);
+
+        completedServices = contratos.filter((contrato) =>
+          isFinishedStatus(contrato.status)
+        ).length;
+      } catch (error) {
+        console.log("Erro ao carregar serviços finalizados:", error);
+      }
+
+      const idsParaBuscar = Array.from(
+        new Set([String(userId), String(perfilId)].filter(Boolean))
+      );
+
+      const avaliacoesRecebidas: AvaliacaoApi[] = [];
+
+      for (const idParaBuscar of idsParaBuscar) {
+        try {
+          const avaliacoesResponse = await apiGet<AvaliacoesResponse>(
+            `/api/Avaliacoes/usuario/${idParaBuscar}`
+          );
+
+          const avaliacoes = getAvaliacoesFromResponse(avaliacoesResponse);
+
+          avaliacoesRecebidas.push(...avaliacoes);
+        } catch (error) {
+          console.log(`Erro ao buscar avaliações do usuário ${idParaBuscar}:`, error);
+        }
+      }
+
+      const avaliacoesSemDuplicar = avaliacoesRecebidas.filter(
+        (avaliacao, index, array) => {
+          const idAvaliacao = avaliacao.id;
+
+          if (!idAvaliacao) {
+            return true;
+          }
+
+          return array.findIndex((item) => item.id === idAvaliacao) === index;
+        }
+      );
+
+      const receivedReviews = avaliacoesSemDuplicar.map(formatReceivedReview);
+
+      setReviews(receivedReviews);
+      setSummary(calculateSummary(receivedReviews, completedServices));
     } catch (error) {
       console.log("Erro ao carregar avaliações:", error);
 
@@ -365,8 +615,9 @@ export default function ReviewsScreen() {
               </Text>
 
               <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                Quando a API retornar avaliações da sua conta, elas aparecerão
-                aqui.
+                {selectedType === "received"
+                  ? "Quando alguém avaliar seu perfil, a avaliação aparecerá aqui."
+                  : "As avaliações enviadas ainda não estão sendo buscadas pela API."}
               </Text>
             </View>
           ) : (
