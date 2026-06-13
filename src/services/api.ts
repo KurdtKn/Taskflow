@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://192.168.1.104:5275";
+const API_BASE_URL = "http://192.168.15.6:5275";
 
 type RequestMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -36,7 +36,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export async function apiRequest<T>(
   endpoint: string,
-  options: ApiRequestOptions = {}
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   const { method = "GET", body } = options;
 
