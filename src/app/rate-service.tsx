@@ -12,10 +12,13 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/rateService";
 import { useTheme } from "@/app/context/ThemeContext";
+
+const API_URL = "http://192.168.86.12:5275";
 
 const ratingTags = [
   "Pontual",
@@ -28,19 +31,76 @@ const ratingTags = [
 
 const COMMENT_MIN_LENGTH = 50;
 const COMMENT_MAX_LENGTH = 500;
+const REVIEWS_STORAGE_KEY = "@taskflow:reviews";
+
+type ReviewPayload = {
+  id: string;
+  jobId: string;
+  candidaturaId: string;
+  freelancerId: string;
+  jobTitle: string;
+  companyName: string;
+  ratedUserName: string;
+  ratedUserType: string;
+  rating: number;
+  tags: string[];
+  comment: string;
+  createdAt: string;
+};
 
 function normalizeComment(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function getParamValue(value?: string | string[], fallback = "") {
+  if (Array.isArray(value)) {
+    return value[0] ?? fallback;
+  }
+
+  return value ?? fallback;
+}
+
+function getParamNumber(value?: string | string[], fallback = 0) {
+  const paramValue = getParamValue(value, "");
+  const numberValue = Number(paramValue);
+
+  return Number.isFinite(numberValue) && numberValue > 0
+    ? numberValue
+    : fallback;
+}
+
 export default function RateServiceScreen() {
   const params = useLocalSearchParams<{
-    jobTitle?: string;
-    candidateName?: string;
+    jobId?: string | string[];
+    candidaturaId?: string | string[];
+    freelancerId?: string | string[];
+    jobTitle?: string | string[];
+    candidateName?: string | string[];
+    companyName?: string | string[];
+    ratedUserName?: string | string[];
+    ratedUserType?: string | string[];
+    contratoId?: string | string[];
+    avaliadorId?: string | string[];
+    avaliadoId?: string | string[];
   }>();
 
-  const jobTitle = params.jobTitle ?? "Garçom para Evento";
-  const candidateName = params.candidateName ?? "Usuário TaskFlow";
+  const jobId = getParamValue(params.jobId);
+  const candidaturaId = getParamValue(params.candidaturaId);
+  const freelancerId = getParamValue(params.freelancerId);
+  const jobTitle = getParamValue(params.jobTitle, "Chamado");
+  const candidateName = getParamValue(params.candidateName, "Usuário TaskFlow");
+  const companyName = getParamValue(params.companyName, "Empresa");
+
+  const ratedUserName = getParamValue(params.ratedUserName, candidateName);
+
+  const ratedUserType = getParamValue(params.ratedUserType, "freelancer");
+
+  const contratoId = getParamNumber(params.contratoId, 1);
+  const avaliadorId = getParamNumber(params.avaliadorId, 1);
+  const avaliadoId = getParamNumber(
+    params.avaliadoId,
+    Number(freelancerId) > 0 ? Number(freelancerId) : 3
+  );
 
   const [rating, setRating] = useState(5);
   const [selectedTags, setSelectedTags] = useState<string[]>([
@@ -48,8 +108,11 @@ export default function RateServiceScreen() {
     "Boa comunicação",
   ]);
   const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { isDark, theme } = useTheme();
+
+  const isRatingFreelancer = ratedUserType === "freelancer";
 
   const cleanTextAreaStyle = {
     backgroundColor: theme.inputBackground,
@@ -95,26 +158,110 @@ export default function RateServiceScreen() {
     return "";
   }
 
-  function handleSubmitReview() {
-    const validationError = getValidationError();
+  async function saveReview(review: ReviewPayload) {
+    const storedReviews = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+    const currentReviews = storedReviews ? JSON.parse(storedReviews) : [];
 
-    if (validationError) {
-      Alert.alert("Atenção", validationError);
+    const updatedReviews = [...currentReviews, review];
+
+    await AsyncStorage.setItem(
+      REVIEWS_STORAGE_KEY,
+      JSON.stringify(updatedReviews)
+    );
+  }
+
+  async function handleSubmitReview() {
+  const normalizedComment = normalizeComment(comment);
+
+  if (rating <= 0) {
+    window.alert?.("Selecione uma nota para o serviço.");
+    return;
+  }
+
+  if (!normalizedComment) {
+    window.alert?.("Escreva um comentário sobre sua experiência.");
+    return;
+  }
+
+  if (normalizedComment.length < COMMENT_MIN_LENGTH) {
+    window.alert?.(
+      `O comentário precisa ter pelo menos ${COMMENT_MIN_LENGTH} caracteres.`
+    );
+    return;
+  }
+
+  try {
+    setIsSubmitting(true);
+
+    const payload = {
+      contratoId: Number(contratoId),
+      avaliadorId: Number(avaliadorId),
+      avaliadoId: Number(avaliadoId),
+      nota: Number(rating),
+      comentario: normalizedComment,
+    };
+
+    console.log("ENVIANDO AVALIAÇÃO:", payload);
+    console.log("URL:", `${API_URL}/api/Avaliacoes`);
+
+    const response = await fetch(`${API_URL}/api/Avaliacoes`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await response.text();
+
+    let data: any = null;
+
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = null;
+    }
+
+    console.log("STATUS:", response.status);
+    console.log("RESPOSTA:", data || text);
+
+    if (!response.ok) {
+      window.alert?.(
+        data?.mensagem || text || "Erro ao salvar avaliação."
+      );
       return;
     }
 
-    const normalizedComment = normalizeComment(comment);
-
-    console.log({
+    const review: ReviewPayload = {
+      id: `${Date.now()}-${jobId || "review"}`,
+      jobId,
+      candidaturaId,
+      freelancerId,
       jobTitle,
-      candidateName,
+      companyName,
+      ratedUserName,
+      ratedUserType,
       rating,
-      selectedTags,
+      tags: selectedTags,
       comment: normalizedComment,
-    });
+      createdAt: new Date().toISOString(),
+    };
+
+    await saveReview(review);
+
+    window.alert?.("Avaliação enviada com sucesso!");
 
     router.replace("/company-dashboard");
+  } catch (error) {
+    console.log("ERRO AO ENVIAR AVALIAÇÃO:", error);
+
+    window.alert?.(
+      "Erro de conexão com a API. Verifique se a API está aberta em http://localhost:5275/swagger"
+    );
+  } finally {
+    setIsSubmitting(false);
   }
+}
 
   return (
     <SafeAreaView
@@ -178,8 +325,9 @@ export default function RateServiceScreen() {
             </Text>
 
             <Text style={[styles.introText, { color: theme.textSecondary }]}>
-              Avalie o freelancer para ajudar outras empresas a contratarem com
-              mais segurança.
+              {isRatingFreelancer
+                ? "Avalie o freelancer para ajudar outras empresas a contratarem com mais segurança."
+                : "Avalie a empresa para ajudar outros freelancers a escolherem boas oportunidades."}
             </Text>
           </View>
 
@@ -202,11 +350,11 @@ export default function RateServiceScreen() {
 
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-                Freelancer
+                {isRatingFreelancer ? "Freelancer" : "Empresa"}
               </Text>
 
               <Text style={[styles.infoValue, { color: theme.text }]}>
-                {candidateName}
+                {ratedUserName}
               </Text>
             </View>
           </View>
@@ -374,13 +522,17 @@ export default function RateServiceScreen() {
           </View>
 
           <Pressable
+            disabled={isSubmitting}
             style={({ pressed }) => [
               styles.submitButton,
-              pressed && styles.submitButtonPressed,
+              pressed && !isSubmitting && styles.submitButtonPressed,
+              isSubmitting && { opacity: 0.55 },
             ]}
             onPress={handleSubmitReview}
           >
-            <Text style={styles.submitButtonText}>Enviar avaliação</Text>
+            <Text style={styles.submitButtonText}>
+              {isSubmitting ? "Enviando..." : "Enviar avaliação"}
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

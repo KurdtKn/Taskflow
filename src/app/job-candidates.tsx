@@ -24,6 +24,7 @@ import { getLoggedUser } from "@/services/storage";
 
 type Candidate = {
   id: string;
+  contratoId?: string;
   freelancerId?: string;
   name: string;
   email?: string;
@@ -59,6 +60,9 @@ type FreelancerNestedApi = {
 
 type CandidaturaApi = {
   id: number;
+
+  contratoId?: number | null;
+  contrato_id?: number | null;
 
   freelancerId?: number | null;
   freelancer_id?: number | null;
@@ -108,13 +112,15 @@ type CandidaturasResponse =
 type CandidaturaActionResponse = {
   mensagem?: string;
   candidaturaId?: number;
+  contratoId?: number;
   chamadoId?: number;
+  empresaId?: number;
   freelancerId?: number;
   quantidadeProfissionais?: number;
   totalAceitos?: number;
   vagasDisponiveis?: number;
   chamadoStatus?: string;
-  status?: string;
+  contratoStatus?: string;
 };
 
 function getCandidaturasFromResponse(response: CandidaturasResponse) {
@@ -136,13 +142,19 @@ function formatCurrency(value?: number | null) {
   });
 }
 
+function normalizeStatus(value?: string | null) {
+  return value?.toLowerCase().trim() ?? "";
+}
+
 function getCandidateStatusLabel(status?: string | null) {
-  const normalizedStatus = status?.toLowerCase().trim();
+  const normalizedStatus = normalizeStatus(status);
 
   if (
     normalizedStatus === "aceita" ||
     normalizedStatus === "aceito" ||
-    normalizedStatus === "accepted"
+    normalizedStatus === "accepted" ||
+    normalizedStatus === "aprovada" ||
+    normalizedStatus === "aprovado"
   ) {
     return "Aceita";
   }
@@ -167,6 +179,22 @@ function getCandidateStatusLabel(status?: string | null) {
   return "Pendente";
 }
 
+function isFinishedStatus(status?: string | null) {
+  const normalizedStatus = normalizeStatus(status);
+
+  return (
+    normalizedStatus === "finished" ||
+    normalizedStatus === "finalizado" ||
+    normalizedStatus === "concluido" ||
+    normalizedStatus === "concluído" ||
+    normalizedStatus === "completed" ||
+    normalizedStatus === "cancelado" ||
+    normalizedStatus === "cancelada" ||
+    normalizedStatus === "cancelled" ||
+    normalizedStatus === "canceled"
+  );
+}
+
 function getNestedFreelancer(apiCandidate: CandidaturaApi) {
   if (
     apiCandidate.freelancer &&
@@ -176,6 +204,10 @@ function getNestedFreelancer(apiCandidate: CandidaturaApi) {
   }
 
   return null;
+}
+
+function getContratoId(apiCandidate: CandidaturaApi) {
+  return apiCandidate.contratoId ?? apiCandidate.contrato_id ?? null;
 }
 
 function getFreelancerId(apiCandidate: CandidaturaApi) {
@@ -311,6 +343,7 @@ function formatCandidate(
   const valorProposto =
     apiCandidate.valorProposto ?? apiCandidate.valor_proposto ?? null;
 
+  const contratoId = getContratoId(apiCandidate);
   const freelancerId = getFreelancerId(apiCandidate);
   const candidateName = getFreelancerName(apiCandidate);
   const candidateEmail = getFreelancerEmail(apiCandidate);
@@ -322,6 +355,7 @@ function formatCandidate(
 
   return {
     id: String(apiCandidate.id),
+    contratoId: contratoId ? String(contratoId) : undefined,
     freelancerId: freelancerId ? String(freelancerId) : undefined,
     name: candidateName,
     email: candidateEmail,
@@ -351,6 +385,8 @@ export default function JobCandidatesScreen() {
     location?: string | string[];
     time?: string | string[];
     candidates?: string | string[];
+    status?: string | string[];
+    jobStatus?: string | string[];
   }>();
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -376,6 +412,9 @@ export default function JobCandidatesScreen() {
   const jobPrice = getParamValue(params.price, "Valor a combinar");
   const jobLocation = getParamValue(params.location, "Local não informado");
   const jobTime = getParamValue(params.time, "Data não informada");
+  const jobStatus = getParamValue(params.status) || getParamValue(params.jobStatus);
+
+  const isJobFinished = isFinishedStatus(jobStatus);
 
   const selectedCandidate = candidates.find(
     (candidate) => candidate.id === selectedCandidateId
@@ -450,10 +489,34 @@ export default function JobCandidatesScreen() {
     );
   }
 
-  function goToPayment(candidate: Candidate) {
+  function showFinishedAlert() {
+    Alert.alert(
+      "Chamado finalizado",
+      "Este serviço já foi finalizado. Não é possível aceitar candidatos, abrir pagamento ou iniciar chat."
+    );
+  }
+
+  function goToPayment(candidate: Candidate, contratoId?: string) {
+    if (isJobFinished) {
+      showFinishedAlert();
+      return;
+    }
+
+    const finalContratoId = contratoId || candidate.contratoId || "";
+
+    if (!finalContratoId) {
+      Alert.alert(
+        "Contrato não encontrado",
+        "A candidatura foi aceita, mas o app não recebeu o contratoId. Tente aceitar novamente ou recarregue os candidatos."
+      );
+      return;
+    }
+
     router.push({
       pathname: "/payment",
       params: {
+        contratoId: finalContratoId,
+
         jobId,
         candidaturaId: candidate.id,
         freelancerId: candidate.freelancerId ?? "",
@@ -463,6 +526,7 @@ export default function JobCandidatesScreen() {
         jobPrice,
         jobLocation,
         jobTime,
+        status: jobStatus,
 
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
@@ -475,6 +539,11 @@ export default function JobCandidatesScreen() {
   }
 
   async function handleAcceptCandidate(candidate: Candidate) {
+    if (isJobFinished) {
+      showFinishedAlert();
+      return;
+    }
+
     if (isCandidateRejected(candidate)) {
       Alert.alert(
         "Candidatura recusada",
@@ -483,8 +552,8 @@ export default function JobCandidatesScreen() {
       return;
     }
 
-    if (isCandidateAccepted(candidate)) {
-      goToPayment(candidate);
+    if (isCandidateAccepted(candidate) && candidate.contratoId) {
+      goToPayment(candidate, candidate.contratoId);
       return;
     }
 
@@ -498,11 +567,24 @@ export default function JobCandidatesScreen() {
 
       console.log("Candidatura aceita pela API:", response);
 
+      const contratoId = response.contratoId
+        ? String(response.contratoId)
+        : candidate.contratoId ?? "";
+
+      if (!contratoId) {
+        Alert.alert(
+          "Contrato não encontrado",
+          "A API aceitou a candidatura, mas não retornou o contratoId."
+        );
+        return;
+      }
+
       setCandidates((currentCandidates) =>
         currentCandidates.map((item) =>
           item.id === candidate.id
             ? {
                 ...item,
+                contratoId,
                 status: "Aceita",
                 skills: item.skills.map((skill) =>
                   skill.startsWith("Status:") ? "Status: Aceita" : skill
@@ -512,10 +594,14 @@ export default function JobCandidatesScreen() {
         )
       );
 
-      goToPayment({
-        ...candidate,
-        status: "Aceita",
-      });
+      goToPayment(
+        {
+          ...candidate,
+          contratoId,
+          status: "Aceita",
+        },
+        contratoId
+      );
     } catch (error) {
       console.log("Erro ao aceitar candidatura:", error);
 
@@ -534,6 +620,8 @@ export default function JobCandidatesScreen() {
     router.push({
       pathname: "/freelancer-profile",
       params: {
+        contratoId: candidate.contratoId ?? "",
+
         jobId,
         candidaturaId: candidate.id,
         freelancerId: candidate.freelancerId ?? "",
@@ -543,6 +631,7 @@ export default function JobCandidatesScreen() {
         jobPrice,
         jobLocation,
         jobTime,
+        status: jobStatus,
 
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
@@ -596,6 +685,11 @@ export default function JobCandidatesScreen() {
   }
 
   function handleRejectCandidate(candidate: Candidate) {
+    if (isJobFinished) {
+      showFinishedAlert();
+      return;
+    }
+
     if (isCandidateAccepted(candidate)) {
       Alert.alert(
         "Candidatura já aceita",
@@ -674,12 +768,25 @@ export default function JobCandidatesScreen() {
           ]}
         >
           <Text style={[styles.jobLabel, { color: theme.primary }]}>
-            Chamado
+            {isJobFinished ? "Chamado finalizado" : "Chamado"}
           </Text>
 
           <Text style={[styles.jobTitle, { color: theme.text }]}>
             {jobTitle}
           </Text>
+
+          {isJobFinished && (
+            <Text
+              style={{
+                color: colors.danger,
+                fontSize: 12,
+                fontWeight: "900",
+                marginTop: 8,
+              }}
+            >
+              Este chamado está encerrado. Pagamento e chat ficam bloqueados.
+            </Text>
+          )}
 
           <View style={styles.jobInfoArea}>
             <View style={styles.jobInfoRow}>
@@ -991,16 +1098,25 @@ export default function JobCandidatesScreen() {
 
                   <View style={styles.actionButtonsRow}>
                     <Pressable
-                      disabled={isAccepted || isRejected || isActionLoading}
+                      disabled={
+                        isJobFinished ||
+                        isAccepted ||
+                        isRejected ||
+                        isActionLoading
+                      }
                       style={({ pressed }) => [
                         styles.rejectButton,
                         {
                           backgroundColor: theme.card,
                           borderColor: theme.border,
                         },
-                        (isAccepted || isRejected || isActionLoading) &&
+                        (isJobFinished ||
+                          isAccepted ||
+                          isRejected ||
+                          isActionLoading) &&
                           styles.acceptButtonDisabled,
                         pressed &&
+                          !isJobFinished &&
                           !isAccepted &&
                           !isRejected &&
                           !isActionLoading &&
@@ -1009,17 +1125,22 @@ export default function JobCandidatesScreen() {
                       onPress={() => handleRejectCandidate(candidate)}
                     >
                       <Text style={styles.rejectButtonText}>
-                        {isRejected ? "Recusada" : "Recusar"}
+                        {isJobFinished
+                          ? "Finalizado"
+                          : isRejected
+                          ? "Recusada"
+                          : "Recusar"}
                       </Text>
                     </Pressable>
 
                     <Pressable
-                      disabled={isRejected || isActionLoading}
+                      disabled={isJobFinished || isRejected || isActionLoading}
                       style={({ pressed }) => [
                         styles.acceptButton,
-                        (isRejected || isActionLoading) &&
+                        (isJobFinished || isRejected || isActionLoading) &&
                           styles.acceptButtonDisabled,
                         pressed &&
+                          !isJobFinished &&
                           !isRejected &&
                           !isActionLoading &&
                           styles.acceptButtonPressed,
@@ -1029,11 +1150,13 @@ export default function JobCandidatesScreen() {
                       <Text
                         style={[
                           styles.acceptButtonText,
-                          (isRejected || isActionLoading) &&
+                          (isJobFinished || isRejected || isActionLoading) &&
                             styles.acceptButtonDisabledText,
                         ]}
                       >
-                        {isActionLoading
+                        {isJobFinished
+                          ? "Serviço finalizado"
+                          : isActionLoading
                           ? "Aguarde..."
                           : isAccepted
                           ? "Pagamento"
@@ -1059,13 +1182,13 @@ export default function JobCandidatesScreen() {
           ]}
         >
           <Text style={[styles.infoTitle, { color: theme.text }]}>
-            Antes de aceitar
+            {isJobFinished ? "Chamado encerrado" : "Antes de aceitar"}
           </Text>
 
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            Analise a mensagem enviada pelo freelancer e o valor proposto. Após o
-            aceite, o próximo passo será revisar o pagamento da taxa da
-            plataforma para liberar o chat.
+            {isJobFinished
+              ? "Este chamado já foi finalizado. Os candidatos ficam disponíveis apenas para histórico."
+              : "Analise a mensagem enviada pelo freelancer e o valor proposto. Após o aceite, o próximo passo será revisar o pagamento da taxa da plataforma para liberar o chat."}
           </Text>
         </View>
 

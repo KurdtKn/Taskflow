@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -6,29 +7,112 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { styles } from "@/app/styles/serviceCompleted";
 import { useTheme } from "@/app/context/ThemeContext";
 
+const REVIEWS_STORAGE_KEY = "@taskflow:reviews";
+
+type ReviewPayload = {
+  id?: string;
+  jobId?: string;
+  candidaturaId?: string;
+  freelancerId?: string;
+  ratedUserType?: string;
+};
+
+function getParamValue(value?: string | string[], fallback = "") {
+  if (Array.isArray(value)) {
+    return value[0] ?? fallback;
+  }
+
+  return value ?? fallback;
+}
+
 export default function ServiceCompletedScreen() {
   const params = useLocalSearchParams<{
-    jobTitle?: string;
-    candidateName?: string;
+    jobId?: string | string[];
+    candidaturaId?: string | string[];
+    freelancerId?: string | string[];
+    jobTitle?: string | string[];
+    candidateName?: string | string[];
+    companyName?: string | string[];
   }>();
 
-  const jobTitle = params.jobTitle ?? "Garçom para Evento";
-  const candidateName = params.candidateName ?? "Usuário TaskFlow";
+  const jobId = getParamValue(params.jobId);
+  const candidaturaId = getParamValue(params.candidaturaId);
+  const freelancerId = getParamValue(params.freelancerId);
+  const jobTitle = getParamValue(params.jobTitle, "Chamado");
+  const candidateName = getParamValue(params.candidateName, "Usuário TaskFlow");
+  const companyName = getParamValue(params.companyName, "Empresa");
+
+  const [freelancerAlreadyReviewed, setFreelancerAlreadyReviewed] =
+    useState(false);
 
   const { isDark, theme } = useTheme();
 
+  useEffect(() => {
+    checkFreelancerReview();
+  }, [jobId, candidaturaId, freelancerId]);
+
+  async function checkFreelancerReview() {
+    try {
+      const storedReviews = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+      const reviews: ReviewPayload[] = storedReviews
+        ? JSON.parse(storedReviews)
+        : [];
+
+      const alreadyReviewed = reviews.some((review) => {
+        if (review.ratedUserType !== "freelancer") {
+          return false;
+        }
+
+        const sameJob =
+          jobId && review.jobId && String(review.jobId) === String(jobId);
+
+        const sameCandidatura =
+          candidaturaId &&
+          review.candidaturaId &&
+          String(review.candidaturaId) === String(candidaturaId);
+
+        const sameFreelancer =
+          freelancerId &&
+          review.freelancerId &&
+          String(review.freelancerId) === String(freelancerId);
+
+        return sameJob || sameCandidatura || sameFreelancer;
+      });
+
+      setFreelancerAlreadyReviewed(alreadyReviewed);
+    } catch (error) {
+      console.log("Erro ao verificar avaliação do freelancer:", error);
+      setFreelancerAlreadyReviewed(false);
+    }
+  }
+
   function handleRateFreelancer() {
+    if (freelancerAlreadyReviewed) {
+      return;
+    }
+
     router.replace({
       pathname: "/rate-service",
       params: {
+        jobId,
+        candidaturaId,
+        freelancerId,
         jobTitle,
         candidateName,
+        companyName,
+        ratedUserName: candidateName,
+        ratedUserType: "freelancer",
       },
     });
+  }
+
+  function handleGoDashboard() {
+    router.replace("/company-dashboard");
   }
 
   return (
@@ -50,8 +134,8 @@ export default function ServiceCompletedScreen() {
         </Text>
 
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          O chamado foi encerrado com sucesso. Para finalizar o processo, é
-          necessário avaliar o freelancer e registrar sua experiência.
+          O chamado foi encerrado com sucesso. Para finalizar o processo,
+          avalie o freelancer e registre sua experiência.
         </Text>
 
         <View
@@ -103,6 +187,23 @@ export default function ServiceCompletedScreen() {
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Empresa
+            </Text>
+
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {companyName}
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
+
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
               Status
             </Text>
 
@@ -120,13 +221,15 @@ export default function ServiceCompletedScreen() {
           ]}
         >
           <Text style={[styles.infoTitle, { color: theme.text }]}>
-            Avaliação obrigatória
+            {freelancerAlreadyReviewed
+              ? "Avaliação já enviada"
+              : "Avaliação do freelancer"}
           </Text>
 
           <Text style={[styles.infoBoxText, { color: theme.textSecondary }]}>
-            Sua avaliação ajuda outros usuários a escolherem profissionais com
-            mais segurança dentro do TaskFlow. Por isso, ela faz parte da
-            finalização do serviço.
+            {freelancerAlreadyReviewed
+              ? "A avaliação deste freelancer já foi registrada. Agora você pode voltar ao dashboard."
+              : "Sua avaliação ajuda outras empresas a escolherem profissionais com mais segurança dentro do TaskFlow."}
           </Text>
         </View>
       </View>
@@ -138,13 +241,35 @@ export default function ServiceCompletedScreen() {
         ]}
       >
         <Pressable
+          disabled={freelancerAlreadyReviewed}
           style={({ pressed }) => [
             styles.primaryButton,
-            pressed && styles.buttonPressed,
+            freelancerAlreadyReviewed && { opacity: 0.55 },
+            pressed && !freelancerAlreadyReviewed && styles.buttonPressed,
           ]}
           onPress={handleRateFreelancer}
         >
-          <Text style={styles.primaryButtonText}>Avaliar freelancer</Text>
+          <Text style={styles.primaryButtonText}>
+            {freelancerAlreadyReviewed
+              ? "Avaliação enviada"
+              : "Avaliar freelancer"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={handleGoDashboard}
+        >
+          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
+            Voltar ao dashboard
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>

@@ -19,8 +19,7 @@ import SendIcon from "../../assets/icons/send.svg";
 import { styles } from "@/app/styles/payment";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
-import { apiPut } from "@/services/api";
-import { getLoggedUser } from "@/services/storage";
+import { apiPost } from "@/services/api";
 
 type PaymentMethod = "card" | "pix" | "wallet";
 
@@ -29,6 +28,16 @@ type PaymentMethodOption = {
   title: string;
   subtitle: string;
   Icon: ComponentType<any>;
+};
+
+type CandidaturaActionResponse = {
+  mensagem?: string;
+  candidaturaId?: number;
+  contratoId?: number;
+  chamadoId?: number;
+  empresaId?: number;
+  freelancerId?: number;
+  contratoStatus?: string;
 };
 
 const paymentMethods: PaymentMethodOption[] = [
@@ -58,6 +67,14 @@ const paymentMethodLabel: Record<PaymentMethod, string> = {
   wallet: "Carteira TaskFlow",
 };
 
+function getParamValue(value?: string | string[], fallback = "") {
+  if (Array.isArray(value)) {
+    return value[0] ?? fallback;
+  }
+
+  return value ?? fallback;
+}
+
 function parseCurrency(value?: string) {
   if (!value) {
     return null;
@@ -81,19 +98,28 @@ function formatCurrency(value: number) {
 
 export default function PaymentScreen() {
   const params = useLocalSearchParams<{
-    jobId?: string;
-    candidaturaId?: string;
-    freelancerId?: string;
+    contratoId?: string | string[];
 
-    jobTitle?: string;
-    candidateName?: string;
+    jobId?: string | string[];
+    candidaturaId?: string | string[];
+    freelancerId?: string | string[];
 
-    serviceValue?: string;
-    candidatePrice?: string;
-    jobPrice?: string;
+    jobTitle?: string | string[];
+    jobCategory?: string | string[];
+    jobPrice?: string | string[];
+    jobLocation?: string | string[];
+    jobTime?: string | string[];
+    status?: string | string[];
 
-    platformFee?: string;
-    totalValue?: string;
+    candidateName?: string | string[];
+    candidateEmail?: string | string[];
+    candidateRating?: string | string[];
+
+    serviceValue?: string | string[];
+    candidatePrice?: string | string[];
+
+    platformFee?: string | string[];
+    totalValue?: string | string[];
   }>();
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("pix");
@@ -105,35 +131,56 @@ export default function PaymentScreen() {
   const iconBoxBackground = isDark ? colors.white : colors.lightGray;
   const iconBoxBorder = isDark ? colors.white : colors.border;
 
-  const jobTitle = params.jobTitle ?? "Chamado";
-  const candidateName = params.candidateName ?? "Freelancer selecionado";
-  const candidaturaId = params.candidaturaId ?? "";
+  const contratoId = getParamValue(params.contratoId);
+
+  const jobId = getParamValue(params.jobId);
+  const candidaturaId = getParamValue(params.candidaturaId);
+  const freelancerId = getParamValue(params.freelancerId);
+
+  const jobTitle = getParamValue(params.jobTitle, "Chamado");
+  const jobCategory = getParamValue(params.jobCategory);
+  const jobPrice = getParamValue(params.jobPrice);
+  const jobLocation = getParamValue(params.jobLocation);
+  const jobTime = getParamValue(params.jobTime);
+  const status = getParamValue(params.status);
+
+  const candidateName = getParamValue(
+    params.candidateName,
+    "Freelancer selecionado"
+  );
+  const candidateEmail = getParamValue(params.candidateEmail);
+  const candidateRating = getParamValue(params.candidateRating);
 
   const receivedServiceValue =
-    params.serviceValue ?? params.candidatePrice ?? params.jobPrice ?? "";
+    getParamValue(params.serviceValue) ||
+    getParamValue(params.candidatePrice) ||
+    getParamValue(params.jobPrice);
+
+  const receivedPlatformFee = getParamValue(params.platformFee);
+  const receivedTotalValue = getParamValue(params.totalValue);
 
   const paymentValues = useMemo(() => {
     const serviceAmount = parseCurrency(receivedServiceValue);
-    const receivedPlatformFee = parseCurrency(params.platformFee);
-    const receivedTotalValue = parseCurrency(params.totalValue);
+    const platformFeeFromParam = parseCurrency(receivedPlatformFee);
+    const totalValueFromParam = parseCurrency(receivedTotalValue);
 
     if (serviceAmount === null) {
       return {
         serviceValue: receivedServiceValue || "Valor a combinar",
-        platformFee: params.platformFee ?? "A calcular",
-        totalValue: params.totalValue ?? (receivedServiceValue || "A calcular"),
+        platformFee: receivedPlatformFee || "A calcular",
+        totalValue: receivedTotalValue || receivedServiceValue || "A calcular",
       };
     }
 
-    const platformFeeAmount = receivedPlatformFee ?? serviceAmount * 0.1;
-    const totalAmount = receivedTotalValue ?? serviceAmount + platformFeeAmount;
+    const platformFeeAmount = platformFeeFromParam ?? serviceAmount * 0.1;
+    const totalAmount = totalValueFromParam ?? serviceAmount + platformFeeAmount;
 
     return {
       serviceValue: formatCurrency(serviceAmount),
       platformFee: formatCurrency(platformFeeAmount),
       totalValue: formatCurrency(totalAmount),
     };
-  }, [receivedServiceValue, params.platformFee, params.totalValue]);
+  }, [receivedServiceValue, receivedPlatformFee, receivedTotalValue]);
 
   const serviceValue = paymentValues.serviceValue;
   const platformFee = paymentValues.platformFee;
@@ -155,26 +202,38 @@ export default function PaymentScreen() {
     try {
       setIsConfirming(true);
 
-      const loggedUser = await getLoggedUser();
+      let finalContratoId = contratoId;
 
-      if (!loggedUser) {
-        Alert.alert("Sessão expirada", "Faça login novamente.");
-        router.replace("/login");
-        return;
+      if (!finalContratoId) {
+        console.log(
+          "ContratoId não veio nos params. Tentando recuperar pelo aceite..."
+        );
+
+        const response = await apiPost<CandidaturaActionResponse>(
+          `/api/Candidaturas/${candidaturaId}/aceitar`,
+          {}
+        );
+
+        console.log("Resposta ao recuperar contrato:", response);
+
+        if (response?.contratoId) {
+          finalContratoId = String(response.contratoId);
+        }
       }
 
-      if (loggedUser.tipoUsuario !== "empresa") {
+      if (!finalContratoId) {
         Alert.alert(
-          "Acesso negado",
-          "Apenas empresas podem aceitar candidaturas."
+          "Contrato não encontrado",
+          "A API aceitou a candidatura, mas o app não conseguiu recuperar o contratoId."
         );
         return;
       }
 
       console.log("Confirmando pagamento:", {
-        jobId: params.jobId,
+        contratoId: finalContratoId,
+        jobId,
         candidaturaId,
-        freelancerId: params.freelancerId,
+        freelancerId,
         jobTitle,
         candidateName,
         serviceValue,
@@ -183,28 +242,28 @@ export default function PaymentScreen() {
         selectedMethod,
       });
 
-      try {
-        await apiPut(`/api/Candidaturas/${candidaturaId}/status`, {
-          status: "aceita",
-        });
-
-        console.log("Status da candidatura atualizado para aceita.");
-      } catch (apiError) {
-        console.log(
-          "Não foi possível atualizar status na API, seguindo fluxo mesmo assim:",
-          apiError
-        );
-      }
-
       router.push({
         pathname: "/payment-success",
         params: {
-          jobId: params.jobId ?? "",
+          contratoId: finalContratoId,
+
+          jobId,
           candidaturaId,
-          freelancerId: params.freelancerId ?? "",
+          freelancerId,
+
           jobTitle,
+          jobCategory,
+          jobPrice,
+          jobLocation,
+          jobTime,
+          status,
+
           candidateName,
+          candidateEmail,
+          candidateRating,
+
           serviceValue,
+          candidatePrice: serviceValue,
           platformFee,
           totalValue,
           paymentMethod: paymentMethodLabel[selectedMethod],
