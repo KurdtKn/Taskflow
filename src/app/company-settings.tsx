@@ -8,9 +8,11 @@ import {
   Switch,
   Text,
   View,
+  Platform,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
+import { logout } from "@/services/authService";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import LockIcon from "../../assets/icons/lock-icon.svg";
@@ -159,21 +161,45 @@ export default function CompanySettingsScreen() {
     }
   }
 
-  async function handleLogout() {
-    try {
-      /*
-        Futuramente:
-        await authService.logout();
-        await removeAuthToken();
-      */
-
-      router.replace("/welcome");
-    } catch (error) {
-      console.log("Erro ao sair da conta:", error);
-
-      Alert.alert("Erro", "Não foi possível sair da conta agora.");
-    }
+  async function confirmLogout() {
+  try {
+    await logout();
+    router.replace("/welcome");
+  } catch (error) {
+    console.log("Erro ao sair:", error);
+    router.replace("/welcome");
   }
+}
+
+function handleLogout() {
+  if (Platform.OS === "web") {
+    const confirmed = window.confirm(
+      "Tem certeza que deseja sair da sua conta?"
+    );
+
+    if (confirmed) {
+      confirmLogout();
+    }
+
+    return;
+  }
+
+  Alert.alert(
+    "Desconectar-se",
+    "Tem certeza que deseja sair da sua conta?",
+    [
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+      {
+        text: "Sair",
+        style: "destructive",
+        onPress: confirmLogout,
+      },
+    ]
+  );
+}
 
   function handleDeleteAccount() {
     Alert.alert(

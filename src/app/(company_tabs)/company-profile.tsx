@@ -10,6 +10,8 @@ import {
   ScrollView,
   Text,
   View,
+  Platform,
+  Alert,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useFocusEffect } from "expo-router";
@@ -154,15 +156,45 @@ export default function CompanyProfileScreen() {
     },
   ];
 
-  async function handleLogout() {
-    try {
-      await logout();
-      router.replace("/welcome");
-    } catch (error) {
-      console.log("Erro ao sair da conta:", error);
-      router.replace("/welcome");
-    }
+  async function confirmLogout() {
+  try {
+    await logout();
+    router.replace("/welcome");
+  } catch (error) {
+    console.log("Erro ao sair:", error);
+    router.replace("/welcome");
   }
+}
+
+function handleLogout() {
+  if (Platform.OS === "web") {
+    const confirmed = window.confirm(
+      "Tem certeza que deseja sair da sua conta?"
+    );
+
+    if (confirmed) {
+      confirmLogout();
+    }
+
+    return;
+  }
+
+  Alert.alert(
+    "Desconectar-se",
+    "Tem certeza que deseja sair da sua conta?",
+    [
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+      {
+        text: "Sair",
+        style: "destructive",
+        onPress: confirmLogout,
+      },
+    ]
+  );
+}
 
   function handleOpenSettings() {
     router.push("/company-settings");
