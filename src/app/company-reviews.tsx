@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -7,13 +7,15 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 
 import { styles } from "@/app/styles/companyReviews";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
+import { apiGet } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
 type ReviewFilter = "all" | "positive" | "recent";
 
@@ -34,6 +36,167 @@ type CompanyReviewsSummary = {
   satisfactionRate: number;
 };
 
+type AvaliacaoApi = {
+  id?: number;
+  contratoId?: number;
+  contrato_id?: number;
+
+  avaliadorId?: number;
+  avaliador_id?: number;
+  avaliadoId?: number;
+  avaliado_id?: number;
+
+  avaliador?: string | null;
+  avaliadorNome?: string | null;
+  nomeAvaliador?: string | null;
+  author?: string | null;
+
+  freelancer?: string | null;
+  freelancerName?: string | null;
+  nomeFreelancer?: string | null;
+
+  chamado?: string | null;
+  servico?: string | null;
+  service?: string | null;
+  tituloChamado?: string | null;
+  jobTitle?: string | null;
+
+  nota?: number;
+  rating?: number;
+
+  comentario?: string | null;
+  comment?: string | null;
+
+  dataAvaliacao?: string | null;
+  data_avaliacao?: string | null;
+  createdAt?: string | null;
+};
+
+type AvaliacoesResponse =
+  | AvaliacaoApi[]
+  | {
+      data?: AvaliacaoApi[];
+      dados?: AvaliacaoApi[];
+      avaliacoes?: AvaliacaoApi[];
+      media?: number;
+      averageRating?: number;
+      totalAvaliacoes?: number;
+      totalReviews?: number;
+    };
+
+function getAvaliacoesFromResponse(response: AvaliacoesResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.avaliacoes ?? [];
+}
+
+function removeDuplicateReviews(avaliacoes: AvaliacaoApi[]) {
+  return avaliacoes.filter((avaliacao, index, array) => {
+    if (!avaliacao.id) {
+      return true;
+    }
+
+    return array.findIndex((item) => item.id === avaliacao.id) === index;
+  });
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "Data não informada";
+  }
+
+  const normalizedValue = value.includes(" ")
+    ? value.replace(" ", "T")
+    : value;
+
+  const date = new Date(normalizedValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("pt-BR");
+}
+
+function getFreelancerName(review: AvaliacaoApi) {
+  return (
+    review.freelancerName ||
+    review.nomeFreelancer ||
+    review.freelancer ||
+    review.avaliadorNome ||
+    review.nomeAvaliador ||
+    review.avaliador ||
+    review.author ||
+    "Freelancer TaskFlow"
+  );
+}
+
+function getServiceName(review: AvaliacaoApi) {
+  return (
+    review.chamado ||
+    review.servico ||
+    review.service ||
+    review.tituloChamado ||
+    review.jobTitle ||
+    "Serviço TaskFlow"
+  );
+}
+
+function formatCompanyReview(review: AvaliacaoApi): CompanyReview {
+  const rating = Number(review.nota ?? review.rating ?? 0);
+
+  return {
+    id: String(
+      review.id ??
+        `${review.contratoId ?? review.contrato_id ?? Date.now()}-${rating}`
+    ),
+    freelancerName: getFreelancerName(review),
+    service: getServiceName(review),
+    rating: Math.max(0, Math.min(5, Math.round(rating))),
+    date: formatDate(
+      review.dataAvaliacao ||
+        review.data_avaliacao ||
+        review.createdAt
+    ),
+    comment:
+      review.comentario ||
+      review.comment ||
+      "Avaliação sem comentário.",
+    tags: [],
+  };
+}
+
+function calculateSummary(reviews: CompanyReview[]): CompanyReviewsSummary {
+  if (reviews.length === 0) {
+    return {
+      averageRating: 0,
+      totalReviews: 0,
+      fiveStarReviews: 0,
+      satisfactionRate: 0,
+    };
+  }
+
+  const total = reviews.reduce((sum, review) => sum + review.rating, 0);
+
+  const averageRating = total / reviews.length;
+
+  const fiveStarReviews = reviews.filter((review) => review.rating === 5).length;
+
+  const satisfactionRate = Math.round(
+    (reviews.filter((review) => review.rating >= 4).length / reviews.length) *
+      100
+  );
+
+  return {
+    averageRating,
+    totalReviews: reviews.length,
+    fiveStarReviews,
+    satisfactionRate,
+  };
+}
+
 export default function CompanyReviewsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<ReviewFilter>("all");
   const [reviews, setReviews] = useState<CompanyReview[]>([]);
@@ -48,29 +211,68 @@ export default function CompanyReviewsScreen() {
   const starActiveColor = colors.warning;
   const starInactiveColor = theme.textSecondary;
 
-  useEffect(() => {
-    loadCompanyReviews();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadCompanyReviews();
+    }, [])
+  );
 
   async function loadCompanyReviews() {
     try {
       setIsLoading(true);
 
-      /*
-        Futuramente entra aqui a API.
+      const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        const response = await companyReviewsService.getMyCompanyReviews();
+      if (!loggedUser) {
+        setReviews([]);
+        setSummary(null);
+        router.replace("/login");
+        return;
+      }
 
-        setReviews(response.reviews);
-        setSummary(response.summary);
+      const userId = String(loggedUser.id);
+      const perfilId = String(loggedUser.perfilId ?? loggedUser.id);
 
-        A API deve retornar somente as avaliações da empresa logada,
-        usando o token salvo depois do login.
-      */
+      const idsParaBuscar = Array.from(
+        new Set([userId, perfilId].filter(Boolean))
+      );
 
-      setReviews([]);
-      setSummary(null);
+      const avaliacoesRecebidas: AvaliacaoApi[] = [];
+
+      for (const idParaBuscar of idsParaBuscar) {
+        try {
+          const avaliacoesResponse = await apiGet<AvaliacoesResponse>(
+            `/api/Avaliacoes/usuario/${idParaBuscar}`
+          );
+
+          const avaliacoes = getAvaliacoesFromResponse(avaliacoesResponse);
+
+          avaliacoesRecebidas.push(...avaliacoes);
+        } catch (error) {
+          console.log(
+            `Erro ao buscar avaliações da empresa ${idParaBuscar}:`,
+            error
+          );
+        }
+      }
+
+      const avaliacoesSemDuplicar = removeDuplicateReviews(avaliacoesRecebidas);
+
+      const formattedReviews = avaliacoesSemDuplicar
+        .map(formatCompanyReview)
+        .sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+
+          if (Number.isNaN(dateA) || Number.isNaN(dateB)) {
+            return 0;
+          }
+
+          return dateB - dateA;
+        });
+
+      setReviews(formattedReviews);
+      setSummary(calculateSummary(formattedReviews));
     } catch (error) {
       console.log("Erro ao carregar avaliações da empresa:", error);
 
@@ -124,7 +326,7 @@ export default function CompanyReviewsScreen() {
       : 0);
 
   function renderStars(rating: number) {
-    const safeRating = Math.max(0, Math.min(5, rating));
+    const safeRating = Math.max(0, Math.min(5, Math.round(rating)));
 
     return Array.from({ length: 5 }).map((_, index) => {
       const starValue = index + 1;
@@ -384,7 +586,9 @@ export default function CompanyReviewsScreen() {
                     ? activeFilterBackground
                     : theme.card,
                 borderColor:
-                  selectedFilter === "all" ? activeFilterBackground : theme.border,
+                  selectedFilter === "all"
+                    ? activeFilterBackground
+                    : theme.border,
               },
             ]}
             onPress={() => setSelectedFilter("all")}

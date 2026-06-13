@@ -18,6 +18,7 @@ import { router, useFocusEffect } from "expo-router";
 import { styles } from "@/app/styles/profile";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
+import { apiGet } from "@/services/api";
 
 import EditIcon from "../../../assets/icons/edit.svg";
 import BadgeIcon from "../../../assets/icons/badge.svg";
@@ -47,6 +48,93 @@ type FreelancerProfile = {
   about?: string;
   tags?: string[];
 };
+
+type AvaliacaoApi = {
+  id?: number;
+  contratoId?: number;
+  contrato_id?: number;
+  avaliadorId?: number;
+  avaliador_id?: number;
+  avaliadoId?: number;
+  avaliado_id?: number;
+  nota?: number;
+  rating?: number;
+  comentario?: string | null;
+  dataAvaliacao?: string;
+  data_avaliacao?: string;
+};
+
+type AvaliacoesResponse =
+  | AvaliacaoApi[]
+  | {
+      data?: AvaliacaoApi[];
+      dados?: AvaliacaoApi[];
+      avaliacoes?: AvaliacaoApi[];
+      media?: number;
+      totalAvaliacoes?: number;
+      total?: number;
+    };
+
+type ContratoApi = {
+  id?: number;
+  status?: string;
+};
+
+type ContratosResponse =
+  | ContratoApi[]
+  | {
+      data?: ContratoApi[];
+      dados?: ContratoApi[];
+      contratos?: ContratoApi[];
+    };
+
+function getAvaliacoesFromResponse(response: AvaliacoesResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.avaliacoes ?? [];
+}
+
+function getContratosFromResponse(response: ContratosResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.contratos ?? [];
+}
+
+function isFinishedStatus(status?: string | null) {
+  const normalizedStatus = status?.toLowerCase().trim();
+
+  return (
+    normalizedStatus === "finalizado" ||
+    normalizedStatus === "concluido" ||
+    normalizedStatus === "concluído" ||
+    normalizedStatus === "finished" ||
+    normalizedStatus === "completed"
+  );
+}
+
+function calculateRating(avaliacoes: AvaliacaoApi[]) {
+  const notas = avaliacoes
+    .map((avaliacao) => Number(avaliacao.nota ?? avaliacao.rating ?? 0))
+    .filter((nota) => nota > 0);
+
+  if (notas.length === 0) {
+    return {
+      rating: undefined,
+      reviewsCount: 0,
+    };
+  }
+
+  const total = notas.reduce((sum, nota) => sum + nota, 0);
+
+  return {
+    rating: total / notas.length,
+    reviewsCount: notas.length,
+  };
+}
 
 export default function ProfileScreen() {
   const { isDark, theme } = useTheme();
@@ -91,16 +179,60 @@ export default function ProfileScreen() {
 
       const savedFreelancerData = await getFreelancerData(loggedUser.id);
 
+      let rating: number | undefined;
+      let reviewsCount: number | undefined;
+      let completedServices: number | undefined;
+      let acceptanceRate: number | undefined;
+      let punctuality: number | undefined;
+
+      try {
+        const avaliacoesResponse = await apiGet<AvaliacoesResponse>(
+          `/api/Avaliacoes/usuario/${loggedUser.id}`
+        );
+
+        const avaliacoes = getAvaliacoesFromResponse(avaliacoesResponse);
+        const ratingData = calculateRating(avaliacoes);
+
+        rating = ratingData.rating;
+        reviewsCount = ratingData.reviewsCount;
+        punctuality = ratingData.rating;
+      } catch (error) {
+        console.log("Erro ao carregar avaliações do freelancer:", error);
+      }
+
+      try {
+        const freelancerId = loggedUser.perfilId ?? loggedUser.id;
+
+        const contratosResponse = await apiGet<ContratosResponse>(
+          `/api/Contratos/freelancer/${freelancerId}`
+        );
+
+        const contratos = getContratosFromResponse(contratosResponse);
+        const finalizados = contratos.filter((contrato) =>
+          isFinishedStatus(contrato.status)
+        );
+
+        completedServices = finalizados.length;
+
+        if (contratos.length > 0) {
+          acceptanceRate = Math.round(
+            (finalizados.length / contratos.length) * 100
+          );
+        }
+      } catch (error) {
+        console.log("Erro ao carregar contratos do freelancer:", error);
+      }
+
       setProfile({
-        id: loggedUser.perfilId ?? loggedUser.id,
+        id: String(loggedUser.perfilId ?? loggedUser.id),
         name: savedFreelancerData?.name || loggedUser.nome,
         userType: "Freelancer",
         photoUrl: savedFreelancerData?.photoUrl,
-        rating: undefined,
-        reviewsCount: undefined,
-        completedServices: undefined,
-        acceptanceRate: undefined,
-        punctuality: undefined,
+        rating,
+        reviewsCount,
+        completedServices,
+        acceptanceRate,
+        punctuality,
         about:
           savedFreelancerData?.about ||
           "Quando você preencher a descrição do perfil, ela aparecerá aqui.",
@@ -145,7 +277,7 @@ export default function ProfileScreen() {
     },
   ];
 
-   async function confirmLogout() {
+  async function confirmLogout() {
     try {
       await logout();
       router.replace("/welcome");
@@ -154,20 +286,20 @@ export default function ProfileScreen() {
       router.replace("/welcome");
     }
   }
-  
+
   function handleLogout() {
     if (Platform.OS === "web") {
       const confirmed = window.confirm(
         "Tem certeza que deseja sair da sua conta?"
       );
-  
+
       if (confirmed) {
         confirmLogout();
       }
-  
+
       return;
     }
-  
+
     Alert.alert(
       "Desconectar-se",
       "Tem certeza que deseja sair da sua conta?",

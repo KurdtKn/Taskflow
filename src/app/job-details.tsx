@@ -26,6 +26,8 @@ export default function JobDetailsScreen() {
     company?: string | string[];
     category?: string | string[];
     price?: string | string[];
+    pricePerProfessional?: string | string[];
+    paymentInfoText?: string | string[];
     distance?: string | string[];
     location?: string | string[];
     time?: string | string[];
@@ -71,6 +73,69 @@ export default function JobDetailsScreen() {
     return `${value} vagas disponíveis`;
   }
 
+  function parsePriceToNumber(value: string) {
+    if (!value || value === "A combinar") {
+      return 0;
+    }
+
+    const numbersOnly = value.replace(/\D/g, "");
+
+    if (!numbersOnly) {
+      return 0;
+    }
+
+    return Number(numbersOnly) / 100;
+  }
+
+  function formatCurrency(value: number) {
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+
+  function calculatePricePerProfessionalText(
+    totalValueText: string,
+    totalProfessionalsValue: number
+  ) {
+    const totalValue = parsePriceToNumber(totalValueText);
+    const safeTotalProfessionals =
+      totalProfessionalsValue > 0 ? totalProfessionalsValue : 1;
+
+    if (!totalValue || totalValue <= 0) {
+      return "A combinar";
+    }
+
+    return formatCurrency(totalValue / safeTotalProfessionals);
+  }
+
+  function calculatePaymentInfoText(
+    totalValueText: string,
+    totalProfessionalsValue: number
+  ) {
+    const totalValue = parsePriceToNumber(totalValueText);
+    const safeTotalProfessionals =
+      totalProfessionalsValue > 0 ? totalProfessionalsValue : 1;
+
+    if (!totalValue || totalValue <= 0) {
+      if (safeTotalProfessionals > 1) {
+        return `Valor a combinar • ${safeTotalProfessionals} profissionais`;
+      }
+
+      return "Valor a combinar";
+    }
+
+    if (safeTotalProfessionals > 1) {
+      const valuePerProfessional = totalValue / safeTotalProfessionals;
+
+      return `${formatCurrency(
+        valuePerProfessional
+      )} por freelancer • total ${formatCurrency(totalValue)}`;
+    }
+
+    return `${formatCurrency(totalValue)} para 1 profissional`;
+  }
+
   const id = getParamValue(params.id);
   const title = getParamValue(params.title, "Chamado disponível");
   const description = getParamValue(
@@ -97,6 +162,18 @@ export default function JobDetailsScreen() {
   const hasAvailableSpots = availableSpots > 0;
   const vacanciesText = getVacanciesText(availableSpots);
 
+  const pricePerProfessional = getParamValue(
+    params.pricePerProfessional,
+    calculatePricePerProfessionalText(price, totalProfessionals)
+  );
+
+  const paymentInfoText = getParamValue(
+    params.paymentInfoText,
+    calculatePaymentInfoText(price, totalProfessionals)
+  );
+
+  const isMultipleProfessionals = totalProfessionals > 1;
+
   function getCompanyInitials() {
     const words = company.trim().split(" ").filter(Boolean);
 
@@ -120,6 +197,11 @@ export default function JobDetailsScreen() {
       id,
       title,
       company,
+      price,
+      pricePerProfessional,
+      paymentInfoText,
+      totalProfessionals,
+      acceptedProfessionals,
       availableSpots,
     });
 
@@ -132,6 +214,8 @@ export default function JobDetailsScreen() {
         company,
         category,
         price,
+        pricePerProfessional,
+        paymentInfoText,
         location,
         time,
         imageUrl,
@@ -147,13 +231,6 @@ export default function JobDetailsScreen() {
       pathname: "/company-public-profile",
       params: {
         jobTitle: title,
-
-        /*
-          Futuramente, quando a API retornar o ID da empresa no chamado,
-          enviar aqui:
-
-          companyId: empresaId,
-        */
       },
     });
   }
@@ -231,6 +308,50 @@ export default function JobDetailsScreen() {
           </Text>
 
           <Text style={styles.price}>{price}</Text>
+
+          <View
+            style={{
+              alignSelf: "flex-start",
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(11,87,208,0.08)",
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(255,255,255,0.16)"
+                : "rgba(11,87,208,0.18)",
+              marginTop: 8,
+              marginBottom: 10,
+            }}
+          >
+            <Text
+              style={{
+                color: theme.text,
+                fontSize: 12,
+                fontWeight: "900",
+              }}
+            >
+              {paymentInfoText}
+            </Text>
+          </View>
+
+          {isMultipleProfessionals && (
+            <Text
+              style={{
+                color: theme.textSecondary,
+                fontSize: 13,
+                fontWeight: "700",
+                lineHeight: 19,
+                marginBottom: 10,
+              }}
+            >
+              Este chamado precisa de {totalProfessionals} freelancers. O valor
+              total será dividido entre os profissionais aceitos. Cada freelancer
+              recebe aproximadamente {pricePerProfessional}.
+            </Text>
+          )}
 
           <View
             style={[
@@ -319,6 +440,37 @@ export default function JobDetailsScreen() {
               </Text>
             </View>
           </View>
+
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.border },
+            ]}
+          />
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconBox}>
+              <Text
+                style={{
+                  color: infoIconColor,
+                  fontSize: 18,
+                  fontWeight: "900",
+                }}
+              >
+                R$
+              </Text>
+            </View>
+
+            <View style={styles.infoTextArea}>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Valor por freelancer
+              </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                {pricePerProfessional}
+              </Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -384,7 +536,9 @@ export default function JobDetailsScreen() {
         >
           <Text style={[styles.warningText, { color: theme.textSecondary }]}>
             {hasAvailableSpots
-              ? "O chat será liberado somente após a empresa aceitar sua solicitação e confirmar o fluxo do chamado."
+              ? isMultipleProfessionals
+                ? `O chat será liberado somente após a empresa aceitar sua solicitação. O valor total do chamado será dividido entre ${totalProfessionals} freelancers.`
+                : "O chat será liberado somente após a empresa aceitar sua solicitação e confirmar o fluxo do chamado."
               : "Este chamado não possui vagas disponíveis no momento."}
           </Text>
         </View>

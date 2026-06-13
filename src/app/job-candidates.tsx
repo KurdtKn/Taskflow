@@ -38,6 +38,10 @@ type Candidate = {
   description: string;
   skills: string[];
   status: string;
+
+  totalProfessionals?: string;
+  acceptedProfessionals?: string;
+  availableSpots?: string;
 };
 
 type FreelancerNestedApi = {
@@ -87,6 +91,16 @@ type CandidaturaApi = {
   valorProposto?: number | null;
   valor_proposto?: number | null;
 
+  quantidadeProfissionais?: number | null;
+  quantidade_profissionais?: number | null;
+  totalProfissionais?: number | null;
+  total_profissionais?: number | null;
+
+  totalAceitos?: number | null;
+  total_aceitos?: number | null;
+  vagasDisponiveis?: number | null;
+  vagas_disponiveis?: number | null;
+
   status?: string | null;
   dataCandidatura?: string | null;
 
@@ -116,9 +130,32 @@ type CandidaturaActionResponse = {
   chamadoId?: number;
   empresaId?: number;
   freelancerId?: number;
+
   quantidadeProfissionais?: number;
+  quantidade_profissionais?: number;
+  totalProfissionais?: number;
+  total_profissionais?: number;
+
   totalAceitos?: number;
+  total_aceitos?: number;
   vagasDisponiveis?: number;
+  vagas_disponiveis?: number;
+
+  valorTotalChamado?: number;
+  valor_total_chamado?: number;
+  valorPorProfissional?: number;
+  valor_por_profissional?: number;
+  valorServico?: number;
+  valor_servico?: number;
+  taxaPlataforma?: number;
+  taxa_plataforma?: number;
+  valorTaxa?: number;
+  valor_taxa?: number;
+  valorTotalPagamento?: number;
+  valor_total_pagamento?: number;
+  totalPagamento?: number;
+  total_pagamento?: number;
+
   chamadoStatus?: string;
   contratoStatus?: string;
 };
@@ -140,6 +177,35 @@ function formatCurrency(value?: number | null) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+function formatCurrencyParam(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "";
+  }
+
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function getFirstValidNumber(...values: Array<number | null | undefined>) {
+  for (const value of values) {
+    if (typeof value === "number" && !Number.isNaN(value)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function formatNumberParam(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "";
+  }
+
+  return String(value);
 }
 
 function normalizeStatus(value?: string | null) {
@@ -299,6 +365,30 @@ function getCompletedJobs(apiCandidate: CandidaturaApi) {
   );
 }
 
+
+function getTotalProfessionals(apiCandidate: CandidaturaApi) {
+  return getFirstValidNumber(
+    apiCandidate.quantidadeProfissionais,
+    apiCandidate.quantidade_profissionais,
+    apiCandidate.totalProfissionais,
+    apiCandidate.total_profissionais
+  );
+}
+
+function getAcceptedProfessionals(apiCandidate: CandidaturaApi) {
+  return getFirstValidNumber(
+    apiCandidate.totalAceitos,
+    apiCandidate.total_aceitos
+  );
+}
+
+function getAvailableSpots(apiCandidate: CandidaturaApi) {
+  return getFirstValidNumber(
+    apiCandidate.vagasDisponiveis,
+    apiCandidate.vagas_disponiveis
+  );
+}
+
 function normalizeSkills(value?: string[] | string | null) {
   if (!value) {
     return [];
@@ -352,6 +442,9 @@ function formatCandidate(
   const rating = getFreelancerRating(apiCandidate);
   const reviews = getFreelancerReviews(apiCandidate);
   const completedJobs = getCompletedJobs(apiCandidate);
+  const totalProfessionals = getTotalProfessionals(apiCandidate);
+  const acceptedProfessionals = getAcceptedProfessionals(apiCandidate);
+  const availableSpots = getAvailableSpots(apiCandidate);
 
   return {
     id: String(apiCandidate.id),
@@ -372,6 +465,9 @@ function formatCandidate(
       "O freelancer ainda não enviou uma mensagem para essa candidatura.",
     skills: getFreelancerSkills(apiCandidate, jobCategory, statusLabel),
     status: statusLabel,
+    totalProfessionals: formatNumberParam(totalProfessionals) || undefined,
+    acceptedProfessionals: formatNumberParam(acceptedProfessionals) || undefined,
+    availableSpots: formatNumberParam(availableSpots) || undefined,
   };
 }
 
@@ -387,6 +483,13 @@ export default function JobCandidatesScreen() {
     candidates?: string | string[];
     status?: string | string[];
     jobStatus?: string | string[];
+
+    totalProfessionals?: string | string[];
+    quantidadeProfissionais?: string | string[];
+    professionals?: string | string[];
+
+    acceptedProfessionals?: string | string[];
+    availableSpots?: string | string[];
   }>();
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -413,6 +516,14 @@ export default function JobCandidatesScreen() {
   const jobLocation = getParamValue(params.location, "Local não informado");
   const jobTime = getParamValue(params.time, "Data não informada");
   const jobStatus = getParamValue(params.status) || getParamValue(params.jobStatus);
+
+  const routeTotalProfessionals =
+    getParamValue(params.totalProfessionals) ||
+    getParamValue(params.quantidadeProfissionais) ||
+    getParamValue(params.professionals) ||
+    "1";
+  const routeAcceptedProfessionals = getParamValue(params.acceptedProfessionals);
+  const routeAvailableSpots = getParamValue(params.availableSpots);
 
   const isJobFinished = isFinishedStatus(jobStatus);
 
@@ -496,7 +607,11 @@ export default function JobCandidatesScreen() {
     );
   }
 
-  function goToPayment(candidate: Candidate, contratoId?: string) {
+  function goToPayment(
+    candidate: Candidate,
+    contratoId?: string,
+    paymentInfo?: CandidaturaActionResponse
+  ) {
     if (isJobFinished) {
       showFinishedAlert();
       return;
@@ -511,6 +626,75 @@ export default function JobCandidatesScreen() {
       );
       return;
     }
+
+    const totalProfessionals =
+      formatNumberParam(
+        getFirstValidNumber(
+          paymentInfo?.quantidadeProfissionais,
+          paymentInfo?.quantidade_profissionais,
+          paymentInfo?.totalProfissionais,
+          paymentInfo?.total_profissionais
+        )
+      ) ||
+      candidate.totalProfessionals ||
+      routeTotalProfessionals ||
+      "1";
+
+    const acceptedProfessionals =
+      formatNumberParam(
+        getFirstValidNumber(paymentInfo?.totalAceitos, paymentInfo?.total_aceitos)
+      ) ||
+      candidate.acceptedProfessionals ||
+      routeAcceptedProfessionals;
+
+    const availableSpots =
+      formatNumberParam(
+        getFirstValidNumber(
+          paymentInfo?.vagasDisponiveis,
+          paymentInfo?.vagas_disponiveis
+        )
+      ) ||
+      candidate.availableSpots ||
+      routeAvailableSpots;
+
+    const apiJobTotalValue = formatCurrencyParam(
+      getFirstValidNumber(
+        paymentInfo?.valorTotalChamado,
+        paymentInfo?.valor_total_chamado
+      )
+    );
+
+    const apiServiceValue = formatCurrencyParam(
+      getFirstValidNumber(
+        paymentInfo?.valorPorProfissional,
+        paymentInfo?.valor_por_profissional,
+        paymentInfo?.valorServico,
+        paymentInfo?.valor_servico
+      )
+    );
+
+    const apiPlatformFee = formatCurrencyParam(
+      getFirstValidNumber(
+        paymentInfo?.taxaPlataforma,
+        paymentInfo?.taxa_plataforma,
+        paymentInfo?.valorTaxa,
+        paymentInfo?.valor_taxa
+      )
+    );
+
+    const apiTotalValue = formatCurrencyParam(
+      getFirstValidNumber(
+        paymentInfo?.valorTotalPagamento,
+        paymentInfo?.valor_total_pagamento,
+        paymentInfo?.totalPagamento,
+        paymentInfo?.total_pagamento
+      )
+    );
+
+    const finalJobTotalValue = apiJobTotalValue || jobPrice;
+    const finalServiceValue = apiServiceValue || candidate.price;
+    const finalPlatformFee = apiPlatformFee;
+    const finalTotalValue = apiTotalValue;
 
     router.push({
       pathname: "/payment",
@@ -532,8 +716,16 @@ export default function JobCandidatesScreen() {
         candidateEmail: candidate.email ?? "",
         candidateRating: candidate.rating ? String(candidate.rating) : "",
 
-        serviceValue: candidate.price,
-        candidatePrice: candidate.price,
+        jobTotalValue: finalJobTotalValue,
+        totalProfessionals,
+        quantidadeProfissionais: totalProfessionals,
+        acceptedProfessionals,
+        availableSpots,
+
+        serviceValue: finalServiceValue,
+        candidatePrice: finalServiceValue,
+        platformFee: finalPlatformFee,
+        totalValue: finalTotalValue,
       },
     });
   }
@@ -586,6 +778,26 @@ export default function JobCandidatesScreen() {
                 ...item,
                 contratoId,
                 status: "Aceita",
+                totalProfessionals:
+                  formatNumberParam(
+                    getFirstValidNumber(
+                      response.quantidadeProfissionais,
+                      response.quantidade_profissionais,
+                      response.totalProfissionais,
+                      response.total_profissionais
+                    )
+                  ) || item.totalProfessionals,
+                acceptedProfessionals:
+                  formatNumberParam(
+                    getFirstValidNumber(response.totalAceitos, response.total_aceitos)
+                  ) || item.acceptedProfessionals,
+                availableSpots:
+                  formatNumberParam(
+                    getFirstValidNumber(
+                      response.vagasDisponiveis,
+                      response.vagas_disponiveis
+                    )
+                  ) || item.availableSpots,
                 skills: item.skills.map((skill) =>
                   skill.startsWith("Status:") ? "Status: Aceita" : skill
                 ),
@@ -599,8 +811,29 @@ export default function JobCandidatesScreen() {
           ...candidate,
           contratoId,
           status: "Aceita",
+          totalProfessionals:
+            formatNumberParam(
+              getFirstValidNumber(
+                response.quantidadeProfissionais,
+                response.quantidade_profissionais,
+                response.totalProfissionais,
+                response.total_profissionais
+              )
+            ) || candidate.totalProfessionals,
+          acceptedProfessionals:
+            formatNumberParam(
+              getFirstValidNumber(response.totalAceitos, response.total_aceitos)
+            ) || candidate.acceptedProfessionals,
+          availableSpots:
+            formatNumberParam(
+              getFirstValidNumber(
+                response.vagasDisponiveis,
+                response.vagas_disponiveis
+              )
+            ) || candidate.availableSpots,
         },
-        contratoId
+        contratoId,
+        response
       );
     } catch (error) {
       console.log("Erro ao aceitar candidatura:", error);

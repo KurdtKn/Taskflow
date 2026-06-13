@@ -28,6 +28,7 @@ import CheckIcon from "../../../assets/icons/check.svg";
 import { styles } from "@/app/styles/companyProfile";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
+import { apiGet } from "@/services/api";
 
 type MenuOption = {
   id: string;
@@ -54,6 +55,109 @@ type CompanyProfile = {
   phone?: string;
   email?: string;
 };
+
+type AvaliacaoApi = {
+  id?: number;
+  contratoId?: number;
+  contrato_id?: number;
+  avaliadorId?: number;
+  avaliador_id?: number;
+  avaliadoId?: number;
+  avaliado_id?: number;
+  nota?: number;
+  rating?: number;
+  comentario?: string | null;
+  dataAvaliacao?: string;
+  data_avaliacao?: string;
+};
+
+type AvaliacoesResponse =
+  | AvaliacaoApi[]
+  | {
+      data?: AvaliacaoApi[];
+      dados?: AvaliacaoApi[];
+      avaliacoes?: AvaliacaoApi[];
+      media?: number;
+      totalAvaliacoes?: number;
+      total?: number;
+    };
+
+type ContratoApi = {
+  id?: number;
+  status?: string | null;
+};
+
+type ContratosResponse =
+  | ContratoApi[]
+  | {
+      data?: ContratoApi[];
+      dados?: ContratoApi[];
+      contratos?: ContratoApi[];
+    };
+
+function getAvaliacoesFromResponse(response: AvaliacoesResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.avaliacoes ?? [];
+}
+
+function getContratosFromResponse(response: ContratosResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.contratos ?? [];
+}
+
+function isFinishedStatus(status?: string | null) {
+  const normalizedStatus = status?.toLowerCase().trim();
+
+  return (
+    normalizedStatus === "finalizado" ||
+    normalizedStatus === "concluido" ||
+    normalizedStatus === "concluído" ||
+    normalizedStatus === "finished" ||
+    normalizedStatus === "completed"
+  );
+}
+
+function calculateRating(avaliacoes: AvaliacaoApi[]) {
+  const notas = avaliacoes
+    .map((avaliacao) => Number(avaliacao.nota ?? avaliacao.rating ?? 0))
+    .filter((nota) => nota > 0);
+
+  if (notas.length === 0) {
+    return {
+      rating: undefined,
+      reviewsCount: 0,
+      satisfactionRate: 0,
+    };
+  }
+
+  const total = notas.reduce((sum, nota) => sum + nota, 0);
+
+  const satisfactionRate = Math.round(
+    (notas.filter((nota) => nota >= 4).length / notas.length) * 100
+  );
+
+  return {
+    rating: total / notas.length,
+    reviewsCount: notas.length,
+    satisfactionRate,
+  };
+}
+
+function removeDuplicateReviews(avaliacoes: AvaliacaoApi[]) {
+  return avaliacoes.filter((avaliacao, index, array) => {
+    if (!avaliacao.id) {
+      return true;
+    }
+
+    return array.findIndex((item) => item.id === avaliacao.id) === index;
+  });
+}
 
 export default function CompanyProfileScreen() {
   const { isDark, theme } = useTheme();
@@ -98,17 +202,78 @@ export default function CompanyProfileScreen() {
 
       const savedCompanyData = await getCompanyData(loggedUser.id);
 
+      const userId = String(loggedUser.id);
+      const perfilId = String(loggedUser.perfilId ?? loggedUser.id);
+
+      let rating: number | undefined;
+      let reviewsCount: number | undefined;
+      let totalJobs = 0;
+      let completedJobs = 0;
+      let satisfactionRate = 0;
+
+      try {
+        const idsParaBuscar = Array.from(
+          new Set([userId, perfilId].filter(Boolean))
+        );
+
+        const avaliacoesRecebidas: AvaliacaoApi[] = [];
+
+        for (const idParaBuscar of idsParaBuscar) {
+          try {
+            const avaliacoesResponse = await apiGet<AvaliacoesResponse>(
+              `/api/Avaliacoes/usuario/${idParaBuscar}`
+            );
+
+            const avaliacoes = getAvaliacoesFromResponse(avaliacoesResponse);
+
+            avaliacoesRecebidas.push(...avaliacoes);
+          } catch (error) {
+            console.log(
+              `Erro ao buscar avaliações da empresa ${idParaBuscar}:`,
+              error
+            );
+          }
+        }
+
+        const avaliacoesSemDuplicar =
+          removeDuplicateReviews(avaliacoesRecebidas);
+
+        const ratingData = calculateRating(avaliacoesSemDuplicar);
+
+        rating = ratingData.rating;
+        reviewsCount = ratingData.reviewsCount;
+        satisfactionRate = ratingData.satisfactionRate;
+      } catch (error) {
+        console.log("Erro ao carregar avaliações da empresa:", error);
+      }
+
+      try {
+        const contratosResponse = await apiGet<ContratosResponse>(
+          `/api/Contratos/empresa/${perfilId}`
+        );
+
+        const contratos = getContratosFromResponse(contratosResponse);
+        const finalizados = contratos.filter((contrato) =>
+          isFinishedStatus(contrato.status)
+        );
+
+        totalJobs = contratos.length;
+        completedJobs = finalizados.length;
+      } catch (error) {
+        console.log("Erro ao carregar contratos da empresa:", error);
+      }
+
       setCompany({
-        id: loggedUser.perfilId ?? loggedUser.id,
+        id: perfilId,
         name: savedCompanyData?.name || loggedUser.nome,
         type: "Empresa contratante",
         logoUrl: savedCompanyData?.logoUrl,
         isVerified: savedCompanyData?.isVerified ?? false,
-        rating: undefined,
-        reviewsCount: undefined,
-        totalJobs: 0,
-        completedJobs: 0,
-        satisfactionRate: 0,
+        rating,
+        reviewsCount,
+        totalJobs,
+        completedJobs,
+        satisfactionRate,
         about:
           savedCompanyData?.about ||
           "Quando a empresa preencher a descrição, ela aparecerá aqui.",
@@ -157,44 +322,44 @@ export default function CompanyProfileScreen() {
   ];
 
   async function confirmLogout() {
-  try {
-    await logout();
-    router.replace("/welcome");
-  } catch (error) {
-    console.log("Erro ao sair:", error);
-    router.replace("/welcome");
+    try {
+      await logout();
+      router.replace("/welcome");
+    } catch (error) {
+      console.log("Erro ao sair:", error);
+      router.replace("/welcome");
+    }
   }
-}
 
-function handleLogout() {
-  if (Platform.OS === "web") {
-    const confirmed = window.confirm(
-      "Tem certeza que deseja sair da sua conta?"
-    );
+  function handleLogout() {
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Tem certeza que deseja sair da sua conta?"
+      );
 
-    if (confirmed) {
-      confirmLogout();
+      if (confirmed) {
+        confirmLogout();
+      }
+
+      return;
     }
 
-    return;
+    Alert.alert(
+      "Desconectar-se",
+      "Tem certeza que deseja sair da sua conta?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: confirmLogout,
+        },
+      ]
+    );
   }
-
-  Alert.alert(
-    "Desconectar-se",
-    "Tem certeza que deseja sair da sua conta?",
-    [
-      {
-        text: "Cancelar",
-        style: "cancel",
-      },
-      {
-        text: "Sair",
-        style: "destructive",
-        onPress: confirmLogout,
-      },
-    ]
-  );
-}
 
   function handleOpenSettings() {
     router.push("/company-settings");

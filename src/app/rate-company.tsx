@@ -18,7 +18,7 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/rateCompany";
 import { useTheme } from "@/app/context/ThemeContext";
 
-const API_URL = "http://192.168.86.12:5275";
+const API_URL = "http://192.168.1.111:5275";
 
 const ratingTags = [
   "Boa comunicação",
