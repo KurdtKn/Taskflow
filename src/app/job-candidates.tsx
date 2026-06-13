@@ -19,7 +19,7 @@ import TimeIcon from "../../assets/icons/access_time.svg";
 import { styles } from "@/app/styles/jobCandidates";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
-import { apiGet } from "@/services/api";
+import { apiGet, apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
 
 type Candidate = {
@@ -104,6 +104,18 @@ type CandidaturasResponse =
       dados?: CandidaturaApi[];
       candidaturas?: CandidaturaApi[];
     };
+
+type CandidaturaActionResponse = {
+  mensagem?: string;
+  candidaturaId?: number;
+  chamadoId?: number;
+  freelancerId?: number;
+  quantidadeProfissionais?: number;
+  totalAceitos?: number;
+  vagasDisponiveis?: number;
+  chamadoStatus?: string;
+  status?: string;
+};
 
 function getCandidaturasFromResponse(response: CandidaturasResponse) {
   if (Array.isArray(response)) {
@@ -339,14 +351,12 @@ export default function JobCandidatesScreen() {
     location?: string | string[];
     time?: string | string[];
     candidates?: string | string[];
-    totalProfessionals?: string | string[];
-    acceptedProfessionals?: string | string[];
-    availableSpots?: string | string[];
   }>();
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [actionCandidateId, setActionCandidateId] = useState("");
 
   const { isDark, theme } = useTheme();
 
@@ -360,68 +370,12 @@ export default function JobCandidatesScreen() {
     return value ?? fallback;
   }
 
-  function getParamNumber(value?: string | string[], fallback = 0) {
-    const paramValue = getParamValue(value);
-    const parsedValue = Number(paramValue);
-
-    if (Number.isNaN(parsedValue)) {
-      return fallback;
-    }
-
-    return parsedValue;
-  }
-
-  function getVacanciesText(value: number) {
-    if (value <= 0) {
-      return "Vagas preenchidas";
-    }
-
-    if (value === 1) {
-      return "1 vaga aberta";
-    }
-
-    return `${value} vagas abertas`;
-  }
-
-  function canAcceptCandidate(candidate: Candidate) {
-    return (
-      availableSpots > 0 &&
-      candidate.status !== "Aceita" &&
-      candidate.status !== "Recusada" &&
-      candidate.status !== "Cancelada"
-    );
-  }
-
   const jobId = getParamValue(params.id) || getParamValue(params.chamadoId);
   const jobTitle = getParamValue(params.title, "Chamado");
   const jobCategory = getParamValue(params.category, "Categoria");
   const jobPrice = getParamValue(params.price, "Valor a combinar");
   const jobLocation = getParamValue(params.location, "Local não informado");
   const jobTime = getParamValue(params.time, "Data não informada");
-
-  const totalProfessionals = getParamNumber(params.totalProfessionals, 1);
-  const acceptedProfessionalsFromParams = getParamNumber(
-    params.acceptedProfessionals,
-    -1
-  );
-  const availableSpotsFromParams = getParamNumber(params.availableSpots, -1);
-
-  const acceptedProfessionalsFromCandidates = candidates.filter(
-    (candidate) => candidate.status === "Aceita"
-  ).length;
-
-  const acceptedProfessionals =
-    acceptedProfessionalsFromParams >= 0
-      ? acceptedProfessionalsFromParams
-      : acceptedProfessionalsFromCandidates;
-
-  const availableSpots =
-    availableSpotsFromParams >= 0
-      ? availableSpotsFromParams
-      : Math.max(totalProfessionals - acceptedProfessionals, 0);
-
-  const hasAvailableSpots = availableSpots > 0;
-  const vacanciesText = getVacanciesText(availableSpots);
 
   const selectedCandidate = candidates.find(
     (candidate) => candidate.id === selectedCandidateId
@@ -485,11 +439,18 @@ export default function JobCandidatesScreen() {
     }
   }
 
-  function handleAcceptCandidate(candidate: Candidate) {
-    if (!canAcceptCandidate(candidate)) {
-      return;
-    }
+  function isCandidateAccepted(candidate: Candidate) {
+    return candidate.status === "Aceita";
+  }
 
+  function isCandidateRejected(candidate: Candidate) {
+    return (
+      candidate.status === "Recusada" ||
+      candidate.status === "Cancelada"
+    );
+  }
+
+  function goToPayment(candidate: Candidate) {
     router.push({
       pathname: "/payment",
       params: {
@@ -502,9 +463,6 @@ export default function JobCandidatesScreen() {
         jobPrice,
         jobLocation,
         jobTime,
-        totalProfessionals: String(totalProfessionals),
-        acceptedProfessionals: String(acceptedProfessionals),
-        availableSpots: String(availableSpots),
 
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
@@ -514,6 +472,62 @@ export default function JobCandidatesScreen() {
         candidatePrice: candidate.price,
       },
     });
+  }
+
+  async function handleAcceptCandidate(candidate: Candidate) {
+    if (isCandidateRejected(candidate)) {
+      Alert.alert(
+        "Candidatura recusada",
+        "Não é possível aceitar uma candidatura que já foi recusada."
+      );
+      return;
+    }
+
+    if (isCandidateAccepted(candidate)) {
+      goToPayment(candidate);
+      return;
+    }
+
+    try {
+      setActionCandidateId(candidate.id);
+
+      const response = await apiPost<CandidaturaActionResponse>(
+        `/api/Candidaturas/${candidate.id}/aceitar`,
+        {}
+      );
+
+      console.log("Candidatura aceita pela API:", response);
+
+      setCandidates((currentCandidates) =>
+        currentCandidates.map((item) =>
+          item.id === candidate.id
+            ? {
+                ...item,
+                status: "Aceita",
+                skills: item.skills.map((skill) =>
+                  skill.startsWith("Status:") ? "Status: Aceita" : skill
+                ),
+              }
+            : item
+        )
+      );
+
+      goToPayment({
+        ...candidate,
+        status: "Aceita",
+      });
+    } catch (error) {
+      console.log("Erro ao aceitar candidatura:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível aceitar essa candidatura agora.";
+
+      Alert.alert("Erro ao aceitar", errorMessage);
+    } finally {
+      setActionCandidateId("");
+    }
   }
 
   function handleViewFreelancerProfile(candidate: Candidate) {
@@ -529,9 +543,6 @@ export default function JobCandidatesScreen() {
         jobPrice,
         jobLocation,
         jobTime,
-        totalProfessionals: String(totalProfessionals),
-        acceptedProfessionals: String(acceptedProfessionals),
-        availableSpots: String(availableSpots),
 
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
@@ -541,7 +552,66 @@ export default function JobCandidatesScreen() {
     });
   }
 
+  async function rejectCandidate(candidate: Candidate) {
+    try {
+      setActionCandidateId(candidate.id);
+
+      const response = await apiPost<CandidaturaActionResponse>(
+        `/api/Candidaturas/${candidate.id}/recusar`,
+        {}
+      );
+
+      console.log("Candidatura recusada pela API:", response);
+
+      setCandidates((currentCandidates) =>
+        currentCandidates.map((item) =>
+          item.id === candidate.id
+            ? {
+                ...item,
+                status: "Recusada",
+                skills: item.skills.map((skill) =>
+                  skill.startsWith("Status:") ? "Status: Recusada" : skill
+                ),
+              }
+            : item
+        )
+      );
+
+      Alert.alert(
+        "Candidatura recusada",
+        `A candidatura de ${candidate.name} foi recusada.`
+      );
+    } catch (error) {
+      console.log("Erro ao recusar candidatura:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível recusar essa candidatura agora.";
+
+      Alert.alert("Erro ao recusar", errorMessage);
+    } finally {
+      setActionCandidateId("");
+    }
+  }
+
   function handleRejectCandidate(candidate: Candidate) {
+    if (isCandidateAccepted(candidate)) {
+      Alert.alert(
+        "Candidatura já aceita",
+        "Não é possível recusar uma candidatura que já foi aceita."
+      );
+      return;
+    }
+
+    if (isCandidateRejected(candidate)) {
+      Alert.alert(
+        "Candidatura já recusada",
+        "Essa candidatura já foi recusada."
+      );
+      return;
+    }
+
     Alert.alert(
       "Recusar candidato",
       `Deseja recusar a candidatura de ${candidate.name}?`,
@@ -553,21 +623,7 @@ export default function JobCandidatesScreen() {
         {
           text: "Recusar",
           style: "destructive",
-          onPress: () => {
-            console.log("Candidatura recusada localmente:", candidate);
-
-            setCandidates((currentCandidates) => {
-              const updatedCandidates = currentCandidates.filter(
-                (item) => item.id !== candidate.id
-              );
-
-              if (selectedCandidateId === candidate.id) {
-                setSelectedCandidateId(updatedCandidates[0]?.id ?? "");
-              }
-
-              return updatedCandidates;
-            });
-          },
+          onPress: () => rejectCandidate(candidate),
         },
       ]
     );
@@ -671,43 +727,6 @@ export default function JobCandidatesScreen() {
               </Text>
             </View>
           </View>
-
-          <View
-            style={[
-              styles.vacancyBadge,
-              hasAvailableSpots
-                ? styles.vacancyBadgeOpen
-                : styles.vacancyBadgeClosed,
-            ]}
-          >
-            <View
-              style={[
-                styles.vacancyDot,
-                hasAvailableSpots
-                  ? styles.vacancyDotOpen
-                  : styles.vacancyDotClosed,
-              ]}
-            />
-
-            <Text
-              style={[
-                styles.vacancyText,
-                hasAvailableSpots
-                  ? styles.vacancyTextOpen
-                  : styles.vacancyTextClosed,
-              ]}
-            >
-              {vacanciesText}
-            </Text>
-          </View>
-
-          <View style={styles.vacancyInfoBox}>
-            <Text style={styles.vacancyInfoText}>
-              {hasAvailableSpots
-                ? `Ainda há ${vacanciesText.toLowerCase()} neste chamado. Você pode aceitar mais freelancers até preencher o limite.`
-                : "O limite de profissionais deste chamado já foi preenchido."}
-            </Text>
-          </View>
         </View>
 
         <View style={styles.sectionHeader}>
@@ -769,6 +788,9 @@ export default function JobCandidatesScreen() {
           ) : (
             candidates.map((candidate) => {
               const isSelected = selectedCandidateId === candidate.id;
+              const isAccepted = isCandidateAccepted(candidate);
+              const isRejected = isCandidateRejected(candidate);
+              const isActionLoading = actionCandidateId === candidate.id;
 
               return (
                 <Pressable
@@ -969,27 +991,37 @@ export default function JobCandidatesScreen() {
 
                   <View style={styles.actionButtonsRow}>
                     <Pressable
+                      disabled={isAccepted || isRejected || isActionLoading}
                       style={({ pressed }) => [
                         styles.rejectButton,
                         {
                           backgroundColor: theme.card,
                           borderColor: theme.border,
                         },
-                        pressed && styles.rejectButtonPressed,
+                        (isAccepted || isRejected || isActionLoading) &&
+                          styles.acceptButtonDisabled,
+                        pressed &&
+                          !isAccepted &&
+                          !isRejected &&
+                          !isActionLoading &&
+                          styles.rejectButtonPressed,
                       ]}
                       onPress={() => handleRejectCandidate(candidate)}
                     >
-                      <Text style={styles.rejectButtonText}>Recusar</Text>
+                      <Text style={styles.rejectButtonText}>
+                        {isRejected ? "Recusada" : "Recusar"}
+                      </Text>
                     </Pressable>
 
                     <Pressable
-                      disabled={!canAcceptCandidate(candidate)}
+                      disabled={isRejected || isActionLoading}
                       style={({ pressed }) => [
                         styles.acceptButton,
-                        !canAcceptCandidate(candidate) &&
+                        (isRejected || isActionLoading) &&
                           styles.acceptButtonDisabled,
                         pressed &&
-                          canAcceptCandidate(candidate) &&
+                          !isRejected &&
+                          !isActionLoading &&
                           styles.acceptButtonPressed,
                       ]}
                       onPress={() => handleAcceptCandidate(candidate)}
@@ -997,15 +1029,17 @@ export default function JobCandidatesScreen() {
                       <Text
                         style={[
                           styles.acceptButtonText,
-                          !canAcceptCandidate(candidate) &&
+                          (isRejected || isActionLoading) &&
                             styles.acceptButtonDisabledText,
                         ]}
                       >
-                        {candidate.status === "Aceita"
-                          ? "Aceito"
-                          : hasAvailableSpots
-                          ? "Aceitar"
-                          : "Limite atingido"}
+                        {isActionLoading
+                          ? "Aguarde..."
+                          : isAccepted
+                          ? "Pagamento"
+                          : isRejected
+                          ? "Recusada"
+                          : "Aceitar"}
                       </Text>
                     </Pressable>
                   </View>

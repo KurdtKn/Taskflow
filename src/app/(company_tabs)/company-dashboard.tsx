@@ -22,7 +22,7 @@ import { useTheme } from "@/app/context/ThemeContext";
 import { apiDelete, apiGet } from "@/services/api";
 import { getCompanyData, getLoggedUser } from "@/services/storage";
 
-type JobStatus = "active" | "pending" | "finished";
+type JobStatus = "open" | "inProgress" | "finished";
 
 type CompanyJob = {
   id: string;
@@ -62,21 +62,26 @@ type ChamadoApi = {
   valorEstimado?: number | null;
   status?: string | null;
 
-  quantidadeProfissionais?: number | null;
-  totalProfissionais?: number | null;
-  totalVagas?: number | null;
-  vagasTotais?: number | null;
-  professionals?: number | null;
+  quantidadeProfissionais?: number | string | null;
+  quantidade_profissionais?: number | string | null;
+  totalProfissionais?: number | string | null;
+  totalVagas?: number | string | null;
+  vagasTotais?: number | string | null;
+  professionals?: number | string | null;
 
-  totalAceitos?: number | null;
-  quantidadeAceitos?: number | null;
-  profissionaisAceitos?: number | null;
-  vagasPreenchidas?: number | null;
+  totalAceitos?: number | string | null;
+  total_aceitos?: number | string | null;
+  quantidadeAceitos?: number | string | null;
+  profissionaisAceitos?: number | string | null;
+  vagasPreenchidas?: number | string | null;
 
-  totalCandidaturas?: number | null;
-  quantidadeCandidatos?: number | null;
-  totalCandidatos?: number | null;
-  candidates?: number | null;
+  vagasDisponiveis?: number | string | null;
+  vagas_disponiveis?: number | string | null;
+
+  totalCandidaturas?: number | string | null;
+  quantidadeCandidatos?: number | string | null;
+  totalCandidatos?: number | string | null;
+  candidates?: number | string | null;
   candidaturas?: CandidaturaApi[];
 };
 
@@ -89,18 +94,18 @@ type ChamadosResponse =
     };
 
 const statusConfig = {
-  active: {
-    label: "Ativo",
+  open: {
+    label: "Aberto",
     badgeStyle: "activeBadge",
     textStyle: "activeText",
   },
-  pending: {
-    label: "Em análise",
+  inProgress: {
+    label: "Em andamento",
     badgeStyle: "pendingBadge",
     textStyle: "pendingText",
   },
   finished: {
-    label: "Concluído",
+    label: "Finalizado",
     badgeStyle: "finishedBadge",
     textStyle: "finishedText",
   },
@@ -121,6 +126,16 @@ function getChamadosFromResponse(response: ChamadosResponse) {
   }
 
   return response.data ?? response.dados ?? response.chamados ?? [];
+}
+
+function parseNumberValue(value: unknown, fallback = 0) {
+  const parsedValue = Number(value);
+
+  if (Number.isNaN(parsedValue)) {
+    return fallback;
+  }
+
+  return parsedValue;
 }
 
 function getCategoryName(categoryId: number) {
@@ -173,32 +188,32 @@ function getJobStatus(status?: string | null): JobStatus {
   }
 
   if (
-    normalizedStatus === "pendente" ||
-    normalizedStatus === "pending" ||
-    normalizedStatus === "em análise" ||
-    normalizedStatus === "em analise"
+    normalizedStatus === "em_andamento" ||
+    normalizedStatus === "em andamento" ||
+    normalizedStatus === "andamento" ||
+    normalizedStatus === "in_progress"
   ) {
-    return "pending";
+    return "inProgress";
   }
 
-  return "active";
+  return "open";
 }
 
 function getCandidatesCount(chamado: ChamadoApi) {
-  if (typeof chamado.totalCandidaturas === "number") {
-    return chamado.totalCandidaturas;
-  }
+  const rawCandidates =
+    chamado.totalCandidaturas ??
+    chamado.quantidadeCandidatos ??
+    chamado.totalCandidatos ??
+    chamado.candidates;
 
-  if (typeof chamado.quantidadeCandidatos === "number") {
-    return chamado.quantidadeCandidatos;
-  }
+  if (rawCandidates !== undefined && rawCandidates !== null) {
+    const candidates = parseNumberValue(rawCandidates, 0);
 
-  if (typeof chamado.totalCandidatos === "number") {
-    return chamado.totalCandidatos;
-  }
+    if (candidates <= 0) {
+      return 0;
+    }
 
-  if (typeof chamado.candidates === "number") {
-    return chamado.candidates;
+    return candidates;
   }
 
   if (Array.isArray(chamado.candidaturas)) {
@@ -206,22 +221,6 @@ function getCandidatesCount(chamado: ChamadoApi) {
   }
 
   return 0;
-}
-
-function getTotalProfessionals(chamado: ChamadoApi) {
-  const total =
-    chamado.quantidadeProfissionais ??
-    chamado.totalProfissionais ??
-    chamado.totalVagas ??
-    chamado.vagasTotais ??
-    chamado.professionals ??
-    1;
-
-  if (typeof total !== "number" || Number.isNaN(total) || total <= 0) {
-    return 1;
-  }
-
-  return total;
 }
 
 function isAcceptedStatus(status?: string | null) {
@@ -238,21 +237,41 @@ function isAcceptedStatus(status?: string | null) {
   );
 }
 
+function getTotalProfessionals(chamado: ChamadoApi) {
+  const rawTotal =
+    chamado.quantidadeProfissionais ??
+    chamado.quantidade_profissionais ??
+    chamado.totalProfissionais ??
+    chamado.totalVagas ??
+    chamado.vagasTotais ??
+    chamado.professionals ??
+    1;
+
+  const total = parseNumberValue(rawTotal, 1);
+
+  if (total <= 0) {
+    return 1;
+  }
+
+  return total;
+}
+
 function getAcceptedProfessionals(chamado: ChamadoApi) {
-  if (typeof chamado.totalAceitos === "number") {
-    return chamado.totalAceitos;
-  }
+  const rawAccepted =
+    chamado.totalAceitos ??
+    chamado.total_aceitos ??
+    chamado.quantidadeAceitos ??
+    chamado.profissionaisAceitos ??
+    chamado.vagasPreenchidas;
 
-  if (typeof chamado.quantidadeAceitos === "number") {
-    return chamado.quantidadeAceitos;
-  }
+  if (rawAccepted !== undefined && rawAccepted !== null) {
+    const accepted = parseNumberValue(rawAccepted, 0);
 
-  if (typeof chamado.profissionaisAceitos === "number") {
-    return chamado.profissionaisAceitos;
-  }
+    if (accepted <= 0) {
+      return 0;
+    }
 
-  if (typeof chamado.vagasPreenchidas === "number") {
-    return chamado.vagasPreenchidas;
+    return accepted;
   }
 
   if (Array.isArray(chamado.candidaturas)) {
@@ -269,6 +288,19 @@ function getAcceptedProfessionals(chamado: ChamadoApi) {
 }
 
 function getAvailableSpots(chamado: ChamadoApi) {
+  const rawAvailableSpots =
+    chamado.vagasDisponiveis ?? chamado.vagas_disponiveis;
+
+  if (rawAvailableSpots !== undefined && rawAvailableSpots !== null) {
+    const apiAvailableSpots = parseNumberValue(rawAvailableSpots, 0);
+
+    if (apiAvailableSpots <= 0) {
+      return 0;
+    }
+
+    return apiAvailableSpots;
+  }
+
   const totalProfessionals = getTotalProfessionals(chamado);
   const acceptedProfessionals = getAcceptedProfessionals(chamado);
 
@@ -283,7 +315,7 @@ function getAvailableSpots(chamado: ChamadoApi) {
 
 function getAvailableSpotsText(job: CompanyJob) {
   if (job.status === "finished") {
-    return "Serviço concluído";
+    return "Serviço finalizado";
   }
 
   if (job.availableSpots <= 0) {
@@ -291,10 +323,10 @@ function getAvailableSpotsText(job: CompanyJob) {
   }
 
   if (job.availableSpots === 1) {
-    return "1 vaga disponível";
+    return "1 vaga aberta";
   }
 
-  return `${job.availableSpots} vagas disponíveis`;
+  return `${job.availableSpots} vagas abertas`;
 }
 
 export default function CompanyDashboardScreen() {
@@ -362,7 +394,9 @@ export default function CompanyDashboardScreen() {
           return {
             id: String(chamado.id),
             title: chamado.titulo,
-            category: getCategoryName(chamado.categoriaId),
+            category:
+              chamado.categoria ||
+              getCategoryName(Number(chamado.categoriaId)),
             price: formatCurrency(chamado.valorEstimado),
             location:
               chamado.localServico ||
@@ -392,8 +426,8 @@ export default function CompanyDashboardScreen() {
     }
   }
 
-  const activeJobs = useMemo(() => {
-    return companyJobs.filter((job) => job.status === "active").length;
+  const openJobs = useMemo(() => {
+    return companyJobs.filter((job) => job.status === "open").length;
   }, [companyJobs]);
 
   const totalCandidates = useMemo(() => {
@@ -418,6 +452,7 @@ export default function CompanyDashboardScreen() {
         totalProfessionals: String(job.totalProfessionals),
         acceptedProfessionals: String(job.acceptedProfessionals),
         availableSpots: String(job.availableSpots),
+        status: job.status,
       },
     });
   }
@@ -508,11 +543,11 @@ export default function CompanyDashboardScreen() {
             ]}
           >
             <Text style={[styles.summaryNumber, { color: theme.text }]}>
-              {activeJobs}
+              {openJobs}
             </Text>
 
             <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>
-              Ativos
+              Abertos
             </Text>
           </View>
 
@@ -832,31 +867,33 @@ export default function CompanyDashboardScreen() {
                           gap: 10,
                         }}
                       >
-                        <Pressable
-                          hitSlop={10}
-                          onPress={() => handleCancelJob(job)}
-                          style={({ pressed }) => [
-                            {
-                              paddingVertical: 8,
-                              paddingHorizontal: 12,
-                              borderRadius: 10,
-                              backgroundColor: "rgba(220, 38, 38, 0.08)",
-                              borderWidth: 1,
-                              borderColor: "rgba(220, 38, 38, 0.22)",
-                            },
-                            pressed && { opacity: 0.7 },
-                          ]}
-                        >
-                          <Text
-                            style={{
-                              color: "#DC2626",
-                              fontSize: 12,
-                              fontWeight: "800",
-                            }}
+                        {job.status === "open" && (
+                          <Pressable
+                            hitSlop={10}
+                            onPress={() => handleCancelJob(job)}
+                            style={({ pressed }) => [
+                              {
+                                paddingVertical: 8,
+                                paddingHorizontal: 12,
+                                borderRadius: 10,
+                                backgroundColor: "rgba(220, 38, 38, 0.08)",
+                                borderWidth: 1,
+                                borderColor: "rgba(220, 38, 38, 0.22)",
+                              },
+                              pressed && { opacity: 0.7 },
+                            ]}
                           >
-                            Cancelar
-                          </Text>
-                        </Pressable>
+                            <Text
+                              style={{
+                                color: "#DC2626",
+                                fontSize: 12,
+                                fontWeight: "800",
+                              }}
+                            >
+                              Cancelar
+                            </Text>
+                          </Pressable>
+                        )}
 
                         <Pressable
                           hitSlop={10}

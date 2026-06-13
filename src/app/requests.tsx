@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import AssignmentIcon from "../../assets/icons/assignment.svg";
@@ -18,6 +18,8 @@ import TimeIcon from "../../assets/icons/access_time.svg";
 import { styles } from "@/app/styles/requests";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
+import { apiGet } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
 type RequestStatus =
   | "pending"
@@ -42,9 +44,56 @@ type RequestItem = {
   createdAt: string;
 };
 
+type CandidaturaApi = {
+  id: number;
+  chamadoId?: number | string | null;
+  chamado_id?: number | string | null;
+  jobId?: number | string | null;
+
+  chamado?: string | null;
+  titulo?: string | null;
+  title?: string | null;
+
+  empresa?: string | null;
+  company?: string | null;
+
+  categoria?: string | null;
+  category?: string | null;
+
+  cidade?: string | null;
+  estado?: string | null;
+  localServico?: string | null;
+  local_servico?: string | null;
+
+  valorEstimado?: number | string | null;
+  valor_estimado?: number | string | null;
+  valorProposto?: number | string | null;
+  valor_proposto?: number | string | null;
+
+  dataServico?: string | null;
+  data_servico?: string | null;
+  horaServico?: string | null;
+  hora_servico?: string | null;
+
+  status?: string | null;
+  chamadoStatus?: string | null;
+  chamado_status?: string | null;
+
+  dataCandidatura?: string | null;
+  data_candidatura?: string | null;
+};
+
+type CandidaturasResponse =
+  | CandidaturaApi[]
+  | {
+      data?: CandidaturaApi[];
+      dados?: CandidaturaApi[];
+      candidaturas?: CandidaturaApi[];
+    };
+
 const statusConfig = {
   pending: {
-    label: "Pendente",
+    label: "Aguardando resposta",
     backgroundColor: "rgba(245,158,11,0.12)",
     textColor: colors.warning,
   },
@@ -70,6 +119,207 @@ const statusConfig = {
   },
 };
 
+function getCandidaturasFromResponse(response: CandidaturasResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.candidaturas ?? [];
+}
+
+function parseNumberValue(value: unknown, fallback = 0) {
+  const parsedValue = Number(value);
+
+  if (Number.isNaN(parsedValue)) {
+    return fallback;
+  }
+
+  return parsedValue;
+}
+
+function normalizeStatus(value?: string | null) {
+  return value?.toLowerCase().trim() ?? "";
+}
+
+function getRequestStatus(
+  candidaturaStatus?: string | null,
+  chamadoStatus?: string | null
+): RequestStatus {
+  const normalizedCandidaturaStatus = normalizeStatus(candidaturaStatus);
+  const normalizedChamadoStatus = normalizeStatus(chamadoStatus);
+
+  if (
+    normalizedChamadoStatus === "finalizado" ||
+    normalizedChamadoStatus === "finished" ||
+    normalizedChamadoStatus === "concluido" ||
+    normalizedChamadoStatus === "concluído"
+  ) {
+    return "completed";
+  }
+
+  if (
+    normalizedCandidaturaStatus === "recusada" ||
+    normalizedCandidaturaStatus === "recusado" ||
+    normalizedCandidaturaStatus === "rejected"
+  ) {
+    return "refused";
+  }
+
+  if (
+    normalizedCandidaturaStatus === "aceita" ||
+    normalizedCandidaturaStatus === "aceito" ||
+    normalizedCandidaturaStatus === "accepted"
+  ) {
+    if (
+      normalizedChamadoStatus === "em_andamento" ||
+      normalizedChamadoStatus === "em andamento" ||
+      normalizedChamadoStatus === "andamento" ||
+      normalizedChamadoStatus === "in_progress"
+    ) {
+      return "in_progress";
+    }
+
+    return "accepted";
+  }
+
+  return "pending";
+}
+
+function formatCurrency(value?: number | string | null) {
+  const parsedValue = parseNumberValue(value, 0);
+
+  if (!parsedValue || parsedValue <= 0) {
+    return "Valor a combinar";
+  }
+
+  return parsedValue.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const dateOnly = value.split("T")[0].split(" ")[0];
+  const [year, month, day] = dateOnly.split("-");
+
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year}`;
+}
+
+function formatHour(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return value.slice(0, 5);
+}
+
+function formatDateTime(date?: string | null, hour?: string | null) {
+  const formattedDate = formatDate(date);
+  const formattedHour = formatHour(hour);
+
+  if (formattedDate && formattedHour) {
+    return `${formattedDate}, ${formattedHour}`;
+  }
+
+  if (formattedDate) {
+    return formattedDate;
+  }
+
+  if (formattedHour) {
+    return formattedHour;
+  }
+
+  return "Data a combinar";
+}
+
+function formatCreatedAt(value?: string | null) {
+  const formattedDate = formatDate(value);
+
+  if (!formattedDate) {
+    return "Solicitação enviada";
+  }
+
+  return `Solicitado em ${formattedDate}`;
+}
+
+function formatLocation(candidatura: CandidaturaApi) {
+  const local = candidatura.localServico ?? candidatura.local_servico;
+  const city = candidatura.cidade;
+  const state = candidatura.estado;
+
+  if (local) {
+    return local;
+  }
+
+  if (city && state) {
+    return `${city} - ${state}`;
+  }
+
+  if (city) {
+    return city;
+  }
+
+  return "Local não informado";
+}
+
+function mapCandidaturaToRequest(candidatura: CandidaturaApi): RequestItem {
+  const jobId =
+    candidatura.chamadoId ??
+    candidatura.chamado_id ??
+    candidatura.jobId ??
+    "";
+
+  const chamadoStatus =
+    candidatura.chamadoStatus ?? candidatura.chamado_status ?? "";
+
+  const valorProposto =
+    candidatura.valorProposto ?? candidatura.valor_proposto;
+
+  const valorEstimado =
+    candidatura.valorEstimado ?? candidatura.valor_estimado;
+
+  const dataServico =
+    candidatura.dataServico ?? candidatura.data_servico;
+
+  const horaServico =
+    candidatura.horaServico ?? candidatura.hora_servico;
+
+  const dataCandidatura =
+    candidatura.dataCandidatura ?? candidatura.data_candidatura;
+
+  return {
+    id: String(candidatura.id),
+    jobId: String(jobId),
+    chatId: String(jobId),
+    title:
+      candidatura.chamado ??
+      candidatura.titulo ??
+      candidatura.title ??
+      "Chamado não informado",
+    company:
+      candidatura.empresa ??
+      candidatura.company ??
+      "Empresa não informada",
+    category:
+      candidatura.categoria ??
+      candidatura.category ??
+      "Categoria",
+    price: formatCurrency(valorProposto ?? valorEstimado),
+    location: formatLocation(candidatura),
+    time: formatDateTime(dataServico, horaServico),
+    status: getRequestStatus(candidatura.status, chamadoStatus),
+    createdAt: formatCreatedAt(dataCandidatura),
+  };
+}
+
 export default function RequestsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>("all");
   const [requests, setRequests] = useState<RequestItem[]>([]);
@@ -77,51 +327,43 @@ export default function RequestsScreen() {
 
   const { isDark, theme } = useTheme();
   const emptyIconColor = isDark ? colors.white : colors.black;
+  const iconColor = isDark ? colors.white : colors.black;
 
-  useEffect(() => {
-    loadRequests();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadRequests();
+    }, [])
+  );
 
   async function loadRequests() {
     try {
       setIsLoading(true);
 
-      /*
-        Futuramente entra aqui a busca na API.
+      const loggedUser = await getLoggedUser();
 
-        Exemplo:
-        const response = await requestsService.getMyRequests();
-        setRequests(response);
+      if (!loggedUser) {
+        router.replace("/login");
+        return;
+      }
 
-        A API deve retornar somente as solicitações do freelancer logado.
-        O usuário será identificado pelo token salvo depois do login.
+      const freelancerId = Number(loggedUser.perfilId || loggedUser.id);
 
-        Formato esperado:
-        [
-          {
-            id: "1",
-            jobId: "10",
-            chatId: "5",
-            title: "Garçom para Evento",
-            company: "TaskFlow Eventos",
-            category: "Eventos",
-            price: "R$200,00",
-            location: "Centro",
-            time: "Hoje, 18:00",
-            status: "accepted",
-            createdAt: "Solicitado hoje"
-          }
-        ]
+      if (!freelancerId) {
+        setRequests([]);
+        return;
+      }
 
-        Status que a tela aceita:
-        pending      -> abre detalhes
-        accepted     -> abre chat
-        in_progress  -> abre chat
-        refused      -> abre detalhes
-        completed    -> abre detalhes e mostra botão "Avaliar empresa"
-      */
+      const response = await apiGet<CandidaturasResponse>(
+        `/api/Candidaturas/freelancer/${freelancerId}`
+      );
 
-      setRequests([]);
+      const candidaturas = getCandidaturasFromResponse(response);
+
+      console.log("Candidaturas do freelancer:", candidaturas);
+
+      const mappedRequests = candidaturas.map(mapCandidaturaToRequest);
+
+      setRequests(mappedRequests);
     } catch (error) {
       console.log("Erro ao carregar solicitações:", error);
       setRequests([]);
@@ -148,7 +390,7 @@ export default function RequestsScreen() {
       params: {
         requestId: request.id,
         jobId: request.jobId,
-        chatId: request.chatId ?? "",
+        chatId: request.chatId ?? request.jobId,
         jobTitle: request.title,
         companyName: request.company,
         userType: "freelancer",
@@ -197,6 +439,10 @@ export default function RequestsScreen() {
       return "Abrir chat ›";
     }
 
+    if (status === "completed") {
+      return "Ver detalhes ›";
+    }
+
     return "Ver detalhes ›";
   }
 
@@ -211,7 +457,12 @@ export default function RequestsScreen() {
 
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} />
+          <ArrowBack
+            width={28}
+            height={28}
+            color={theme.text}
+            fill={theme.text}
+          />
         </Pressable>
 
         <Text style={[styles.headerTitle, { color: theme.text }]}>
@@ -286,7 +537,7 @@ export default function RequestsScreen() {
               selectedFilter === "pending" && styles.filterTextActive,
             ]}
           >
-            Pendentes
+            Aguardando
           </Text>
         </Pressable>
 
@@ -331,6 +582,28 @@ export default function RequestsScreen() {
             ]}
           >
             Em andamento
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.filterChip,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+            selectedFilter === "refused" && styles.filterChipActive,
+          ]}
+          onPress={() => setSelectedFilter("refused")}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              { color: theme.textSecondary },
+              selectedFilter === "refused" && styles.filterTextActive,
+            ]}
+          >
+            Recusadas
           </Text>
         </Pressable>
 
@@ -463,7 +736,12 @@ export default function RequestsScreen() {
 
                 <View style={styles.infoArea}>
                   <View style={styles.infoRow}>
-                    <WalletIcon width={16} height={16} />
+                    <WalletIcon
+                      width={16}
+                      height={16}
+                      color={iconColor}
+                      fill={iconColor}
+                    />
 
                     <Text style={[styles.infoText, { color: theme.text }]}>
                       {request.price}
@@ -474,7 +752,8 @@ export default function RequestsScreen() {
                     <LocationIcon
                       width={16}
                       height={16}
-                      color={colors.location}
+                      color={iconColor}
+                      fill={iconColor}
                     />
 
                     <Text style={[styles.infoText, { color: theme.text }]}>
@@ -483,7 +762,12 @@ export default function RequestsScreen() {
                   </View>
 
                   <View style={styles.infoRow}>
-                    <TimeIcon width={16} height={16} />
+                    <TimeIcon
+                      width={16}
+                      height={16}
+                      color={iconColor}
+                      fill={iconColor}
+                    />
 
                     <Text style={[styles.infoText, { color: theme.text }]}>
                       {request.time}

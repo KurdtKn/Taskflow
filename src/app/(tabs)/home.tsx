@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Image,
   Platform,
@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 
 import { styles } from "../styles/home";
 import { colors } from "@/styles/colors";
@@ -49,15 +49,20 @@ type ChamadoApi = {
   status: string;
 
   quantidadeProfissionais?: number | string | null;
+  quantidade_profissionais?: number | string | null;
   totalProfissionais?: number | string | null;
   totalVagas?: number | string | null;
   vagasTotais?: number | string | null;
   professionals?: number | string | null;
 
   totalAceitos?: number | string | null;
+  total_aceitos?: number | string | null;
   quantidadeAceitos?: number | string | null;
   profissionaisAceitos?: number | string | null;
   vagasPreenchidas?: number | string | null;
+
+  vagasDisponiveis?: number | string | null;
+  vagas_disponiveis?: number | string | null;
 
   candidaturas?: CandidaturaApi[];
 };
@@ -144,6 +149,7 @@ function isUnavailableStatus(status?: string | null) {
 function getTotalProfessionals(chamado: ChamadoApi) {
   const rawTotal =
     chamado.quantidadeProfissionais ??
+    chamado.quantidade_profissionais ??
     chamado.totalProfissionais ??
     chamado.totalVagas ??
     chamado.vagasTotais ??
@@ -162,6 +168,7 @@ function getTotalProfessionals(chamado: ChamadoApi) {
 function getAcceptedProfessionals(chamado: ChamadoApi) {
   const rawAccepted =
     chamado.totalAceitos ??
+    chamado.total_aceitos ??
     chamado.quantidadeAceitos ??
     chamado.profissionaisAceitos ??
     chamado.vagasPreenchidas;
@@ -190,6 +197,19 @@ function getAcceptedProfessionals(chamado: ChamadoApi) {
 }
 
 function getAvailableSpots(chamado: ChamadoApi) {
+  const rawAvailableSpots =
+    chamado.vagasDisponiveis ?? chamado.vagas_disponiveis;
+
+  if (rawAvailableSpots !== undefined && rawAvailableSpots !== null) {
+    const apiAvailableSpots = parseNumberValue(rawAvailableSpots, 1);
+
+    if (apiAvailableSpots <= 0) {
+      return 0;
+    }
+
+    return apiAvailableSpots;
+  }
+
   const totalProfessionals = getTotalProfessionals(chamado);
   const acceptedProfessionals = getAcceptedProfessionals(chamado);
 
@@ -239,9 +259,11 @@ export default function HomeScreen() {
     filtroValorMaxAtual.trim() !== "" ||
     buscaAtual !== "";
 
-  useEffect(() => {
-    loadServices();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadServices();
+    }, [])
+  );
 
   async function loadServices() {
     try {
@@ -255,6 +277,8 @@ export default function HomeScreen() {
 
       const response = await apiGet<ChamadosResponse>("/api/Chamados");
       const chamados = getChamadosFromResponse(response);
+
+      console.log("Chamados recebidos na Home:", chamados);
 
       const mappedServices = chamados.map(mapChamadoToService);
 
@@ -301,6 +325,20 @@ export default function HomeScreen() {
     const totalProfessionals = getTotalProfessionals(chamado);
     const acceptedProfessionals = getAcceptedProfessionals(chamado);
     const availableSpots = getAvailableSpots(chamado);
+
+    console.log("Vagas do chamado:", {
+      id: chamado.id,
+      titulo: chamado.titulo,
+      quantidadeProfissionais: chamado.quantidadeProfissionais,
+      quantidade_profissionais: chamado.quantidade_profissionais,
+      totalAceitos: chamado.totalAceitos,
+      total_aceitos: chamado.total_aceitos,
+      vagasDisponiveis: chamado.vagasDisponiveis,
+      vagas_disponiveis: chamado.vagas_disponiveis,
+      totalProfessionals,
+      acceptedProfessionals,
+      availableSpots,
+    });
 
     return {
       id,
@@ -391,7 +429,8 @@ export default function HomeScreen() {
       return "";
     }
 
-    const [year, month, day] = date.split("-");
+    const dateOnly = date.split("T")[0];
+    const [year, month, day] = dateOnly.split("-");
 
     if (!year || !month || !day) {
       return date;
