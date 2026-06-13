@@ -10,33 +10,66 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { styles } from "@/app/styles/paymentSuccess";
 import { useTheme } from "@/app/context/ThemeContext";
-import { colors } from "@/styles/colors";
+
+function getParamValue(value?: string | string[], fallback = "") {
+  if (Array.isArray(value)) {
+    return value[0] ?? fallback;
+  }
+
+  return value ?? fallback;
+}
 
 export default function PaymentSuccessScreen() {
   const params = useLocalSearchParams<{
-    jobId?: string;
-    candidaturaId?: string;
-    freelancerId?: string;
+    contratoId?: string | string[];
 
-    jobTitle?: string;
-    candidateName?: string;
+    jobId?: string | string[];
+    candidaturaId?: string | string[];
+    freelancerId?: string | string[];
 
-    serviceValue?: string;
-    platformFee?: string;
-    totalValue?: string;
-    paymentMethod?: string;
+    jobTitle?: string | string[];
+    jobCategory?: string | string[];
+    jobPrice?: string | string[];
+    jobLocation?: string | string[];
+    jobTime?: string | string[];
+    status?: string | string[];
+
+    candidateName?: string | string[];
+    candidateEmail?: string | string[];
+    candidateRating?: string | string[];
+
+    serviceValue?: string | string[];
+    candidatePrice?: string | string[];
+    platformFee?: string | string[];
+    totalValue?: string | string[];
+    paymentMethod?: string | string[];
   }>();
 
-  const jobId = params.jobId ?? "";
-  const candidaturaId = params.candidaturaId ?? "";
-  const freelancerId = params.freelancerId ?? "";
+  const contratoId = getParamValue(params.contratoId);
 
-  const jobTitle = params.jobTitle ?? "Chamado";
-  const candidateName = params.candidateName ?? "Freelancer selecionado";
-  const serviceValue = params.serviceValue ?? "Valor a combinar";
-  const platformFee = params.platformFee ?? "A calcular";
-  const totalValue = params.totalValue ?? "Valor a combinar";
-  const paymentMethod = params.paymentMethod ?? "Pix";
+  const jobId = getParamValue(params.jobId);
+  const candidaturaId = getParamValue(params.candidaturaId);
+  const freelancerId = getParamValue(params.freelancerId);
+
+  const jobTitle = getParamValue(params.jobTitle, "Chamado");
+  const jobCategory = getParamValue(params.jobCategory);
+  const jobPrice = getParamValue(params.jobPrice);
+  const jobLocation = getParamValue(params.jobLocation);
+  const jobTime = getParamValue(params.jobTime);
+  const status = getParamValue(params.status);
+
+  const candidateName = getParamValue(
+    params.candidateName,
+    "Freelancer selecionado"
+  );
+  const candidateEmail = getParamValue(params.candidateEmail);
+  const candidateRating = getParamValue(params.candidateRating);
+
+  const serviceValue = getParamValue(params.serviceValue, "Valor a combinar");
+  const candidatePrice = getParamValue(params.candidatePrice, serviceValue);
+  const platformFee = getParamValue(params.platformFee, "A calcular");
+  const totalValue = getParamValue(params.totalValue, "Valor a combinar");
+  const paymentMethod = getParamValue(params.paymentMethod, "Pix");
 
   const { isDark, theme } = useTheme();
 
@@ -44,11 +77,28 @@ export default function PaymentSuccessScreen() {
     router.push({
       pathname: "/chat",
       params: {
+        contratoId,
+
         jobId,
         candidaturaId,
         freelancerId,
+
         jobTitle,
+        jobCategory,
+        jobPrice,
+        jobLocation,
+        jobTime,
+        status,
+
         candidateName,
+        candidateEmail,
+        candidateRating,
+
+        serviceValue,
+        candidatePrice,
+        platformFee,
+        totalValue,
+        paymentMethod,
       },
     });
   }

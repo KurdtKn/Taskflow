@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -8,7 +10,6 @@ import {
   Text,
   TextInput,
   View,
-  Image,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
@@ -24,6 +25,7 @@ import {
   getLoggedUser,
 } from "@/services/storage";
 import { colors } from "@/styles/colors";
+import { apiPost } from "@/services/api";
 
 type MessageSender = "company" | "freelancer" | "system";
 
@@ -74,14 +76,40 @@ function getInitial(name: string) {
   return name.trim().charAt(0).toUpperCase();
 }
 
+function getParamValue(value?: string | string[], fallback = "") {
+  if (Array.isArray(value)) {
+    return value[0] ?? fallback;
+  }
+
+  return value ?? fallback;
+}
+
 export default function ChatScreen() {
   const params = useLocalSearchParams<{
+    contratoId?: string | string[];
+
     jobId?: string | string[];
     candidaturaId?: string | string[];
     freelancerId?: string | string[];
+
     jobTitle?: string | string[];
+    jobCategory?: string | string[];
+    jobPrice?: string | string[];
+    jobLocation?: string | string[];
+    jobTime?: string | string[];
+    status?: string | string[];
+
     candidateName?: string | string[];
+    candidateEmail?: string | string[];
+    candidateRating?: string | string[];
+
     companyName?: string | string[];
+
+    serviceValue?: string | string[];
+    candidatePrice?: string | string[];
+    platformFee?: string | string[];
+    totalValue?: string | string[];
+    paymentMethod?: string | string[];
   }>();
 
   const scrollRef = useRef<ScrollView>(null);
@@ -96,6 +124,7 @@ export default function ChatScreen() {
   const [currentUserName, setCurrentUserName] = useState("Usuário");
   const [currentUserPhotoUrl, setCurrentUserPhotoUrl] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
+  const [isFinishingJob, setIsFinishingJob] = useState(false);
 
   const { isDark, theme } = useTheme();
 
@@ -107,27 +136,35 @@ export default function ChatScreen() {
     ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
   };
 
-  function getParamValue(value?: string | string[], fallback = "") {
-    if (Array.isArray(value)) {
-      return value[0] ?? fallback;
-    }
-
-    return value ?? fallback;
-  }
+  const contratoId = getParamValue(params.contratoId);
 
   const jobId = getParamValue(params.jobId);
   const candidaturaId = getParamValue(params.candidaturaId);
   const freelancerId = getParamValue(params.freelancerId);
+
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
+  const jobCategory = getParamValue(params.jobCategory);
+  const jobPrice = getParamValue(params.jobPrice);
+  const jobLocation = getParamValue(params.jobLocation);
+  const jobTime = getParamValue(params.jobTime);
+  const status = getParamValue(params.status);
+
   const candidateName = getParamValue(
     params.candidateName,
     "Freelancer selecionado"
   );
+  const candidateEmail = getParamValue(params.candidateEmail);
+  const candidateRating = getParamValue(params.candidateRating);
+
   const companyName = getParamValue(params.companyName, "Empresa");
 
-  const chatId = jobId || "sem-chamado";
+  const serviceValue = getParamValue(params.serviceValue);
+  const candidatePrice = getParamValue(params.candidatePrice);
+  const platformFee = getParamValue(params.platformFee);
+  const totalValue = getParamValue(params.totalValue);
+  const paymentMethod = getParamValue(params.paymentMethod);
 
-  // Agora o chat é por chamado. Isso permite chat em grupo.
+  const chatId = contratoId || jobId || "sem-chamado";
   const chatKey = `${CHAT_STORAGE_KEY}:${chatId}`;
 
   const chatHeaderTitle =
@@ -282,18 +319,80 @@ export default function ChatScreen() {
     }, 100);
   }
 
-  function handleFinishService() {
-    router.push({
-      pathname: "/service-completion",
-      params: {
-        jobId,
-        candidaturaId,
-        freelancerId,
-        jobTitle,
-        candidateName,
-        companyName,
-      },
-    });
+  async function handleFinishService() {
+    console.log("CLICOU EM FINALIZAR");
+    console.log("contratoId:", contratoId);
+    console.log("jobId:", jobId);
+    console.log("candidaturaId:", candidaturaId);
+    console.log("freelancerId:", freelancerId);
+
+    if (!contratoId) {
+      Alert.alert(
+        "Contrato não encontrado",
+        "O chat não recebeu o contratoId. Volte para o pagamento e abra o chat novamente."
+      );
+      return;
+    }
+
+    if (!jobId) {
+      Alert.alert("Erro", "Não foi possível identificar o chamado.");
+      return;
+    }
+
+    try {
+      setIsFinishingJob(true);
+
+      try {
+        const response = await apiPost(`/api/Chamados/${jobId}/finalizar`, {});
+        console.log("Chamado finalizado na API:", response);
+      } catch (error) {
+        console.log(
+          "Não foi possível finalizar o chamado na API, seguindo para a conclusão:",
+          error
+        );
+      }
+
+      router.push({
+        pathname: "/service-completion",
+        params: {
+          contratoId,
+
+          jobId,
+          candidaturaId,
+          freelancerId,
+
+          jobTitle,
+          jobCategory,
+          jobPrice,
+          jobLocation,
+          jobTime,
+          status,
+
+          candidateName,
+          candidateEmail,
+          candidateRating,
+
+          companyName,
+
+          serviceValue,
+          candidatePrice,
+          platformFee,
+          totalValue,
+          paymentMethod,
+        },
+      });
+    } catch (error) {
+      console.log("Erro ao finalizar serviço:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível finalizar o serviço agora.";
+
+      Alert.alert("Erro ao finalizar", errorMessage);
+    } finally {
+      setIsFinishingJob(false);
+    }
   }
 
   function handleGoBack() {
@@ -321,7 +420,9 @@ export default function ChatScreen() {
         style={[
           styles.senderAvatar,
           {
-            backgroundColor: isCurrentUser ? colors.primary : theme.inputBackground,
+            backgroundColor: isCurrentUser
+              ? colors.primary
+              : theme.inputBackground,
             borderColor: isCurrentUser ? colors.primary : theme.border,
           },
         ]}
@@ -342,10 +443,7 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: theme.background },
-      ]}
+      style={[styles.container, { backgroundColor: theme.background }]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
@@ -376,18 +474,22 @@ export default function ChatScreen() {
               {chatHeaderTitle}
             </Text>
 
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+            <Text
+              style={[styles.headerSubtitle, { color: theme.textSecondary }]}
+            >
               {chatHeaderSubtitle}
             </Text>
           </View>
 
           {currentUserType === "empresa" ? (
             <Pressable
-              style={styles.finishButton}
+              style={[styles.finishButton, isFinishingJob && { opacity: 0.55 }]}
               onPress={handleFinishService}
-              disabled={isLoading}
+              disabled={isLoading || isFinishingJob}
             >
-              <Text style={styles.finishButtonText}>Finalizar</Text>
+              <Text style={styles.finishButtonText}>
+                {isFinishingJob ? "Finalizando..." : "Finalizar"}
+              </Text>
             </Pressable>
           ) : (
             <View style={styles.finishButtonPlaceholder} />
@@ -412,7 +514,8 @@ export default function ChatScreen() {
           </Text>
 
           <Text style={[styles.jobText, { color: theme.textSecondary }]}>
-            Combine os detalhes finais do serviço diretamente pelo chat em grupo.
+            Combine os detalhes finais do serviço diretamente pelo chat em
+            grupo.
           </Text>
         </View>
 
@@ -491,9 +594,7 @@ export default function ChatScreen() {
                       style={[
                         styles.senderName,
                         {
-                          color: isCurrentUser
-                            ? theme.textSecondary
-                            : theme.textSecondary,
+                          color: theme.textSecondary,
                           textAlign: isCurrentUser ? "right" : "left",
                         },
                       ]}
@@ -577,10 +678,7 @@ export default function ChatScreen() {
           ]}
         >
           <TextInput
-            style={[
-              styles.input,
-              cleanInputStyle,
-            ]}
+            style={[styles.input, cleanInputStyle]}
             placeholder="Digite uma mensagem..."
             placeholderTextColor={theme.textSecondary}
             value={messageText}

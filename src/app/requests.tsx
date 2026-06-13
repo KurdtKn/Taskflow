@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useFocusEffect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import AssignmentIcon from "../../assets/icons/assignment.svg";
@@ -42,6 +43,13 @@ type RequestItem = {
   time: string;
   status: RequestStatus;
   createdAt: string;
+};
+
+type ReviewPayload = {
+  id?: string;
+  jobId?: string;
+  requestId?: string;
+  ratedUserType?: string;
 };
 
 type CandidaturaApi = {
@@ -90,6 +98,8 @@ type CandidaturasResponse =
       dados?: CandidaturaApi[];
       candidaturas?: CandidaturaApi[];
     };
+
+const REVIEWS_STORAGE_KEY = "@taskflow:reviews";
 
 const statusConfig = {
   pending: {
@@ -323,6 +333,7 @@ function mapCandidaturaToRequest(candidatura: CandidaturaApi): RequestItem {
 export default function RequestsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>("all");
   const [requests, setRequests] = useState<RequestItem[]>([]);
+  const [reviewedCompanyKeys, setReviewedCompanyKeys] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
@@ -335,9 +346,41 @@ export default function RequestsScreen() {
     }, [])
   );
 
+  async function loadReviewedCompanyKeys() {
+    try {
+      const storedReviews = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+      const reviews: ReviewPayload[] = storedReviews
+        ? JSON.parse(storedReviews)
+        : [];
+
+      const keys: string[] = [];
+
+      reviews.forEach((review) => {
+        if (review.ratedUserType !== "company") {
+          return;
+        }
+
+        if (review.jobId) {
+          keys.push(`job:${review.jobId}`);
+        }
+
+        if (review.requestId) {
+          keys.push(`request:${review.requestId}`);
+        }
+      });
+
+      setReviewedCompanyKeys([...new Set(keys)]);
+    } catch (error) {
+      console.log("Erro ao carregar avaliações salvas:", error);
+      setReviewedCompanyKeys([]);
+    }
+  }
+
   async function loadRequests() {
     try {
       setIsLoading(true);
+
+      await loadReviewedCompanyKeys();
 
       const loggedUser = await getLoggedUser();
 
@@ -379,6 +422,13 @@ export default function RequestsScreen() {
 
     return requests.filter((request) => request.status === selectedFilter);
   }, [requests, selectedFilter]);
+
+  function hasCompanyReview(request: RequestItem) {
+    return (
+      reviewedCompanyKeys.includes(`job:${request.jobId}`) ||
+      reviewedCompanyKeys.includes(`request:${request.id}`)
+    );
+  }
 
   function canOpenChat(status: RequestStatus) {
     return status === "accepted" || status === "in_progress";
@@ -437,10 +487,6 @@ export default function RequestsScreen() {
   function getActionText(status: RequestStatus) {
     if (status === "accepted" || status === "in_progress") {
       return "Abrir chat ›";
-    }
-
-    if (status === "completed") {
-      return "Ver detalhes ›";
     }
 
     return "Ver detalhes ›";
@@ -687,6 +733,7 @@ export default function RequestsScreen() {
         ) : (
           filteredRequests.map((request) => {
             const currentStatus = statusConfig[request.status];
+            const companyAlreadyReviewed = hasCompanyReview(request);
 
             return (
               <Pressable
@@ -792,14 +839,20 @@ export default function RequestsScreen() {
 
                 {request.status === "completed" && (
                   <Pressable
+                    disabled={companyAlreadyReviewed}
                     style={({ pressed }) => [
                       styles.rateCompanyButton,
-                      pressed && styles.rateCompanyButtonPressed,
+                      companyAlreadyReviewed && { opacity: 0.55 },
+                      pressed &&
+                        !companyAlreadyReviewed &&
+                        styles.rateCompanyButtonPressed,
                     ]}
                     onPress={() => handleRateCompany(request)}
                   >
                     <Text style={styles.rateCompanyButtonText}>
-                      Avaliar empresa
+                      {companyAlreadyReviewed
+                        ? "Avaliação enviada"
+                        : "Avaliar empresa"}
                     </Text>
                   </Pressable>
                 )}
