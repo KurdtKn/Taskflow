@@ -29,7 +29,7 @@ const ratingTags = [
   "Atencioso",
 ];
 
-const COMMENT_MIN_LENGTH = 50;
+const COMMENT_MIN_LENGTH = 20;
 const COMMENT_MAX_LENGTH = 500;
 const REVIEWS_STORAGE_KEY = "@taskflow:reviews";
 

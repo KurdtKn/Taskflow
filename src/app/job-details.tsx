@@ -1,4 +1,5 @@
 import {
+  Alert,
   Image,
   Pressable,
   SafeAreaView,
@@ -21,17 +22,19 @@ import { colors } from "@/styles/colors";
 export default function JobDetailsScreen() {
   const params = useLocalSearchParams<{
     id?: string | string[];
+    jobId?: string | string[];
+    chamadoId?: string | string[];
+
     title?: string | string[];
     description?: string | string[];
     company?: string | string[];
     category?: string | string[];
     price?: string | string[];
-    pricePerProfessional?: string | string[];
-    paymentInfoText?: string | string[];
     distance?: string | string[];
     location?: string | string[];
     time?: string | string[];
     imageUrl?: string | string[];
+
     totalProfessionals?: string | string[];
     acceptedProfessionals?: string | string[];
     availableSpots?: string | string[];
@@ -73,75 +76,18 @@ export default function JobDetailsScreen() {
     return `${value} vagas disponíveis`;
   }
 
-  function parsePriceToNumber(value: string) {
-    if (!value || value === "A combinar") {
-      return 0;
-    }
+  const id =
+    getParamValue(params.chamadoId) ||
+    getParamValue(params.jobId) ||
+    getParamValue(params.id);
 
-    const numbersOnly = value.replace(/\D/g, "");
-
-    if (!numbersOnly) {
-      return 0;
-    }
-
-    return Number(numbersOnly) / 100;
-  }
-
-  function formatCurrency(value: number) {
-    return value.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-  }
-
-  function calculatePricePerProfessionalText(
-    totalValueText: string,
-    totalProfessionalsValue: number
-  ) {
-    const totalValue = parsePriceToNumber(totalValueText);
-    const safeTotalProfessionals =
-      totalProfessionalsValue > 0 ? totalProfessionalsValue : 1;
-
-    if (!totalValue || totalValue <= 0) {
-      return "A combinar";
-    }
-
-    return formatCurrency(totalValue / safeTotalProfessionals);
-  }
-
-  function calculatePaymentInfoText(
-    totalValueText: string,
-    totalProfessionalsValue: number
-  ) {
-    const totalValue = parsePriceToNumber(totalValueText);
-    const safeTotalProfessionals =
-      totalProfessionalsValue > 0 ? totalProfessionalsValue : 1;
-
-    if (!totalValue || totalValue <= 0) {
-      if (safeTotalProfessionals > 1) {
-        return `Valor a combinar • ${safeTotalProfessionals} profissionais`;
-      }
-
-      return "Valor a combinar";
-    }
-
-    if (safeTotalProfessionals > 1) {
-      const valuePerProfessional = totalValue / safeTotalProfessionals;
-
-      return `${formatCurrency(
-        valuePerProfessional
-      )} por freelancer • total ${formatCurrency(totalValue)}`;
-    }
-
-    return `${formatCurrency(totalValue)} para 1 profissional`;
-  }
-
-  const id = getParamValue(params.id);
   const title = getParamValue(params.title, "Chamado disponível");
+
   const description = getParamValue(
     params.description,
     "A descrição deste chamado será carregada conforme os dados cadastrados pela empresa."
   );
+
   const company = getParamValue(params.company, "Empresa não informada");
   const category = getParamValue(params.category, "Categoria");
   const price = getParamValue(params.price, "A combinar");
@@ -161,17 +107,6 @@ export default function JobDetailsScreen() {
 
   const hasAvailableSpots = availableSpots > 0;
   const vacanciesText = getVacanciesText(availableSpots);
-
-  const pricePerProfessional = getParamValue(
-    params.pricePerProfessional,
-    calculatePricePerProfessionalText(price, totalProfessionals)
-  );
-
-  const paymentInfoText = getParamValue(
-    params.paymentInfoText,
-    calculatePaymentInfoText(price, totalProfessionals)
-  );
-
   const isMultipleProfessionals = totalProfessionals > 1;
 
   function getCompanyInitials() {
@@ -193,13 +128,19 @@ export default function JobDetailsScreen() {
       return;
     }
 
+    if (!id) {
+      Alert.alert(
+        "Chamado não encontrado",
+        "Não foi possível identificar o chamado para enviar sua candidatura."
+      );
+      return;
+    }
+
     console.log("Solicitar atendimento:", {
       id,
       title,
       company,
       price,
-      pricePerProfessional,
-      paymentInfoText,
       totalProfessionals,
       acceptedProfessionals,
       availableSpots,
@@ -209,16 +150,23 @@ export default function JobDetailsScreen() {
       pathname: "/request-confirmation",
       params: {
         id,
+        jobId: id,
+        chamadoId: id,
+
         title,
         description,
         company,
         category,
         price,
-        pricePerProfessional,
-        paymentInfoText,
+        jobPrice: price,
+        serviceValue: price,
+        candidatePrice: price,
+
         location,
+        distance,
         time,
         imageUrl,
+
         totalProfessionals: String(totalProfessionals),
         acceptedProfessionals: String(acceptedProfessionals),
         availableSpots: String(availableSpots),
@@ -230,7 +178,10 @@ export default function JobDetailsScreen() {
     router.push({
       pathname: "/company-public-profile",
       params: {
+        jobId: id,
+        chamadoId: id,
         jobTitle: title,
+        company,
       },
     });
   }
@@ -309,34 +260,6 @@ export default function JobDetailsScreen() {
 
           <Text style={styles.price}>{price}</Text>
 
-          <View
-            style={{
-              alignSelf: "flex-start",
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 999,
-              backgroundColor: isDark
-                ? "rgba(255,255,255,0.08)"
-                : "rgba(11,87,208,0.08)",
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(255,255,255,0.16)"
-                : "rgba(11,87,208,0.18)",
-              marginTop: 8,
-              marginBottom: 10,
-            }}
-          >
-            <Text
-              style={{
-                color: theme.text,
-                fontSize: 12,
-                fontWeight: "900",
-              }}
-            >
-              {paymentInfoText}
-            </Text>
-          </View>
-
           {isMultipleProfessionals && (
             <Text
               style={{
@@ -344,12 +267,12 @@ export default function JobDetailsScreen() {
                 fontSize: 13,
                 fontWeight: "700",
                 lineHeight: 19,
+                marginTop: 8,
                 marginBottom: 10,
               }}
             >
-              Este chamado precisa de {totalProfessionals} freelancers. O valor
-              total será dividido entre os profissionais aceitos. Cada freelancer
-              recebe aproximadamente {pricePerProfessional}.
+              Este chamado precisa de {totalProfessionals} freelancers. A
+              empresa aceitará profissionais conforme as vagas disponíveis.
             </Text>
           )}
 
@@ -440,37 +363,6 @@ export default function JobDetailsScreen() {
               </Text>
             </View>
           </View>
-
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconBox}>
-              <Text
-                style={{
-                  color: infoIconColor,
-                  fontSize: 18,
-                  fontWeight: "900",
-                }}
-              >
-                R$
-              </Text>
-            </View>
-
-            <View style={styles.infoTextArea}>
-              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-                Valor por freelancer
-              </Text>
-
-              <Text style={[styles.infoValue, { color: theme.text }]}>
-                {pricePerProfessional}
-              </Text>
-            </View>
-          </View>
         </View>
 
         <View style={styles.section}>
@@ -536,9 +428,7 @@ export default function JobDetailsScreen() {
         >
           <Text style={[styles.warningText, { color: theme.textSecondary }]}>
             {hasAvailableSpots
-              ? isMultipleProfessionals
-                ? `O chat será liberado somente após a empresa aceitar sua solicitação. O valor total do chamado será dividido entre ${totalProfessionals} freelancers.`
-                : "O chat será liberado somente após a empresa aceitar sua solicitação e confirmar o fluxo do chamado."
+              ? "O chat será liberado somente após a empresa aceitar sua solicitação e confirmar o fluxo do chamado."
               : "Este chamado não possui vagas disponíveis no momento."}
           </Text>
         </View>
