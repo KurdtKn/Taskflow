@@ -1,684 +1,725 @@
-import { apiPost } from "@/services/api";
-import { getLoggedUser } from "@/services/storage";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
-import { styles } from "@/app/styles/createJob";
+import WalletIcon from "../../assets/icons/wallet.svg";
+import LocationIcon from "../../assets/icons/Location-check.svg";
+import TimeIcon from "../../assets/icons/access_time.svg";
+
+import { styles } from "@/app/styles/jobCandidates";
 import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
+import { apiGet, apiPost } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
-const categories = [
-  "Eventos",
-  "Fotografia",
-  "Manutenção",
-  "Limpeza",
-  "Suporte técnico",
-  "Serviços gerais",
-];
+type Candidate = {
+  id: string;
+  contratoId?: string;
+  freelancerId?: string;
+  name: string;
+  email?: string;
+  photoUrl?: string;
+  role: string;
+  rating: number | null;
+  reviews: number;
+  distance: string;
+  completedJobs: number;
+  price: string;
+  description: string;
+  skills: string[];
+  status: string;
+};
 
-const TITLE_MIN_LENGTH = 5;
-const TITLE_MAX_LENGTH = 100;
+type FreelancerNestedApi = {
+  id?: number | null;
+  nome?: string | null;
+  name?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  fotoUrl?: string | null;
+  photoUrl?: string | null;
+  habilidades?: string[] | string | null;
+  skills?: string[] | string | null;
+  rating?: number | null;
+  nota?: number | null;
+  avaliacoes?: number | null;
+  reviews?: number | null;
+  servicosConcluidos?: number | null;
+  completedJobs?: number | null;
+};
 
-const DESCRIPTION_MIN_LENGTH = 20;
-const DESCRIPTION_MAX_LENGTH = 1000;
+type CandidaturaApi = {
+  id: number;
 
-const LOCATION_MIN_LENGTH = 3;
-const LOCATION_MAX_LENGTH = 60;
+  contratoId?: number | null;
+  contrato_id?: number | null;
 
-const MAX_PRICE = 9999999;
-const MAX_PROFESSIONALS = 99;
+  freelancerId?: number | null;
+  freelancer_id?: number | null;
 
-export default function CreateJobScreen() {
-  const [title, setTitle] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Eventos");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [date, setDate] = useState("");
-  const [hour, setHour] = useState("");
-  const [price, setPrice] = useState("");
-  const [professionals, setProfessionals] = useState("1");
-  const [isPublishing, setIsPublishing] = useState(false);
+  freelancer?: string | FreelancerNestedApi | null;
 
-  const [dateTouched, setDateTouched] = useState(false);
-  const [hourTouched, setHourTouched] = useState(false);
-  const [hasTriedSubmit, setHasTriedSubmit] = useState(false);
+  nome?: string | null;
+  name?: string | null;
+  nomeFreelancer?: string | null;
+  freelancerNome?: string | null;
+
+  email?: string | null;
+  freelancerEmail?: string | null;
+  emailFreelancer?: string | null;
+
+  fotoUrl?: string | null;
+  photoUrl?: string | null;
+
+  mensagem?: string | null;
+  descricao?: string | null;
+
+  valorProposto?: number | null;
+  valor_proposto?: number | null;
+
+  status?: string | null;
+  dataCandidatura?: string | null;
+
+  habilidades?: string[] | string | null;
+  skills?: string[] | string | null;
+
+  rating?: number | null;
+  nota?: number | null;
+  reviews?: number | null;
+  avaliacoes?: number | null;
+  completedJobs?: number | null;
+  servicosConcluidos?: number | null;
+};
+
+type CandidaturasResponse =
+  | CandidaturaApi[]
+  | {
+      data?: CandidaturaApi[];
+      dados?: CandidaturaApi[];
+      candidaturas?: CandidaturaApi[];
+    };
+
+type CandidaturaActionResponse = {
+  mensagem?: string;
+  candidaturaId?: number;
+  contratoId?: number;
+  chamadoId?: number;
+  empresaId?: number;
+  freelancerId?: number;
+  chamadoStatus?: string;
+  contratoStatus?: string;
+};
+
+function getCandidaturasFromResponse(response: CandidaturasResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.candidaturas ?? [];
+}
+
+function formatCurrency(value?: number | null) {
+  if (value === null || value === undefined || value === 0) {
+    return "Valor a combinar";
+  }
+
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function normalizeStatus(value?: string | null) {
+  return value?.toLowerCase().trim() ?? "";
+}
+
+function getCandidateStatusLabel(status?: string | null) {
+  const normalizedStatus = normalizeStatus(status);
+
+  if (
+    normalizedStatus === "aceita" ||
+    normalizedStatus === "aceito" ||
+    normalizedStatus === "accepted" ||
+    normalizedStatus === "aprovada" ||
+    normalizedStatus === "aprovado"
+  ) {
+    return "Aceita";
+  }
+
+  if (
+    normalizedStatus === "recusada" ||
+    normalizedStatus === "recusado" ||
+    normalizedStatus === "rejected"
+  ) {
+    return "Recusada";
+  }
+
+  if (
+    normalizedStatus === "cancelada" ||
+    normalizedStatus === "cancelado" ||
+    normalizedStatus === "canceled" ||
+    normalizedStatus === "cancelled"
+  ) {
+    return "Cancelada";
+  }
+
+  return "Pendente";
+}
+
+function isFinishedStatus(status?: string | null) {
+  const normalizedStatus = normalizeStatus(status);
+
+  return (
+    normalizedStatus === "finished" ||
+    normalizedStatus === "finalizado" ||
+    normalizedStatus === "concluido" ||
+    normalizedStatus === "concluído" ||
+    normalizedStatus === "completed" ||
+    normalizedStatus === "cancelado" ||
+    normalizedStatus === "cancelada" ||
+    normalizedStatus === "cancelled" ||
+    normalizedStatus === "canceled"
+  );
+}
+
+function getNestedFreelancer(apiCandidate: CandidaturaApi) {
+  if (
+    apiCandidate.freelancer &&
+    typeof apiCandidate.freelancer === "object"
+  ) {
+    return apiCandidate.freelancer;
+  }
+
+  return null;
+}
+
+function getContratoId(apiCandidate: CandidaturaApi) {
+  return apiCandidate.contratoId ?? apiCandidate.contrato_id ?? null;
+}
+
+function getFreelancerId(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.freelancerId ??
+    apiCandidate.freelancer_id ??
+    nestedFreelancer?.id ??
+    null
+  );
+}
+
+function getFreelancerName(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  if (typeof apiCandidate.freelancer === "string") {
+    return apiCandidate.freelancer;
+  }
+
+  return (
+    apiCandidate.nomeFreelancer ||
+    apiCandidate.freelancerNome ||
+    apiCandidate.nome ||
+    apiCandidate.name ||
+    nestedFreelancer?.nome ||
+    nestedFreelancer?.name ||
+    "Freelancer não informado"
+  );
+}
+
+function getFreelancerEmail(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.freelancerEmail ||
+    apiCandidate.emailFreelancer ||
+    apiCandidate.email ||
+    nestedFreelancer?.email ||
+    undefined
+  );
+}
+
+function getFreelancerPhoto(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.photoUrl ||
+    apiCandidate.fotoUrl ||
+    nestedFreelancer?.photoUrl ||
+    nestedFreelancer?.fotoUrl ||
+    undefined
+  );
+}
+
+function getFreelancerRating(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.rating ??
+    apiCandidate.nota ??
+    nestedFreelancer?.rating ??
+    nestedFreelancer?.nota ??
+    null
+  );
+}
+
+function getFreelancerReviews(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.reviews ??
+    apiCandidate.avaliacoes ??
+    nestedFreelancer?.reviews ??
+    nestedFreelancer?.avaliacoes ??
+    0
+  );
+}
+
+function getCompletedJobs(apiCandidate: CandidaturaApi) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  return (
+    apiCandidate.completedJobs ??
+    apiCandidate.servicosConcluidos ??
+    nestedFreelancer?.completedJobs ??
+    nestedFreelancer?.servicosConcluidos ??
+    0
+  );
+}
+
+function normalizeSkills(value?: string[] | string | null) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.filter(Boolean);
+  }
+
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getFreelancerSkills(
+  apiCandidate: CandidaturaApi,
+  jobCategory: string,
+  statusLabel: string
+) {
+  const nestedFreelancer = getNestedFreelancer(apiCandidate);
+
+  const skillsOptions = [
+    normalizeSkills(apiCandidate.habilidades),
+    normalizeSkills(apiCandidate.skills),
+    normalizeSkills(nestedFreelancer?.habilidades),
+    normalizeSkills(nestedFreelancer?.skills),
+  ];
+
+  const skills =
+    skillsOptions.find((skillsList) => skillsList.length > 0) ?? [];
+
+  const baseSkills = skills.length > 0 ? skills : [jobCategory];
+
+  return [...baseSkills, `Status: ${statusLabel}`];
+}
+
+function formatCandidate(
+  apiCandidate: CandidaturaApi,
+  jobCategory: string
+): Candidate {
+  const valorProposto =
+    apiCandidate.valorProposto ?? apiCandidate.valor_proposto ?? null;
+
+  const contratoId = getContratoId(apiCandidate);
+  const freelancerId = getFreelancerId(apiCandidate);
+  const candidateName = getFreelancerName(apiCandidate);
+  const candidateEmail = getFreelancerEmail(apiCandidate);
+  const candidatePhoto = getFreelancerPhoto(apiCandidate);
+  const statusLabel = getCandidateStatusLabel(apiCandidate.status);
+  const rating = getFreelancerRating(apiCandidate);
+  const reviews = getFreelancerReviews(apiCandidate);
+  const completedJobs = getCompletedJobs(apiCandidate);
+
+  return {
+    id: String(apiCandidate.id),
+    contratoId: contratoId ? String(contratoId) : undefined,
+    freelancerId: freelancerId ? String(freelancerId) : undefined,
+    name: candidateName,
+    email: candidateEmail,
+    photoUrl: candidatePhoto,
+    role: candidateEmail ? candidateEmail : "Freelancer",
+    rating,
+    reviews,
+    distance: "Não informado",
+    completedJobs,
+    price: formatCurrency(valorProposto),
+    description:
+      apiCandidate.mensagem ||
+      apiCandidate.descricao ||
+      "O freelancer ainda não enviou uma mensagem para essa candidatura.",
+    skills: getFreelancerSkills(apiCandidate, jobCategory, statusLabel),
+    status: statusLabel,
+  };
+}
+
+export default function JobCandidatesScreen() {
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    chamadoId?: string | string[];
+    title?: string | string[];
+    category?: string | string[];
+    price?: string | string[];
+    location?: string | string[];
+    time?: string | string[];
+    candidates?: string | string[];
+    status?: string | string[];
+    jobStatus?: string | string[];
+  }>();
+
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [actionCandidateId, setActionCandidateId] = useState("");
 
   const { isDark, theme } = useTheme();
 
-  const currentYear = new Date().getFullYear();
-  const descriptionTrimmedLength = description.trim().length;
+  const infoIconColor = isDark ? colors.white : colors.black;
 
-  const descriptionHelperColor =
-    descriptionTrimmedLength > 0 &&
-    descriptionTrimmedLength < DESCRIPTION_MIN_LENGTH
-      ? "#DC2626"
-      : theme.textSecondary;
+  function getParamValue(value?: string | string[], fallback = "") {
+    if (Array.isArray(value)) {
+      return value[0] ?? fallback;
+    }
 
-  const cleanInputStyle = {
-    backgroundColor: theme.inputBackground,
-    borderColor: "transparent",
-    borderWidth: 0,
-    color: theme.text,
-    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
-  };
-
-  function onlyNumbers(value: string) {
-    return value.replace(/\D/g, "");
+    return value ?? fallback;
   }
 
-  function padTwo(value: number) {
-    return String(value).padStart(2, "0");
-  }
-
-  function formatDate(value: string, currentValue: string) {
-    const numbersOnly = onlyNumbers(value).slice(0, 4);
-
-    if (numbersOnly.length === 0) {
-      return "";
-    }
-
-    if (numbersOnly.length <= 2) {
-      const day = Number(numbersOnly);
-
-      if (numbersOnly.length === 2 && (day < 1 || day > 31)) {
-        return currentValue;
-      }
-
-      return numbersOnly;
-    }
-
-    const dayText = numbersOnly.slice(0, 2);
-    const monthText = numbersOnly.slice(2);
-
-    const day = Number(dayText);
-    const month = Number(monthText);
-
-    if (day < 1 || day > 31) {
-      return currentValue;
-    }
-
-    if (monthText.length === 2) {
-      if (month < 1 || month > 12) {
-        return currentValue;
-      }
-
-      const maxDaysInMonth = new Date(currentYear, month, 0).getDate();
-
-      if (day > maxDaysInMonth) {
-        return currentValue;
-      }
-    }
-
-    return `${dayText}/${monthText}`;
-  }
-
-  function normalizeDate(value: string) {
-    const numbersOnly = onlyNumbers(value).slice(0, 4);
-
-    if (numbersOnly.length < 3) {
-      return value;
-    }
-
-    const dayText = numbersOnly.slice(0, 2);
-    const monthText = numbersOnly.slice(2);
-
-    const day = Number(dayText);
-    const month = Number(monthText);
-
-    if (day < 1 || day > 31 || month < 1 || month > 12) {
-      return value;
-    }
-
-    const maxDaysInMonth = new Date(currentYear, month, 0).getDate();
-
-    if (day > maxDaysInMonth) {
-      return value;
-    }
-
-    return `${padTwo(day)}/${padTwo(month)}`;
-  }
-
-  function formatHour(value: string, currentValue: string) {
-    const numbersOnly = onlyNumbers(value).slice(0, 4);
-
-    if (numbersOnly.length === 0) {
-      return "";
-    }
-
-    const hourText = numbersOnly.slice(0, 2);
-    const minuteText = numbersOnly.slice(2, 4);
-
-    if (hourText.length === 2) {
-      const hourNumber = Number(hourText);
-
-      if (hourNumber < 0 || hourNumber > 23) {
-        return currentValue;
-      }
-    }
-
-    if (minuteText.length === 2) {
-      const minuteNumber = Number(minuteText);
-
-      if (minuteNumber < 0 || minuteNumber > 59) {
-        return currentValue;
-      }
-    }
-
-    if (numbersOnly.length <= 2) {
-      return numbersOnly;
-    }
-
-    return `${hourText}:${minuteText}`;
-  }
-
-  function normalizeHour(value: string) {
-    const numbersOnly = onlyNumbers(value).slice(0, 4);
-
-    if (numbersOnly.length === 0) {
-      return value;
-    }
-
-    if (numbersOnly.length <= 2) {
-      const hourNumber = Number(numbersOnly);
-
-      if (hourNumber < 0 || hourNumber > 23) {
-        return value;
-      }
-
-      return `${padTwo(hourNumber)}:00`;
-    }
-
-    const hourText = numbersOnly.slice(0, 2);
-    const minuteText = numbersOnly.slice(2);
-
-    const hourNumber = Number(hourText);
-    const minuteNumber = Number(minuteText);
-
-    if (hourNumber < 0 || hourNumber > 23) {
-      return value;
-    }
-
-    if (minuteNumber < 0 || minuteNumber > 59) {
-      return value;
-    }
-
-    return `${padTwo(hourNumber)}:${padTwo(minuteNumber)}`;
-  }
-
-  function getDateParts() {
-    const normalizedDate = normalizeDate(date);
-
-    if (!/^\d{2}\/\d{2}$/.test(normalizedDate)) {
-      return null;
-    }
-
-    const [dayText, monthText] = normalizedDate.split("/");
-    const day = Number(dayText);
-    const month = Number(monthText);
-
-    if (day < 1 || day > 31 || month < 1 || month > 12) {
-      return null;
-    }
-
-    const maxDaysInMonth = new Date(currentYear, month, 0).getDate();
-
-    if (day > maxDaysInMonth) {
-      return null;
-    }
-
-    return {
-      day,
-      month,
-    };
-  }
-
-  function getHourParts() {
-    const normalizedHour = normalizeHour(hour);
-
-    if (!/^\d{2}:\d{2}$/.test(normalizedHour)) {
-      return null;
-    }
-
-    const [hourText, minuteText] = normalizedHour.split(":");
-    const hourNumber = Number(hourText);
-    const minute = Number(minuteText);
-
-    if (hourNumber < 0 || hourNumber > 23) {
-      return null;
-    }
-
-    if (minute < 0 || minute > 59) {
-      return null;
-    }
-
-    return {
-      hourNumber,
-      minute,
-    };
-  }
-
-  function getParsedServiceDateTime() {
-    const dateParts = getDateParts();
-    const hourParts = getHourParts();
-
-    if (!dateParts || !hourParts) {
-      return null;
-    }
-
-    const serviceDateTime = new Date(
-      currentYear,
-      dateParts.month - 1,
-      dateParts.day,
-      hourParts.hourNumber,
-      hourParts.minute,
-      0,
-      0
-    );
-
-    const isRealDate =
-      serviceDateTime.getFullYear() === currentYear &&
-      serviceDateTime.getMonth() === dateParts.month - 1 &&
-      serviceDateTime.getDate() === dateParts.day &&
-      serviceDateTime.getHours() === hourParts.hourNumber &&
-      serviceDateTime.getMinutes() === hourParts.minute;
-
-    if (!isRealDate) {
-      return null;
-    }
-
-    return serviceDateTime;
-  }
-
-  function isServiceDateToday() {
-    const serviceDateTime = getParsedServiceDateTime();
-
-    if (!serviceDateTime) {
-      return false;
-    }
-
-    const today = new Date();
-
-    return (
-      serviceDateTime.getFullYear() === today.getFullYear() &&
-      serviceDateTime.getMonth() === today.getMonth() &&
-      serviceDateTime.getDate() === today.getDate()
-    );
-  }
-
-  function isServiceDateTimeFromNowOrFuture() {
-    const serviceDateTime = getParsedServiceDateTime();
-
-    if (!serviceDateTime) {
-      return false;
-    }
-
-    const now = new Date();
-
-    now.setSeconds(0, 0);
-    serviceDateTime.setSeconds(0, 0);
-
-    return serviceDateTime.getTime() >= now.getTime();
-  }
-
-  function getDateFieldError() {
-    if (!date.trim()) {
-      return "";
-    }
-
-    const normalizedDate = normalizeDate(date);
-
-    if (!/^\d{2}\/\d{2}$/.test(normalizedDate)) {
-      return "Informe uma data válida no formato DD/MM.";
-    }
-
-    const dateParts = getDateParts();
-
-    if (!dateParts) {
-      return "Informe uma data válida.";
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const serviceDate = new Date(
-      currentYear,
-      dateParts.month - 1,
-      dateParts.day,
-      0,
-      0,
-      0,
-      0
-    );
-
-    if (serviceDate.getTime() < today.getTime()) {
-      return `O app usa o ano atual (${currentYear}). A data precisa ser hoje ou futura.`;
-    }
-
-    return "";
-  }
-
-  function getHourFieldError() {
-    if (!hour.trim()) {
-      return "";
-    }
-
-    const normalizedHour = normalizeHour(hour);
-
-    if (!/^\d{2}:\d{2}$/.test(normalizedHour)) {
-      return "Informe um horário válido no formato HH:MM.";
-    }
-
-    const hourParts = getHourParts();
-
-    if (!hourParts) {
-      return "Informe um horário válido.";
-    }
-
-    if (getDateParts() && isServiceDateToday() && !isServiceDateTimeFromNowOrFuture()) {
-      return "Para hoje, o horário precisa ser de agora em diante.";
-    }
-
-    return "";
-  }
-
-  function handleChangeDate(value: string) {
-    setDate((currentValue) => formatDate(value, currentValue));
-  }
-
-  function handleChangeHour(value: string) {
-    setHour((currentValue) => formatHour(value, currentValue));
-  }
-
-  function handleChangePrice(value: string) {
-    const numbersOnly = onlyNumbers(value).slice(0, 7);
-
-    if (!numbersOnly) {
-      setPrice("");
-      return;
-    }
-
-    const valueNumber = Number(numbersOnly);
-
-    if (valueNumber > MAX_PRICE) {
-      setPrice(String(MAX_PRICE));
-      return;
-    }
-
-    setPrice(String(valueNumber));
-  }
-
-  function handleChangeProfessionals(value: string) {
-    const numbersOnly = onlyNumbers(value).slice(0, 2);
-
-    if (!numbersOnly) {
-      setProfessionals("");
-      return;
-    }
-
-    const quantity = Number(numbersOnly);
-
-    if (quantity <= 0) {
-      setProfessionals("");
-      return;
-    }
-
-    if (quantity > MAX_PROFESSIONALS) {
-      setProfessionals(String(MAX_PROFESSIONALS));
-      return;
-    }
-
-    setProfessionals(String(quantity));
-  }
-
-  function getCategoryId(category: string) {
-    const categoryMap: Record<string, number> = {
-      Eventos: 1,
-      Fotografia: 2,
-      Manutenção: 5,
-      Limpeza: 6,
-      "Suporte técnico": 5,
-      "Serviços gerais": 1,
-    };
-
-    return categoryMap[category] ?? 1;
-  }
-
-  function getServiceDate() {
-    const serviceDateTime = getParsedServiceDateTime();
-
-    if (!serviceDateTime) {
-      return "";
-    }
-
-    const year = serviceDateTime.getFullYear();
-    const month = String(serviceDateTime.getMonth() + 1).padStart(2, "0");
-    const day = String(serviceDateTime.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}T00:00:00`;
-  }
-
-  function getEstimatedValue() {
-    const numbersOnly = onlyNumbers(price);
-
-    if (!numbersOnly) {
-      return null;
-    }
-
-    return Number(numbersOnly);
-  }
-
-  function getProfessionalsQuantity() {
-    const numbersOnly = onlyNumbers(professionals);
-
-    if (!numbersOnly) {
-      return 0;
-    }
-
-    return Number(numbersOnly);
-  }
-
-  function getProfessionalsText() {
-    const quantity = getProfessionalsQuantity();
-
-    if (quantity <= 1) {
-      return "1 freelancer";
-    }
-
-    return `${quantity} freelancers`;
-  }
-
-  function getCityAndState() {
-    const [cityValue, stateValue] = location.split("-");
-
-    return {
-      city: cityValue?.trim() || null,
-      state: stateValue?.trim() || null,
-    };
-  }
-
-  function getValidationError() {
-    const trimmedTitle = title.trim();
-    const trimmedDescription = description.trim();
-    const trimmedLocation = location.trim();
-    const estimatedValue = getEstimatedValue();
-    const professionalsQuantity = getProfessionalsQuantity();
-
-    if (!trimmedTitle) {
-      return "Informe o título do chamado.";
-    }
-
-    if (trimmedTitle.length < TITLE_MIN_LENGTH) {
-      return `O título precisa ter pelo menos ${TITLE_MIN_LENGTH} caracteres.`;
-    }
-
-    if (!trimmedDescription) {
-      return "Informe a descrição do serviço.";
-    }
-
-    if (trimmedDescription.length < DESCRIPTION_MIN_LENGTH) {
-      return `A descrição precisa ter pelo menos ${DESCRIPTION_MIN_LENGTH} caracteres.`;
-    }
-
-    if (!trimmedLocation) {
-      return "Informe o local do serviço.";
-    }
-
-    if (trimmedLocation.length < LOCATION_MIN_LENGTH) {
-      return `O local precisa ter pelo menos ${LOCATION_MIN_LENGTH} caracteres.`;
-    }
-
-    if (!date.trim()) {
-      return "Informe a data do chamado.";
-    }
-
-    const dateError = getDateFieldError();
-
-    if (dateError) {
-      return dateError;
-    }
-
-    if (!hour.trim()) {
-      return "Informe o horário do chamado.";
-    }
-
-    const hourError = getHourFieldError();
-
-    if (hourError) {
-      return hourError;
-    }
-
-    if (!getParsedServiceDateTime()) {
-      return "Informe uma data e um horário válidos.";
-    }
-
-    if (!isServiceDateTimeFromNowOrFuture()) {
-      return "A data e o horário do chamado precisam ser de agora em diante.";
-    }
-
-    if (estimatedValue === null) {
-      return "Informe o valor estimado do serviço.";
-    }
-
-    if (estimatedValue <= 0) {
-      return "O valor estimado precisa ser maior que zero.";
-    }
-
-    if (estimatedValue > MAX_PRICE) {
-      return "O valor estimado pode ser no máximo R$ 9.999.999.";
-    }
-
-    if (professionalsQuantity <= 0) {
-      return "Informe pelo menos 1 profissional.";
-    }
-
-    if (professionalsQuantity > MAX_PROFESSIONALS) {
-      return "O limite máximo é de 99 profissionais.";
-    }
-
-    return "";
-  }
-
-  const dateError = getDateFieldError();
-  const hourError = getHourFieldError();
-
-  const showDateError = (dateTouched || hasTriedSubmit) && dateError !== "";
-  const showHourError = (hourTouched || hasTriedSubmit) && hourError !== "";
-
-  const isFormValid = getValidationError() === "";
-
-  async function handlePublishJob() {
-    setHasTriedSubmit(true);
-
-    const validationError = getValidationError();
-
-    if (validationError) {
-      Alert.alert("Atenção", validationError);
-      return;
-    }
-
-    const normalizedDate = normalizeDate(date);
-    const normalizedHour = normalizeHour(hour);
-    const professionalsQuantity = getProfessionalsQuantity();
-
-    setDate(normalizedDate);
-    setHour(normalizedHour);
-
+  const jobId = getParamValue(params.id) || getParamValue(params.chamadoId);
+  const jobTitle = getParamValue(params.title, "Chamado");
+  const jobCategory = getParamValue(params.category, "Categoria");
+  const jobPrice = getParamValue(params.price, "Valor a combinar");
+  const jobLocation = getParamValue(params.location, "Local não informado");
+  const jobTime = getParamValue(params.time, "Data não informada");
+  const jobStatus = getParamValue(params.status) || getParamValue(params.jobStatus);
+
+  const isJobFinished = isFinishedStatus(jobStatus);
+
+  const selectedCandidate = candidates.find(
+    (candidate) => candidate.id === selectedCandidateId
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCandidates();
+    }, [jobId])
+  );
+
+  async function loadCandidates() {
     try {
-      setIsPublishing(true);
+      setIsLoading(true);
 
       const loggedUser = await getLoggedUser();
 
       if (!loggedUser) {
-        Alert.alert("Sessão expirada", "Faça login novamente.");
         router.replace("/login");
         return;
       }
 
-      if (loggedUser.tipoUsuario !== "empresa") {
+      if (!jobId) {
+        setCandidates([]);
+        setSelectedCandidateId("");
+
         Alert.alert(
-          "Acesso negado",
-          "Apenas empresas podem publicar chamados."
+          "Chamado não encontrado",
+          "Não foi possível identificar o chamado selecionado."
         );
+
         return;
       }
 
-      if (!loggedUser.perfilId) {
-        Alert.alert(
-          "Perfil da empresa não encontrado",
-          "Faça logout e entre novamente com a conta da empresa."
-        );
-        return;
-      }
-
-      const { city, state } = getCityAndState();
-
-      const response = await apiPost("/api/Chamados", {
-        empresaId: Number(loggedUser.perfilId),
-        categoriaId: getCategoryId(selectedCategory),
-        titulo: title.trim(),
-        descricao: description.trim(),
-        localServico: location.trim(),
-        cidade: city,
-        estado: state,
-        dataServico: getServiceDate(),
-        horaServico: normalizedHour,
-        valorEstimado: getEstimatedValue(),
-        quantidadeProfissionais: professionalsQuantity,
-        status: "Aberto",
-      });
-
-      console.log("Chamado publicado:", response);
-
-      Alert.alert(
-        "Chamado publicado",
-        `Seu chamado foi publicado com sucesso para ${getProfessionalsText()}.`
+      const response = await apiGet<CandidaturasResponse>(
+        `/api/Candidaturas/chamado/${jobId}`
       );
 
-      router.replace("/company-dashboard");
+      const candidaturas = getCandidaturasFromResponse(response);
+
+      console.log("Candidaturas retornadas pela API:", candidaturas);
+
+      const formattedCandidates = candidaturas.map((candidatura) =>
+        formatCandidate(candidatura, jobCategory)
+      );
+
+      setCandidates(formattedCandidates);
+      setSelectedCandidateId(formattedCandidates[0]?.id ?? "");
     } catch (error) {
-      console.log("Erro ao publicar chamado:", error);
+      console.log("Erro ao carregar candidatos:", error);
+
+      setCandidates([]);
+      setSelectedCandidateId("");
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível carregar os candidatos desse chamado agora."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function isCandidateAccepted(candidate: Candidate) {
+    return candidate.status === "Aceita";
+  }
+
+  function isCandidateRejected(candidate: Candidate) {
+    return (
+      candidate.status === "Recusada" ||
+      candidate.status === "Cancelada"
+    );
+  }
+
+  function showFinishedAlert() {
+    Alert.alert(
+      "Chamado finalizado",
+      "Este serviço já foi finalizado. Não é possível aceitar candidatos, abrir pagamento ou iniciar chat."
+    );
+  }
+
+  function goToPayment(candidate: Candidate, contratoId?: string) {
+    if (isJobFinished) {
+      showFinishedAlert();
+      return;
+    }
+
+    const finalContratoId = contratoId || candidate.contratoId || "";
+
+    if (!finalContratoId) {
+      Alert.alert(
+        "Contrato não encontrado",
+        "A candidatura foi aceita, mas o app não recebeu o contratoId. Tente aceitar novamente ou recarregue os candidatos."
+      );
+      return;
+    }
+
+    const paymentValue = jobPrice || candidate.price || "Valor a combinar";
+
+    router.push({
+      pathname: "/payment",
+      params: {
+        contratoId: finalContratoId,
+
+        jobId,
+        candidaturaId: candidate.id,
+        freelancerId: candidate.freelancerId ?? "",
+
+        jobTitle,
+        jobCategory,
+        jobPrice: paymentValue,
+        jobLocation,
+        jobTime,
+        status: jobStatus,
+
+        candidateName: candidate.name,
+        candidateEmail: candidate.email ?? "",
+        candidateRating: candidate.rating ? String(candidate.rating) : "",
+
+        serviceValue: paymentValue,
+        candidatePrice: paymentValue,
+      },
+    });
+  }
+
+  async function handleAcceptCandidate(candidate: Candidate) {
+    if (isJobFinished) {
+      showFinishedAlert();
+      return;
+    }
+
+    if (isCandidateRejected(candidate)) {
+      Alert.alert(
+        "Candidatura recusada",
+        "Não é possível aceitar uma candidatura que já foi recusada."
+      );
+      return;
+    }
+
+    if (isCandidateAccepted(candidate) && candidate.contratoId) {
+      goToPayment(candidate, candidate.contratoId);
+      return;
+    }
+
+    try {
+      setActionCandidateId(candidate.id);
+
+      const response = await apiPost<CandidaturaActionResponse>(
+        `/api/Candidaturas/${candidate.id}/aceitar`,
+        {}
+      );
+
+      console.log("Candidatura aceita pela API:", response);
+
+      const contratoId = response.contratoId
+        ? String(response.contratoId)
+        : candidate.contratoId ?? "";
+
+      if (!contratoId) {
+        Alert.alert(
+          "Contrato não encontrado",
+          "A API aceitou a candidatura, mas não retornou o contratoId."
+        );
+        return;
+      }
+
+      setCandidates((currentCandidates) =>
+        currentCandidates.map((item) =>
+          item.id === candidate.id
+            ? {
+                ...item,
+                contratoId,
+                status: "Aceita",
+                skills: item.skills.map((skill) =>
+                  skill.startsWith("Status:") ? "Status: Aceita" : skill
+                ),
+              }
+            : item
+        )
+      );
+
+      goToPayment(
+        {
+          ...candidate,
+          contratoId,
+          status: "Aceita",
+        },
+        contratoId
+      );
+    } catch (error) {
+      console.log("Erro ao aceitar candidatura:", error);
 
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "Não foi possível publicar o chamado agora.";
+          : "Não foi possível aceitar essa candidatura agora.";
 
-      Alert.alert("Erro ao publicar", errorMessage);
+      Alert.alert("Erro ao aceitar", errorMessage);
     } finally {
-      setIsPublishing(false);
+      setActionCandidateId("");
     }
+  }
+
+  function handleViewFreelancerProfile(candidate: Candidate) {
+    router.push({
+      pathname: "/freelancer-profile",
+      params: {
+        contratoId: candidate.contratoId ?? "",
+
+        jobId,
+        candidaturaId: candidate.id,
+        freelancerId: candidate.freelancerId ?? "",
+
+        jobTitle,
+        jobCategory,
+        jobPrice,
+        jobLocation,
+        jobTime,
+        status: jobStatus,
+
+        candidateName: candidate.name,
+        candidateEmail: candidate.email ?? "",
+        candidateRating: candidate.rating ? String(candidate.rating) : "",
+        candidatePrice: candidate.price,
+      },
+    });
+  }
+
+  async function rejectCandidate(candidate: Candidate) {
+    try {
+      setActionCandidateId(candidate.id);
+
+      const response = await apiPost<CandidaturaActionResponse>(
+        `/api/Candidaturas/${candidate.id}/recusar`,
+        {}
+      );
+
+      console.log("Candidatura recusada pela API:", response);
+
+      setCandidates((currentCandidates) =>
+        currentCandidates.map((item) =>
+          item.id === candidate.id
+            ? {
+                ...item,
+                status: "Recusada",
+                skills: item.skills.map((skill) =>
+                  skill.startsWith("Status:") ? "Status: Recusada" : skill
+                ),
+              }
+            : item
+        )
+      );
+
+      Alert.alert(
+        "Candidatura recusada",
+        `A candidatura de ${candidate.name} foi recusada.`
+      );
+    } catch (error) {
+      console.log("Erro ao recusar candidatura:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível recusar essa candidatura agora.";
+
+      Alert.alert("Erro ao recusar", errorMessage);
+    } finally {
+      setActionCandidateId("");
+    }
+  }
+
+  function handleRejectCandidate(candidate: Candidate) {
+    if (isJobFinished) {
+      showFinishedAlert();
+      return;
+    }
+
+    if (isCandidateAccepted(candidate)) {
+      Alert.alert(
+        "Candidatura já aceita",
+        "Não é possível recusar uma candidatura que já foi aceita."
+      );
+      return;
+    }
+
+    if (isCandidateRejected(candidate)) {
+      Alert.alert(
+        "Candidatura já recusada",
+        "Essa candidatura já foi recusada."
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Recusar candidato",
+      `Deseja recusar a candidatura de ${candidate.name}?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Recusar",
+          style: "destructive",
+          onPress: () => rejectCandidate(candidate),
+        },
+      ]
+    );
   }
 
   return (
@@ -690,312 +731,131 @@ export default function CreateJobScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <KeyboardAvoidingView
-        style={styles.keyboardArea}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+          },
+        ]}
+      >
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <ArrowBack width={28} height={28} color={theme.text} />
+        </Pressable>
+
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Candidatos
+        </Text>
+
+        <View style={styles.headerPlaceholder} />
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="always"
+        style={{ backgroundColor: theme.background }}
       >
         <View
           style={[
-            styles.header,
+            styles.jobCard,
             {
-              backgroundColor: theme.background,
-              borderBottomColor: theme.border,
+              backgroundColor: theme.card,
+              borderColor: theme.border,
             },
           ]}
         >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowBack
-              width={28}
-              height={28}
-              color={theme.text}
-              fill={theme.text}
-            />
-          </Pressable>
-
-          <Text style={[styles.headerTitle, { color: theme.text }]}>
-            Criar chamado
+          <Text style={[styles.jobLabel, { color: theme.primary }]}>
+            {isJobFinished ? "Chamado finalizado" : "Chamado"}
           </Text>
 
-          <View style={styles.headerPlaceholder} />
+          <Text style={[styles.jobTitle, { color: theme.text }]}>
+            {jobTitle}
+          </Text>
+
+          {isJobFinished && (
+            <Text
+              style={{
+                color: colors.danger,
+                fontSize: 12,
+                fontWeight: "900",
+                marginTop: 8,
+              }}
+            >
+              Este chamado está encerrado. Pagamento e chat ficam bloqueados.
+            </Text>
+          )}
+
+          <View style={styles.jobInfoArea}>
+            <View style={styles.jobInfoRow}>
+              <View style={styles.jobInfoIconBox}>
+                <WalletIcon
+                  width={18}
+                  height={18}
+                  color={infoIconColor}
+                  fill={infoIconColor}
+                />
+              </View>
+
+              <Text style={[styles.jobInfoText, { color: theme.text }]}>
+                {jobPrice}
+              </Text>
+            </View>
+
+            <View style={styles.jobInfoRow}>
+              <View style={styles.jobInfoIconBox}>
+                <LocationIcon
+                  width={18}
+                  height={18}
+                  color={infoIconColor}
+                  fill={infoIconColor}
+                />
+              </View>
+
+              <Text style={[styles.jobInfoText, { color: theme.text }]}>
+                {jobLocation}
+              </Text>
+            </View>
+
+            <View style={styles.jobInfoRow}>
+              <View style={styles.jobInfoIconBox}>
+                <TimeIcon
+                  width={18}
+                  height={18}
+                  color={infoIconColor}
+                  fill={infoIconColor}
+                />
+              </View>
+
+              <Text style={[styles.jobInfoText, { color: theme.text }]}>
+                {jobTime}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="always"
-          style={{ backgroundColor: theme.background }}
-        >
-          <View
-            style={[
-              styles.introCard,
-              {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
-              },
-            ]}
-          >
-            <Text style={[styles.introTitle, { color: theme.text }]}>
-              Publique uma nova demanda
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Freelancers interessados
             </Text>
 
-            <Text style={[styles.introText, { color: theme.textSecondary }]}>
-              Informe os detalhes do serviço para que freelancers próximos
-              possam se candidatar ao chamado.
+            <Text
+              style={[
+                styles.sectionSubtitle,
+                { color: theme.textSecondary },
+              ]}
+            >
+              {isLoading
+                ? "Carregando candidatos..."
+                : `${candidates.length} candidatos encontrados`}
             </Text>
           </View>
+        </View>
 
-          <View style={styles.form}>
-            <Text style={[styles.label, { color: theme.text }]}>
-              Título do chamado
-            </Text>
-
-            <TextInput
-              style={[styles.input, cleanInputStyle]}
-              placeholder="Ex: Garçom para evento"
-              placeholderTextColor={theme.textSecondary}
-              value={title}
-              onChangeText={(value) =>
-                setTitle(value.slice(0, TITLE_MAX_LENGTH))
-              }
-              maxLength={TITLE_MAX_LENGTH}
-              editable={!isPublishing}
-            />
-
-            <Text
-              style={{
-                color: theme.textSecondary,
-                fontSize: 12,
-                fontWeight: "700",
-                marginTop: -8,
-                marginBottom: 12,
-              }}
-            >
-              Mínimo de {TITLE_MIN_LENGTH} caracteres.
-            </Text>
-
-            <Text style={[styles.label, { color: theme.text }]}>
-              Categoria
-            </Text>
-
-            <View style={styles.categoriesArea}>
-              {categories.map((category) => {
-                const isSelected = selectedCategory === category;
-
-                return (
-                  <Pressable
-                    key={category}
-                    style={[
-                      styles.categoryChip,
-                      {
-                        backgroundColor: theme.card,
-                        borderColor: theme.border,
-                      },
-                      isSelected && styles.categoryChipActive,
-                    ]}
-                    onPress={() => setSelectedCategory(category)}
-                    disabled={isPublishing}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryText,
-                        { color: theme.textSecondary },
-                        isSelected && styles.categoryTextActive,
-                      ]}
-                    >
-                      {category}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Text style={[styles.label, { color: theme.text }]}>
-                Descrição do serviço
-              </Text>
-
-              <Text
-                style={{
-                  color:
-                    description.length >= DESCRIPTION_MAX_LENGTH
-                      ? "#DC2626"
-                      : theme.textSecondary,
-                  fontSize: 12,
-                  fontWeight: "700",
-                }}
-              >
-                {description.length}/{DESCRIPTION_MAX_LENGTH}
-              </Text>
-            </View>
-
-            <TextInput
-              style={[styles.input, styles.textArea, cleanInputStyle]}
-              placeholder="Descreva o que precisa ser feito, requisitos e observações importantes."
-              placeholderTextColor={theme.textSecondary}
-              value={description}
-              onChangeText={(value) =>
-                setDescription(value.slice(0, DESCRIPTION_MAX_LENGTH))
-              }
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              multiline
-              textAlignVertical="top"
-              editable={!isPublishing}
-            />
-
-            <Text
-              style={{
-                color: descriptionHelperColor,
-                fontSize: 12,
-                fontWeight: "700",
-                marginTop: -8,
-                marginBottom: 12,
-              }}
-            >
-              Mínimo de {DESCRIPTION_MIN_LENGTH} caracteres.
-            </Text>
-
-            <Text style={[styles.label, { color: theme.text }]}>
-              Local do serviço
-            </Text>
-
-            <TextInput
-              style={[styles.input, cleanInputStyle]}
-              placeholder="Ex: Centro, Sorocaba - SP"
-              placeholderTextColor={theme.textSecondary}
-              value={location}
-              onChangeText={(value) =>
-                setLocation(value.slice(0, LOCATION_MAX_LENGTH))
-              }
-              maxLength={LOCATION_MAX_LENGTH}
-              editable={!isPublishing}
-            />
-
-            <Text
-              style={{
-                color: theme.textSecondary,
-                fontSize: 12,
-                fontWeight: "700",
-                marginTop: -8,
-                marginBottom: 12,
-              }}
-            >
-              Mínimo de {LOCATION_MIN_LENGTH} caracteres.
-            </Text>
-
-            <View style={styles.doubleInputArea}>
-              <View style={styles.doubleInputBox}>
-                <Text style={[styles.label, { color: theme.text }]}>
-                  Data
-                </Text>
-
-                <TextInput
-                  style={[styles.input, cleanInputStyle]}
-                  placeholder="Ex: 15/06"
-                  placeholderTextColor={theme.textSecondary}
-                  value={date}
-                  onChangeText={handleChangeDate}
-                  onBlur={() => {
-                    setDateTouched(true);
-                    setDate((currentValue) => normalizeDate(currentValue));
-                  }}
-                  keyboardType="numeric"
-                  maxLength={5}
-                  editable={!isPublishing}
-                />
-
-                {showDateError && (
-                  <Text
-                    style={{
-                      color: "#DC2626",
-                      fontSize: 11,
-                      fontWeight: "800",
-                      lineHeight: 15,
-                      marginTop: -8,
-                    }}
-                  >
-                    {dateError}
-                  </Text>
-                )}
-              </View>
-
-              <View style={styles.doubleInputBox}>
-                <Text style={[styles.label, { color: theme.text }]}>
-                  Horário
-                </Text>
-
-                <TextInput
-                  style={[styles.input, cleanInputStyle]}
-                  placeholder="Ex: 18:00"
-                  placeholderTextColor={theme.textSecondary}
-                  value={hour}
-                  onChangeText={handleChangeHour}
-                  onBlur={() => {
-                    setHourTouched(true);
-                    setHour((currentValue) => normalizeHour(currentValue));
-                  }}
-                  keyboardType="numeric"
-                  maxLength={5}
-                  editable={!isPublishing}
-                />
-
-                {showHourError && (
-                  <Text
-                    style={{
-                      color: "#DC2626",
-                      fontSize: 11,
-                      fontWeight: "800",
-                      lineHeight: 15,
-                      marginTop: -8,
-                    }}
-                  >
-                    {hourError}
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.doubleInputArea}>
-              <View style={styles.doubleInputBox}>
-                <Text style={[styles.label, { color: theme.text }]}>
-                  Valor estimado
-                </Text>
-
-                <TextInput
-                  style={[styles.input, cleanInputStyle]}
-                  placeholder="Ex: R$200,00"
-                  placeholderTextColor={theme.textSecondary}
-                  value={price}
-                  onChangeText={handleChangePrice}
-                  keyboardType="numeric"
-                  maxLength={7}
-                  editable={!isPublishing}
-                />
-              </View>
-
-              <View style={styles.doubleInputBox}>
-                <Text style={[styles.label, { color: theme.text }]}>
-                  Profissionais
-                </Text>
-
-                <TextInput
-                  style={[styles.input, cleanInputStyle]}
-                  placeholder="Ex: 1"
-                  placeholderTextColor={theme.textSecondary}
-                  value={professionals}
-                  onChangeText={handleChangeProfessionals}
-                  keyboardType="numeric"
-                  maxLength={2}
-                  editable={!isPublishing}
-                />
-              </View>
-            </View>
-
+        <View style={styles.candidatesList}>
+          {isLoading ? (
             <View
               style={[
                 styles.infoBox,
@@ -1006,36 +866,337 @@ export default function CreateJobScreen() {
               ]}
             >
               <Text style={[styles.infoTitle, { color: theme.text }]}>
-                Como funciona?
+                Carregando candidatos...
               </Text>
 
               <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                Após publicar o chamado, freelancers da região poderão se
-                candidatar. Você poderá aceitar até {getProfessionalsText()}.
-                Enquanto ainda houver vaga disponível, o chamado continuará
-                aparecendo para outros freelancers.
+                Buscando as candidaturas desse chamado na API.
               </Text>
             </View>
-
-            <Pressable
-              disabled={isPublishing}
-              style={({ pressed }) => [
-                styles.publishButton,
-                (!isFormValid || isPublishing) && styles.publishButtonDisabled,
-                pressed &&
-                  !isPublishing &&
-                  isFormValid &&
-                  styles.publishButtonPressed,
+          ) : candidates.length === 0 ? (
+            <View
+              style={[
+                styles.infoBox,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.border,
+                },
               ]}
-              onPress={handlePublishJob}
             >
-              <Text style={styles.publishButtonText}>
-                {isPublishing ? "Publicando..." : "Publicar chamado"}
+              <Text style={[styles.infoTitle, { color: theme.text }]}>
+                Nenhum candidato disponível
               </Text>
-            </Pressable>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                Ainda não há candidaturas para esse chamado.
+              </Text>
+            </View>
+          ) : (
+            candidates.map((candidate) => {
+              const isSelected = selectedCandidateId === candidate.id;
+              const isAccepted = isCandidateAccepted(candidate);
+              const isRejected = isCandidateRejected(candidate);
+              const isActionLoading = actionCandidateId === candidate.id;
+
+              return (
+                <Pressable
+                  key={candidate.id}
+                  style={({ pressed }) => [
+                    styles.candidateCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: theme.border,
+                    },
+                    isSelected && styles.candidateCardSelected,
+                    pressed && styles.candidateCardPressed,
+                  ]}
+                  onPress={() => setSelectedCandidateId(candidate.id)}
+                >
+                  <View style={styles.candidateHeader}>
+                    {candidate.photoUrl ? (
+                      <Image
+                        source={{ uri: candidate.photoUrl }}
+                        style={styles.avatar}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Image
+                        source={require("../../assets/images/icon.png")}
+                        style={styles.avatar}
+                        resizeMode="contain"
+                      />
+                    )}
+
+                    <View style={styles.candidateInfo}>
+                      <Text
+                        style={[
+                          styles.candidateName,
+                          { color: theme.text },
+                        ]}
+                      >
+                        {candidate.name}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.candidateRole,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        {candidate.role}
+                      </Text>
+
+                      <View style={styles.ratingArea}>
+                        <Text style={styles.ratingIcon}>⭐</Text>
+
+                        <Text
+                          style={[
+                            styles.ratingText,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          {candidate.rating
+                            ? `${candidate.rating} • ${candidate.reviews} avaliações`
+                            : "Sem avaliações"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.candidatePrice,
+                        { color: theme.primary },
+                      ]}
+                    >
+                      {candidate.price}
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.description,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {candidate.description}
+                  </Text>
+
+                  <View style={styles.skillsArea}>
+                    {candidate.skills.map((skill) => (
+                      <View
+                        key={skill}
+                        style={[
+                          styles.skillChip,
+                          {
+                            backgroundColor: theme.background,
+                            borderColor: theme.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.skillText,
+                            { color: theme.text },
+                          ]}
+                        >
+                          {skill}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View
+                    style={[
+                      styles.statsArea,
+                      {
+                        backgroundColor: theme.background,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statNumber, { color: theme.text }]}>
+                        {candidate.completedJobs}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.statLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        serviços
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.statDivider,
+                        { backgroundColor: theme.border },
+                      ]}
+                    />
+
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statNumber, { color: theme.text }]}>
+                        {candidate.distance}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.statLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        distância
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.statDivider,
+                        { backgroundColor: theme.border },
+                      ]}
+                    />
+
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statNumber, { color: theme.text }]}>
+                        {candidate.rating ?? "-"}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.statLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        nota
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.profileButton,
+                      {
+                        backgroundColor: theme.background,
+                        borderColor: theme.border,
+                      },
+                      pressed && styles.profileButtonPressed,
+                    ]}
+                    onPress={() => handleViewFreelancerProfile(candidate)}
+                  >
+                    <Text
+                      style={[
+                        styles.profileButtonText,
+                        { color: theme.text },
+                      ]}
+                    >
+                      Ver perfil completo
+                    </Text>
+                  </Pressable>
+
+                  <View style={styles.actionButtonsRow}>
+                    <Pressable
+                      disabled={
+                        isJobFinished ||
+                        isAccepted ||
+                        isRejected ||
+                        isActionLoading
+                      }
+                      style={({ pressed }) => [
+                        styles.rejectButton,
+                        {
+                          backgroundColor: theme.card,
+                          borderColor: theme.border,
+                        },
+                        (isJobFinished ||
+                          isAccepted ||
+                          isRejected ||
+                          isActionLoading) &&
+                          styles.acceptButtonDisabled,
+                        pressed &&
+                          !isJobFinished &&
+                          !isAccepted &&
+                          !isRejected &&
+                          !isActionLoading &&
+                          styles.rejectButtonPressed,
+                      ]}
+                      onPress={() => handleRejectCandidate(candidate)}
+                    >
+                      <Text style={styles.rejectButtonText}>
+                        {isJobFinished
+                          ? "Finalizado"
+                          : isRejected
+                          ? "Recusada"
+                          : "Recusar"}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      disabled={isJobFinished || isRejected || isActionLoading}
+                      style={({ pressed }) => [
+                        styles.acceptButton,
+                        (isJobFinished || isRejected || isActionLoading) &&
+                          styles.acceptButtonDisabled,
+                        pressed &&
+                          !isJobFinished &&
+                          !isRejected &&
+                          !isActionLoading &&
+                          styles.acceptButtonPressed,
+                      ]}
+                      onPress={() => handleAcceptCandidate(candidate)}
+                    >
+                      <Text
+                        style={[
+                          styles.acceptButtonText,
+                          (isJobFinished || isRejected || isActionLoading) &&
+                            styles.acceptButtonDisabledText,
+                        ]}
+                      >
+                        {isJobFinished
+                          ? "Serviço finalizado"
+                          : isActionLoading
+                          ? "Aguarde..."
+                          : isAccepted
+                          ? "Pagamento"
+                          : isRejected
+                          ? "Recusada"
+                          : "Aceitar"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+        </View>
+
+        <View
+          style={[
+            styles.infoBox,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: theme.text }]}>
+            {isJobFinished ? "Chamado encerrado" : "Antes de aceitar"}
+          </Text>
+
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+            {isJobFinished
+              ? "Este chamado já foi finalizado. Os candidatos ficam disponíveis apenas para histórico."
+              : "Analise a mensagem enviada pelo freelancer e o valor proposto. Após o aceite, o próximo passo será revisar o pagamento da taxa da plataforma para liberar o chat."}
+          </Text>
+        </View>
+
+        {selectedCandidate && (
+          <Text style={[styles.selectedText, { color: theme.textSecondary }]}>
+            Selecionado: {selectedCandidate.name}
+          </Text>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }

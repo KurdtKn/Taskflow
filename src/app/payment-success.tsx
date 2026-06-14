@@ -19,16 +19,6 @@ function getParamValue(value?: string | string[], fallback = "") {
   return value ?? fallback;
 }
 
-function getProfessionalsText(value: string) {
-  const total = Number(value);
-
-  if (Number.isNaN(total) || total <= 1) {
-    return "1 profissional";
-  }
-
-  return `${total} profissionais`;
-}
-
 export default function PaymentSuccessScreen() {
   const params = useLocalSearchParams<{
     contratoId?: string | string[];
@@ -47,11 +37,6 @@ export default function PaymentSuccessScreen() {
     candidateName?: string | string[];
     candidateEmail?: string | string[];
     candidateRating?: string | string[];
-
-    jobTotalValue?: string | string[];
-    totalProfessionals?: string | string[];
-    acceptedProfessionals?: string | string[];
-    availableSpots?: string | string[];
 
     serviceValue?: string | string[];
     candidatePrice?: string | string[];
@@ -80,22 +65,16 @@ export default function PaymentSuccessScreen() {
   const candidateEmail = getParamValue(params.candidateEmail);
   const candidateRating = getParamValue(params.candidateRating);
 
-  const totalProfessionals = getParamValue(params.totalProfessionals, "1");
-  const acceptedProfessionals = getParamValue(params.acceptedProfessionals);
-  const availableSpots = getParamValue(params.availableSpots);
+  const serviceValue =
+    getParamValue(params.serviceValue) ||
+    getParamValue(params.candidatePrice) ||
+    jobPrice ||
+    "Valor a combinar";
 
-  const serviceValue = getParamValue(params.serviceValue, "Valor a combinar");
   const candidatePrice = getParamValue(params.candidatePrice, serviceValue);
   const platformFee = getParamValue(params.platformFee, "A calcular");
   const totalValue = getParamValue(params.totalValue, "Valor a combinar");
   const paymentMethod = getParamValue(params.paymentMethod, "Pix");
-
-  const jobTotalValue =
-    getParamValue(params.jobTotalValue) ||
-    jobPrice ||
-    serviceValue;
-
-  const professionalsText = getProfessionalsText(totalProfessionals);
 
   const { isDark, theme } = useTheme();
 
@@ -111,7 +90,7 @@ export default function PaymentSuccessScreen() {
 
         jobTitle,
         jobCategory,
-        jobPrice,
+        jobPrice: jobPrice || serviceValue,
         jobLocation,
         jobTime,
         status,
@@ -119,11 +98,6 @@ export default function PaymentSuccessScreen() {
         candidateName,
         candidateEmail,
         candidateRating,
-
-        jobTotalValue,
-        totalProfessionals,
-        acceptedProfessionals,
-        availableSpots,
 
         serviceValue,
         candidatePrice,
@@ -157,8 +131,7 @@ export default function PaymentSuccessScreen() {
         </Text>
 
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          O pagamento proporcional deste freelancer foi confirmado e o chat já
-          pode ser liberado.
+          O pagamento do serviço foi confirmado e o chat já pode ser liberado.
         </Text>
 
         <View
@@ -210,41 +183,7 @@ export default function PaymentSuccessScreen() {
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-              Valor total do chamado
-            </Text>
-
-            <Text style={[styles.infoValue, { color: theme.text }]}>
-              {jobTotalValue}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
-
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-              Quantidade
-            </Text>
-
-            <Text style={[styles.infoValue, { color: theme.text }]}>
-              {professionalsText}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
-
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-              Parte deste freelancer
+              Valor do serviço
             </Text>
 
             <Text style={[styles.infoValue, { color: theme.text }]}>
@@ -305,7 +244,7 @@ export default function PaymentSuccessScreen() {
                 },
               ]}
             >
-              Total pago agora
+              Total pago
             </Text>
 
             <Text
@@ -320,20 +259,6 @@ export default function PaymentSuccessScreen() {
               {totalValue}
             </Text>
           </View>
-
-          <Text
-            style={{
-              color: theme.textSecondary,
-              fontSize: 12,
-              fontWeight: "700",
-              lineHeight: 17,
-              marginTop: 10,
-            }}
-          >
-            Este pagamento corresponde apenas ao freelancer selecionado. Caso o
-            chamado tenha mais profissionais, cada aceite terá seu pagamento
-            proporcional.
-          </Text>
         </View>
 
         <View
@@ -351,8 +276,7 @@ export default function PaymentSuccessScreen() {
 
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             Agora a empresa e o freelancer podem conversar para alinhar os
-            detalhes finais do serviço. Se o chamado tiver mais de um
-            freelancer, todos os aceitos entram no mesmo chat do chamado.
+            detalhes finais do serviço.
           </Text>
         </View>
       </ScrollView>

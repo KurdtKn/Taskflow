@@ -83,7 +83,6 @@ type ServiceItem = {
   category: string;
   price: string;
   pricePerProfessional: string;
-  paymentInfoText: string;
   distance: string;
   location: string;
   time: string;
@@ -327,6 +326,7 @@ export default function HomeScreen() {
     const totalProfessionals = getTotalProfessionals(chamado);
     const acceptedProfessionals = getAcceptedProfessionals(chamado);
     const availableSpots = getAvailableSpots(chamado);
+    const formattedPrice = formatPrice(chamado.valorEstimado);
 
     console.log("Vagas do chamado:", {
       id: chamado.id,
@@ -348,15 +348,8 @@ export default function HomeScreen() {
       description: chamado.descricao,
       company: chamado.empresa,
       category: chamado.categoria,
-      price: formatPrice(chamado.valorEstimado),
-      pricePerProfessional: getPricePerProfessionalText(
-        chamado.valorEstimado,
-        totalProfessionals
-      ),
-      paymentInfoText: getPaymentInfoText(
-        chamado.valorEstimado,
-        totalProfessionals
-      ),
+      price: formattedPrice,
+      pricePerProfessional: formattedPrice,
       distance: formatDistance(chamado),
       location: formatLocation(chamado),
       time: formatDateTime(chamado.dataServico, chamado.horaServico),
@@ -378,44 +371,6 @@ export default function HomeScreen() {
       style: "currency",
       currency: "BRL",
     });
-  }
-
-  function getPricePerProfessionalText(
-    value: number | null | undefined,
-    totalProfessionals: number
-  ) {
-    if (!value || value <= 0) {
-      return "A combinar";
-    }
-
-    const safeTotalProfessionals = totalProfessionals > 0 ? totalProfessionals : 1;
-
-    return formatPrice(value / safeTotalProfessionals);
-  }
-
-  function getPaymentInfoText(
-    value: number | null | undefined,
-    totalProfessionals: number
-  ) {
-    const safeTotalProfessionals = totalProfessionals > 0 ? totalProfessionals : 1;
-
-    if (!value || value <= 0) {
-      if (safeTotalProfessionals > 1) {
-        return `Valor a combinar • ${safeTotalProfessionals} profissionais`;
-      }
-
-      return "Valor a combinar";
-    }
-
-    if (safeTotalProfessionals > 1) {
-      const valuePerProfessional = value / safeTotalProfessionals;
-
-      return `${formatPrice(valuePerProfessional)} por freelancer • total ${formatPrice(
-        value
-      )}`;
-    }
-
-    return `${formatPrice(value)} para 1 profissional`;
   }
 
   function formatLocation(chamado: ChamadoApi) {
@@ -764,13 +719,14 @@ export default function HomeScreen() {
                     pathname: "/job-details",
                     params: {
                       id: service.id,
+                      jobId: service.id,
+                      chamadoId: service.id,
                       title: service.title,
                       description: service.description,
                       company: service.company,
                       category: service.category,
                       price: service.price,
                       pricePerProfessional: service.pricePerProfessional,
-                      paymentInfoText: service.paymentInfoText,
                       distance: service.distance,
                       location: service.location,
                       time: service.time,
@@ -801,33 +757,6 @@ export default function HomeScreen() {
                   </Text>
 
                   <Text style={styles.servicePrice}>{service.price}</Text>
-
-                  <View
-                    style={{
-                      alignSelf: "flex-start",
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
-                      borderRadius: 999,
-                      backgroundColor: isDark
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(11,87,208,0.08)",
-                      borderWidth: 1,
-                      borderColor: isDark
-                        ? "rgba(255,255,255,0.16)"
-                        : "rgba(11,87,208,0.18)",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: theme.text,
-                        fontSize: 11,
-                        fontWeight: "900",
-                      }}
-                    >
-                      {service.paymentInfoText}
-                    </Text>
-                  </View>
 
                   <View style={styles.vacancyBadge}>
                     <View style={styles.vacancyDot} />

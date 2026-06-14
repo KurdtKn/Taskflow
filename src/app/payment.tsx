@@ -67,9 +67,6 @@ const paymentMethodLabel: Record<PaymentMethod, string> = {
   wallet: "Carteira TaskFlow",
 };
 
-// Altere aqui se quiser mudar a porcentagem da taxa.
-// 0.10 = 10%
-// 0.06 = 6%
 const PLATFORM_FEE_PERCENTAGE = 0.1;
 
 function getParamValue(value?: string | string[], fallback = "") {
@@ -81,7 +78,7 @@ function getParamValue(value?: string | string[], fallback = "") {
 }
 
 function parseCurrency(value?: string) {
-  if (!value) {
+  if (!value || value === "A combinar" || value === "Valor a combinar") {
     return null;
   }
 
@@ -94,33 +91,11 @@ function parseCurrency(value?: string) {
   return Number(numbersOnly) / 100;
 }
 
-function parsePositiveInteger(value?: string, fallback = 1) {
-  if (!value) {
-    return fallback;
-  }
-
-  const parsedValue = Number(value);
-
-  if (Number.isNaN(parsedValue) || parsedValue <= 0) {
-    return fallback;
-  }
-
-  return Math.floor(parsedValue);
-}
-
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
-}
-
-function getProfessionalsText(total: number) {
-  if (total <= 1) {
-    return "1 profissional";
-  }
-
-  return `${total} profissionais`;
 }
 
 export default function PaymentScreen() {
@@ -147,13 +122,6 @@ export default function PaymentScreen() {
 
     platformFee?: string | string[];
     totalValue?: string | string[];
-
-    totalProfessionals?: string | string[];
-    quantidadeProfissionais?: string | string[];
-    professionals?: string | string[];
-
-    acceptedProfessionals?: string | string[];
-    availableSpots?: string | string[];
   }>();
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("pix");
@@ -185,16 +153,6 @@ export default function PaymentScreen() {
   const candidateEmail = getParamValue(params.candidateEmail);
   const candidateRating = getParamValue(params.candidateRating);
 
-  const totalProfessionals = parsePositiveInteger(
-    getParamValue(params.totalProfessionals) ||
-      getParamValue(params.quantidadeProfissionais) ||
-      getParamValue(params.professionals),
-    1
-  );
-
-  const acceptedProfessionals = getParamValue(params.acceptedProfessionals);
-  const availableSpots = getParamValue(params.availableSpots);
-
   const receivedServiceValue =
     getParamValue(params.serviceValue) ||
     getParamValue(params.candidatePrice) ||
@@ -204,67 +162,39 @@ export default function PaymentScreen() {
   const receivedTotalValue = getParamValue(params.totalValue);
 
   const paymentValues = useMemo(() => {
-    const jobTotalAmount = parseCurrency(jobPrice);
-    const receivedAmount = parseCurrency(receivedServiceValue);
+    const serviceAmount =
+      parseCurrency(receivedServiceValue) ?? parseCurrency(jobPrice);
+
     const platformFeeFromParam = parseCurrency(receivedPlatformFee);
     const totalValueFromParam = parseCurrency(receivedTotalValue);
 
-    const baseAmount = jobTotalAmount ?? receivedAmount;
-
-    if (baseAmount === null) {
+    if (serviceAmount === null) {
       return {
-        jobTotalValue: jobPrice || "Valor a combinar",
-        professionalsText: getProfessionalsText(totalProfessionals),
-        serviceValue: receivedServiceValue || "Valor a combinar",
+        serviceValue: receivedServiceValue || jobPrice || "Valor a combinar",
         platformFee: receivedPlatformFee || "A calcular",
-        totalValue: receivedTotalValue || receivedServiceValue || "A calcular",
-        proportionalInfo:
-          totalProfessionals > 1
-            ? `Valor dividido entre ${totalProfessionals} profissionais.`
-            : "Valor referente ao freelancer selecionado.",
+        totalValue:
+          receivedTotalValue ||
+          receivedServiceValue ||
+          jobPrice ||
+          "A calcular",
       };
     }
 
-    const shouldUseProportionalValue =
-      jobTotalAmount !== null && totalProfessionals > 1;
+    const platformFeeAmount =
+      platformFeeFromParam ?? serviceAmount * PLATFORM_FEE_PERCENTAGE;
 
-    const serviceAmount = shouldUseProportionalValue
-      ? jobTotalAmount / totalProfessionals
-      : receivedAmount ?? jobTotalAmount ?? baseAmount;
-
-    const platformFeeAmount = shouldUseProportionalValue
-      ? serviceAmount * PLATFORM_FEE_PERCENTAGE
-      : platformFeeFromParam ?? serviceAmount * PLATFORM_FEE_PERCENTAGE;
-
-    const totalAmount = shouldUseProportionalValue
-      ? serviceAmount + platformFeeAmount
-      : totalValueFromParam ?? serviceAmount + platformFeeAmount;
+    const totalAmount = totalValueFromParam ?? serviceAmount + platformFeeAmount;
 
     return {
-      jobTotalValue:
-        jobTotalAmount !== null ? formatCurrency(jobTotalAmount) : jobPrice,
-      professionalsText: getProfessionalsText(totalProfessionals),
       serviceValue: formatCurrency(serviceAmount),
       platformFee: formatCurrency(platformFeeAmount),
       totalValue: formatCurrency(totalAmount),
-      proportionalInfo: shouldUseProportionalValue
-        ? `Este pagamento representa 1 de ${totalProfessionals} profissionais do chamado.`
-        : "Pagamento referente ao freelancer selecionado.",
     };
-  }, [
-    jobPrice,
-    receivedServiceValue,
-    receivedPlatformFee,
-    receivedTotalValue,
-    totalProfessionals,
-  ]);
+  }, [jobPrice, receivedServiceValue, receivedPlatformFee, receivedTotalValue]);
 
-  const jobTotalValue = paymentValues.jobTotalValue;
-  const professionalsText = paymentValues.professionalsText;
   const serviceValue = paymentValues.serviceValue;
   const platformFee = paymentValues.platformFee;
   const totalValue = paymentValues.totalValue;
-  const proportionalInfo = paymentValues.proportionalInfo;
 
   async function handleConfirmPayment() {
     if (isConfirming) {
@@ -309,15 +239,13 @@ export default function PaymentScreen() {
         return;
       }
 
-      console.log("Confirmando pagamento proporcional:", {
+      console.log("Confirmando pagamento:", {
         contratoId: finalContratoId,
         jobId,
         candidaturaId,
         freelancerId,
         jobTitle,
         candidateName,
-        jobTotalValue,
-        totalProfessionals,
         serviceValue,
         platformFee,
         totalValue,
@@ -335,7 +263,7 @@ export default function PaymentScreen() {
 
           jobTitle,
           jobCategory,
-          jobPrice,
+          jobPrice: jobPrice || serviceValue,
           jobLocation,
           jobTime,
           status,
@@ -343,11 +271,6 @@ export default function PaymentScreen() {
           candidateName,
           candidateEmail,
           candidateRating,
-
-          jobTotalValue,
-          totalProfessionals: String(totalProfessionals),
-          acceptedProfessionals,
-          availableSpots,
 
           serviceValue,
           candidatePrice: serviceValue,
@@ -436,13 +359,12 @@ export default function PaymentScreen() {
           </View>
 
           <Text style={[styles.introTitle, { color: theme.text }]}>
-            Pagamento proporcional
+            Pagamento do serviço
           </Text>
 
           <Text style={[styles.introText, { color: theme.textSecondary }]}>
-            Confirme o pagamento referente ao freelancer selecionado. Quando o
-            chamado possui mais de um profissional, o valor é dividido entre as
-            vagas.
+            Confirme o pagamento do valor total do chamado para liberar o
+            andamento do serviço e o chat com o freelancer selecionado.
           </Text>
         </View>
 
@@ -507,73 +429,7 @@ export default function PaymentScreen() {
                   },
                 ]}
               >
-                Valor total do chamado
-              </Text>
-
-              <Text
-                style={[
-                  styles.infoValue,
-                  {
-                    color: theme.text,
-                    backgroundColor: "transparent",
-                  },
-                ]}
-              >
-                {jobTotalValue}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.divider,
-                { backgroundColor: theme.border },
-              ]}
-            />
-
-            <View style={styles.infoRow}>
-              <Text
-                style={[
-                  styles.infoLabel,
-                  {
-                    color: theme.textSecondary,
-                    backgroundColor: "transparent",
-                  },
-                ]}
-              >
-                Quantidade
-              </Text>
-
-              <Text
-                style={[
-                  styles.infoValue,
-                  {
-                    color: theme.text,
-                    backgroundColor: "transparent",
-                  },
-                ]}
-              >
-                {professionalsText}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.divider,
-                { backgroundColor: theme.border },
-              ]}
-            />
-
-            <View style={styles.infoRow}>
-              <Text
-                style={[
-                  styles.infoLabel,
-                  {
-                    color: theme.textSecondary,
-                    backgroundColor: "transparent",
-                  },
-                ]}
-              >
-                Parte deste freelancer
+                Valor do serviço
               </Text>
 
               <Text
@@ -641,7 +497,7 @@ export default function PaymentScreen() {
                   },
                 ]}
               >
-                Total agora
+                Total
               </Text>
 
               <Text
@@ -656,18 +512,6 @@ export default function PaymentScreen() {
                 {totalValue}
               </Text>
             </View>
-
-            <Text
-              style={{
-                color: theme.textSecondary,
-                fontSize: 12,
-                fontWeight: "700",
-                marginTop: 10,
-                lineHeight: 17,
-              }}
-            >
-              {proportionalInfo}
-            </Text>
           </View>
         </View>
 
@@ -751,13 +595,12 @@ export default function PaymentScreen() {
           ]}
         >
           <Text style={[styles.warningTitle, { color: theme.text }]}>
-            Pagamento por profissional
+            Pagamento seguro
           </Text>
 
           <Text style={[styles.warningText, { color: theme.textSecondary }]}>
-            Se o chamado tiver mais de uma vaga, cada aceite gera somente o
-            pagamento proporcional daquele freelancer, evitando cobrança duplicada
-            do valor total.
+            Após a confirmação do pagamento, o chat será liberado para a empresa
+            e o freelancer combinarem os detalhes finais do serviço.
           </Text>
         </View>
 
