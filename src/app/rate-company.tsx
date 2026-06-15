@@ -19,7 +19,8 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/rateCompany";
 import { useTheme } from "@/app/context/ThemeContext";
 import { apiPost } from "@/services/api";
-import { getLoggedUser } from "@/services/storage";
+import { getLoggedUser, getUserId } from "@/services/storage";
+
 
 const ratingTags = [
   "Boa comunicação",
@@ -33,7 +34,7 @@ const ratingTags = [
 const COMMENT_MIN_LENGTH = 20;
 const COMMENT_MAX_LENGTH = 500;
 const REVIEWS_STORAGE_KEY = "@taskflow:reviews";
-const REQUESTS_ROUTE = "/requests";
+const FREELANCER_HOME_ROUTE = "/home";
 
 type ReviewPayload = {
   id: string;
@@ -79,6 +80,8 @@ function getParamNumber(value?: string | string[], fallback = 0) {
 function resolveLoggedUserId(loggedUserData: any) {
   const value = Number(
     loggedUserData?.id ??
+      loggedUserData?.usuario?.id ??
+      loggedUserData?.user?.id ??
       loggedUserData?.usuarioId ??
       loggedUserData?.usuario_id ??
       loggedUserData?.userId ??
@@ -90,6 +93,26 @@ function resolveLoggedUserId(loggedUserData: any) {
   }
 
   return value;
+}
+
+function isSameCompanyReview(item: ReviewPayload, review: ReviewPayload) {
+  if (item.ratedUserType !== review.ratedUserType) {
+    return false;
+  }
+
+  if (review.contratoId && item.contratoId === review.contratoId) {
+    return true;
+  }
+
+  if (review.jobId && item.jobId === review.jobId) {
+    return true;
+  }
+
+  if (review.requestId && item.requestId === review.requestId) {
+    return true;
+  }
+
+  return false;
 }
 
 export default function RateCompanyScreen() {
@@ -158,6 +181,7 @@ export default function RateCompanyScreen() {
   ]);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
 
   const { isDark, theme } = useTheme();
 
@@ -211,37 +235,14 @@ export default function RateCompanyScreen() {
       ? JSON.parse(storedReviews)
       : [];
 
-    const alreadySaved = currentReviews.some((item) => {
-      if (review.contratoId && item.contratoId === review.contratoId) {
-        return true;
-      }
-
-      if (review.jobId && item.jobId === review.jobId) {
-        return true;
-      }
-
-      if (review.requestId && item.requestId === review.requestId) {
-        return true;
-      }
-
-      return false;
-    });
+    const alreadySaved = currentReviews.some((item) =>
+      isSameCompanyReview(item, review)
+    );
 
     const updatedReviews = alreadySaved
-      ? currentReviews.map((item) => {
-          const sameContrato =
-            review.contratoId && item.contratoId === review.contratoId;
-
-          const sameJob = review.jobId && item.jobId === review.jobId;
-          const sameRequest =
-            review.requestId && item.requestId === review.requestId;
-
-          if (sameContrato || sameJob || sameRequest) {
-            return review;
-          }
-
-          return item;
-        })
+      ? currentReviews.map((item) =>
+          isSameCompanyReview(item, review) ? review : item
+        )
       : [...currentReviews, review];
 
     await AsyncStorage.setItem(
@@ -256,14 +257,19 @@ export default function RateCompanyScreen() {
     }
 
     const loggedUser = await getLoggedUser();
-
-    if (!loggedUser) {
-      return null;
-    }
-
     const loggedUserId = resolveLoggedUserId(loggedUser as any);
 
-    return loggedUserId;
+    if (loggedUserId) {
+      return loggedUserId;
+    }
+
+    const storedUserId = Number(await getUserId());
+
+    if (Number.isFinite(storedUserId) && storedUserId > 0) {
+      return storedUserId;
+    }
+
+    return null;
   }
 
   async function handleSubmitReview() {
@@ -278,40 +284,43 @@ export default function RateCompanyScreen() {
 
     try {
       setIsSubmitting(true);
+      setFeedbackMessage("");
 
       const contratoId = contratoIdFromParams;
       const avaliadorId = await resolveAvaliadorId();
       const avaliadoId = avaliadoIdFromParams;
 
+      console.log("CLICOU EM ENVIAR AVALIAÇÃO DA EMPRESA", {
+        contratoId,
+        avaliadorId,
+        avaliadoId,
+        jobId,
+        requestId,
+        companyName,
+      });
+
       if (!contratoId) {
-        Alert.alert(
-          "Contrato não encontrado",
-          "Não foi possível identificar o contrato dessa solicitação. Volte para a tela de solicitações e tente abrir a avaliação novamente."
-        );
+        const message = "Não foi possível identificar o contrato dessa solicitação. Volte para a tela de solicitações e tente abrir a avaliação novamente.";
+        setFeedbackMessage(message);
+        Alert.alert("Contrato não encontrado", message);
         return;
       }
 
       if (!avaliadorId) {
-        Alert.alert(
-          "Usuário não encontrado",
-          "Não foi possível identificar seu usuário logado. Faça login novamente."
-        );
-        return;
-      }
-
-      if (!avaliadoId) {
-        Alert.alert(
-          "Empresa não encontrada",
-          "Não foi possível identificar a empresa que será avaliada. A tela anterior precisa enviar o avaliadoId ou empresaUsuarioId."
-        );
+        const message = "Não foi possível identificar seu usuário logado. Faça login novamente.";
+        setFeedbackMessage(message);
+        Alert.alert("Usuário não encontrado", message);
         return;
       }
 
       const payload = {
-        contratoId,
-        avaliadorId,
-        avaliadoId,
-        nota: rating,
+        contratoId: Number(contratoId),
+        avaliadorId: Number(avaliadorId),
+        // A API corrigida usa o contrato como fonte da verdade e descobre
+        // automaticamente que o avaliado é a empresa do contrato.
+        // Mesmo assim, mantemos o avaliadoId quando a tela anterior enviar.
+        avaliadoId: Number(avaliadoId || 0),
+        nota: Number(rating),
         comentario: normalizedComment,
       };
 
@@ -344,7 +353,7 @@ export default function RateCompanyScreen() {
       Alert.alert("Sucesso", "Avaliação enviada com sucesso!", [
         {
           text: "OK",
-          onPress: () => router.replace(REQUESTS_ROUTE),
+          onPress: () => router.replace(FREELANCER_HOME_ROUTE),
         },
       ]);
     } catch (error) {
@@ -355,14 +364,15 @@ export default function RateCompanyScreen() {
           ? error.message
           : "Não foi possível enviar a avaliação agora.";
 
+      setFeedbackMessage(errorMessage);
       Alert.alert("Erro ao enviar avaliação", errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  function handleGoBackToRequests() {
-    router.replace(REQUESTS_ROUTE);
+  function handleGoBackToHome() {
+    router.replace(FREELANCER_HOME_ROUTE);
   }
 
   return (
@@ -387,7 +397,7 @@ export default function RateCompanyScreen() {
             },
           ]}
         >
-          <Pressable style={styles.backButton} onPress={handleGoBackToRequests}>
+          <Pressable style={styles.backButton} onPress={handleGoBackToHome}>
             <ArrowBack
               width={28}
               height={28}
@@ -636,6 +646,21 @@ export default function RateCompanyScreen() {
             </Text>
           </Pressable>
 
+          {!!feedbackMessage && (
+            <Text
+              style={{
+                color: "#DC2626",
+                fontSize: 13,
+                fontWeight: "700",
+                marginTop: 10,
+                textAlign: "center",
+              }}
+            >
+              {feedbackMessage}
+            </Text>
+          )}
+
+
           <Pressable
             style={({ pressed }) => [
               styles.secondaryButton,
@@ -645,10 +670,10 @@ export default function RateCompanyScreen() {
               },
               pressed && styles.secondaryButtonPressed,
             ]}
-            onPress={handleGoBackToRequests}
+            onPress={handleGoBackToHome}
           >
             <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
-              Voltar para solicitações
+              Voltar para o início
             </Text>
           </Pressable>
         </ScrollView>

@@ -17,9 +17,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/rateService";
 import { useTheme } from "@/app/context/ThemeContext";
+import { apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
-
-const API_URL = "http://192.168.1.111:5275";
 
 const ratingTags = [
   "Pontual",
@@ -33,6 +32,12 @@ const ratingTags = [
 const COMMENT_MIN_LENGTH = 20;
 const COMMENT_MAX_LENGTH = 500;
 const REVIEWS_STORAGE_KEY = "@taskflow:reviews";
+
+type AvaliacaoApiResponse = {
+  mensagem?: string;
+  id?: number;
+  avaliacaoId?: number;
+};
 
 type ReviewPayload = {
   id: string;
@@ -74,6 +79,8 @@ function getParamNumber(value?: string | string[], fallback = 0) {
 function resolveLoggedUserId(loggedUserData: any) {
   const value = Number(
     loggedUserData?.id ??
+      loggedUserData?.usuario?.id ??
+      loggedUserData?.user?.id ??
       loggedUserData?.usuarioId ??
       loggedUserData?.usuario_id ??
       loggedUserData?.userId ??
@@ -87,11 +94,32 @@ function resolveLoggedUserId(loggedUserData: any) {
   return value;
 }
 
+function showMessage(title: string, message: string, onOk?: () => void) {
+  const webAlert = (globalThis as any)?.alert;
+
+  if (Platform.OS === "web" && typeof webAlert === "function") {
+    webAlert(`${title}\n\n${message}`);
+    onOk?.();
+    return;
+  }
+
+  Alert.alert(title, message, [
+    {
+      text: "OK",
+      onPress: onOk,
+    },
+  ]);
+}
+
 export default function RateServiceScreen() {
   const params = useLocalSearchParams<{
     jobId?: string | string[];
     candidaturaId?: string | string[];
     freelancerId?: string | string[];
+    freelancerUsuarioId?: string | string[];
+    freelancer_usuario_id?: string | string[];
+    empresaUsuarioId?: string | string[];
+    empresa_usuario_id?: string | string[];
     jobTitle?: string | string[];
     candidateName?: string | string[];
     companyName?: string | string[];
@@ -108,6 +136,12 @@ export default function RateServiceScreen() {
   const jobId = getParamValue(params.jobId);
   const candidaturaId = getParamValue(params.candidaturaId);
   const freelancerId = getParamValue(params.freelancerId);
+  const freelancerUsuarioId = getParamValue(
+    params.freelancerUsuarioId ?? params.freelancer_usuario_id
+  );
+  const empresaUsuarioId = getParamValue(
+    params.empresaUsuarioId ?? params.empresa_usuario_id
+  );
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
   const candidateName = getParamValue(params.candidateName, "Usuário TaskFlow");
   const companyName = getParamValue(params.companyName, "Empresa");
@@ -127,7 +161,11 @@ export default function RateServiceScreen() {
 
   const avaliadoIdFromParams = getParamNumber(
     params.avaliadoId ?? params.avaliado_id,
-    Number(freelancerId) > 0 ? Number(freelancerId) : 0
+    Number(freelancerUsuarioId) > 0
+      ? Number(freelancerUsuarioId)
+      : Number(freelancerId) > 0
+      ? Number(freelancerId)
+      : 0
   );
 
   const [rating, setRating] = useState(5);
@@ -193,7 +231,11 @@ export default function RateServiceScreen() {
       ? JSON.parse(storedReviews)
       : [];
 
-    const alreadySaved = currentReviews.some((item) => {
+    function isSameReview(item: ReviewPayload) {
+      if (item.ratedUserType !== review.ratedUserType) {
+        return false;
+      }
+
       if (review.contratoId && item.contratoId === review.contratoId) {
         return true;
       }
@@ -207,24 +249,12 @@ export default function RateServiceScreen() {
       }
 
       return false;
-    });
+    }
+
+    const alreadySaved = currentReviews.some(isSameReview);
 
     const updatedReviews = alreadySaved
-      ? currentReviews.map((item) => {
-          const sameContrato =
-            review.contratoId && item.contratoId === review.contratoId;
-
-          const sameJob = review.jobId && item.jobId === review.jobId;
-
-          const sameCandidatura =
-            review.candidaturaId && item.candidaturaId === review.candidaturaId;
-
-          if (sameContrato || sameJob || sameCandidatura) {
-            return review;
-          }
-
-          return item;
-        })
+      ? currentReviews.map((item) => (isSameReview(item) ? review : item))
       : [...currentReviews, review];
 
     await AsyncStorage.setItem(
@@ -275,10 +305,12 @@ export default function RateServiceScreen() {
   }
 
   async function handleSubmitReview() {
+    console.log("BOTÃO ENVIAR AVALIAÇÃO CLICADO");
+
     const validationError = getValidationError();
 
     if (validationError) {
-      Alert.alert("Atenção", validationError);
+      showMessage("Atenção", validationError);
       return;
     }
 
@@ -290,7 +322,7 @@ export default function RateServiceScreen() {
       const avaliadoId = avaliadoIdFromParams;
 
       if (!contratoId) {
-        Alert.alert(
+        showMessage(
           "Contrato não encontrado",
           "Não foi possível identificar o contrato desse serviço. Volte para o chat ou para o chamado e tente abrir a avaliação novamente."
         );
@@ -298,17 +330,9 @@ export default function RateServiceScreen() {
       }
 
       if (!avaliadorId) {
-        Alert.alert(
+        showMessage(
           "Usuário não encontrado",
           "Não foi possível identificar seu usuário logado. Faça login novamente."
-        );
-        return;
-      }
-
-      if (!avaliadoId) {
-        Alert.alert(
-          "Freelancer não encontrado",
-          "Não foi possível identificar quem será avaliado. A tela anterior precisa enviar o avaliadoId ou freelancerId."
         );
         return;
       }
@@ -316,42 +340,19 @@ export default function RateServiceScreen() {
       const payload = {
         contratoId: Number(contratoId),
         avaliadorId: Number(avaliadorId),
-        avaliadoId: Number(avaliadoId),
+        avaliadoId: Number(avaliadoId || 0),
         nota: Number(rating),
         comentario: normalizedComment,
       };
 
       console.log("ENVIANDO AVALIAÇÃO:", payload);
-      console.log("URL:", `${API_URL}/api/Avaliacoes`);
 
-      const response = await fetch(`${API_URL}/api/Avaliacoes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const data = await apiPost<AvaliacaoApiResponse>(
+        "/api/Avaliacoes",
+        payload
+      );
 
-      const text = await response.text();
-
-      let data: any = null;
-
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch {
-        data = null;
-      }
-
-      console.log("STATUS:", response.status);
-      console.log("RESPOSTA:", data || text);
-
-      if (!response.ok) {
-        Alert.alert(
-          "Erro ao salvar avaliação",
-          data?.mensagem || text || "Erro ao salvar avaliação."
-        );
-        return;
-      }
+      console.log("Avaliação enviada para API:", data);
 
       const review: ReviewPayload = {
         id: `${Date.now()}-${jobId || "review"}`,
@@ -373,12 +374,9 @@ export default function RateServiceScreen() {
 
       console.log("Avaliação salva localmente:", review);
 
-      Alert.alert("Sucesso", "Avaliação enviada com sucesso!", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/company-dashboard"),
-        },
-      ]);
+      showMessage("Sucesso", "Avaliação enviada com sucesso!", () => {
+        router.replace("/company-dashboard");
+      });
     } catch (error) {
       console.log("ERRO AO ENVIAR AVALIAÇÃO:", error);
 
@@ -387,7 +385,7 @@ export default function RateServiceScreen() {
           ? error.message
           : "Erro de conexão com a API.";
 
-      Alert.alert("Erro ao enviar avaliação", errorMessage);
+      showMessage("Erro ao enviar avaliação", errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -649,11 +647,11 @@ export default function RateServiceScreen() {
           </View>
 
           <Pressable
-            disabled={!canSubmit}
+            disabled={isSubmitting}
             style={({ pressed }) => [
               styles.submitButton,
-              pressed && canSubmit && styles.submitButtonPressed,
-              !canSubmit && { opacity: 0.55 },
+              pressed && !isSubmitting && styles.submitButtonPressed,
+              !canSubmit && { opacity: 0.75 },
             ]}
             onPress={handleSubmitReview}
           >

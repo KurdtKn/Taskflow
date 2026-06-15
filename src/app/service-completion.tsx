@@ -16,6 +16,7 @@ import CheckIcon from "../../assets/icons/check.svg";
 import { styles } from "@/app/styles/serviceCompletion";
 import { useTheme } from "@/app/context/ThemeContext";
 import { apiPost } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
 type ChecklistItem = {
   id: string;
@@ -41,6 +42,25 @@ const checklistItems: ChecklistItem[] = [
   },
 ];
 
+
+function resolveLoggedUserId(loggedUserData: any) {
+  const value = Number(
+    loggedUserData?.id ??
+      loggedUserData?.usuario?.id ??
+      loggedUserData?.user?.id ??
+      loggedUserData?.usuarioId ??
+      loggedUserData?.usuario_id ??
+      loggedUserData?.userId ??
+      loggedUserData?.user_id
+  );
+
+  if (Number.isNaN(value) || value <= 0) {
+    return null;
+  }
+
+  return value;
+}
+
 function getParamValue(value?: string | string[], fallback = "") {
   if (Array.isArray(value)) {
     return value[0] ?? fallback;
@@ -56,6 +76,10 @@ export default function ServiceCompletionScreen() {
     jobId?: string | string[];
     candidaturaId?: string | string[];
     freelancerId?: string | string[];
+    freelancerUsuarioId?: string | string[];
+    freelancer_usuario_id?: string | string[];
+    empresaUsuarioId?: string | string[];
+    empresa_usuario_id?: string | string[];
 
     jobTitle?: string | string[];
     jobCategory?: string | string[];
@@ -82,6 +106,12 @@ export default function ServiceCompletionScreen() {
   const jobId = getParamValue(params.jobId);
   const candidaturaId = getParamValue(params.candidaturaId);
   const freelancerId = getParamValue(params.freelancerId);
+  const freelancerUsuarioId = getParamValue(
+    params.freelancerUsuarioId ?? params.freelancer_usuario_id
+  );
+  const empresaUsuarioId = getParamValue(
+    params.empresaUsuarioId ?? params.empresa_usuario_id
+  );
 
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
   const jobCategory = getParamValue(params.jobCategory);
@@ -150,11 +180,24 @@ export default function ServiceCompletionScreen() {
     try {
       setIsFinishing(true);
 
+      const loggedUser = await getLoggedUser();
+      const avaliadorId = resolveLoggedUserId(loggedUser as any);
+
+      if (!avaliadorId) {
+        Alert.alert(
+          "Usuário não encontrado",
+          "Não foi possível identificar a empresa logada para enviar a avaliação. Faça login novamente."
+        );
+        return;
+      }
+
       console.log("Finalizando contrato antes da avaliação:", {
         contratoId,
         jobId,
         candidaturaId,
         freelancerId,
+        freelancerUsuarioId,
+        avaliadorId,
       });
 
       try {
@@ -171,8 +214,11 @@ export default function ServiceCompletionScreen() {
         params: {
           contratoId,
 
-          avaliadorId: "1",
-          avaliadoId: freelancerId,
+          avaliadorId: String(avaliadorId),
+          avaliadoId: freelancerUsuarioId || freelancerId,
+
+          freelancerUsuarioId,
+          empresaUsuarioId,
 
           jobId,
           candidaturaId,
