@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import CreditCardIcon from "../../assets/icons/credit_card.svg";
@@ -19,7 +20,7 @@ import SendIcon from "../../assets/icons/send.svg";
 import { styles } from "@/app/styles/payment";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
-import { apiPost } from "@/services/api";
+import { apiGet, apiPost } from "@/services/api";
 
 type PaymentMethod = "card" | "pix" | "wallet";
 
@@ -39,6 +40,23 @@ type CandidaturaActionResponse = {
   freelancerId?: number;
   contratoStatus?: string;
 };
+
+type CandidaturaApi = {
+  id?: number | string;
+  candidaturaId?: number | string;
+  candidatura_id?: number | string;
+  contratoId?: number | string | null;
+  contrato_id?: number | string | null;
+  contrato?: { id?: number | string | null } | null;
+};
+
+type CandidaturasResponse =
+  | CandidaturaApi[]
+  | {
+      data?: CandidaturaApi[];
+      dados?: CandidaturaApi[];
+      candidaturas?: CandidaturaApi[];
+    };
 
 const paymentMethods: PaymentMethodOption[] = [
   {
@@ -67,6 +85,37 @@ const paymentMethodLabel: Record<PaymentMethod, string> = {
   wallet: "Carteira TaskFlow",
 };
 
+const PAYMENT_CONFIRMED_PREFIX = "payment_confirmed_";
+
+function getPaymentConfirmedKey(contratoId: string) {
+  return `${PAYMENT_CONFIRMED_PREFIX}${contratoId}`;
+}
+
+function getCandidaturasFromResponse(response: CandidaturasResponse) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.data ?? response.dados ?? response.candidaturas ?? [];
+}
+
+function getContratoIdFromCandidatura(candidatura?: CandidaturaApi | null) {
+  if (!candidatura) {
+    return "";
+  }
+
+  const contratoId =
+    candidatura.contratoId ??
+    candidatura.contrato_id ??
+    candidatura.contrato?.id ??
+    null;
+
+  return contratoId ? String(contratoId) : "";
+}
+
+// Altere aqui se quiser mudar a porcentagem da taxa.
+// 0.10 = 10%
+// 0.06 = 6%
 const PLATFORM_FEE_PERCENTAGE = 0.1;
 
 function getParamValue(value?: string | string[], fallback = "") {
@@ -78,17 +127,30 @@ function getParamValue(value?: string | string[], fallback = "") {
 }
 
 function parseCurrency(value?: string) {
-  if (!value || value === "A combinar" || value === "Valor a combinar") {
+  if (!value) {
     return null;
   }
 
-  const numbersOnly = value.replace(/\D/g, "");
+  const cleanedValue = value
+    .replace(/R\$/gi, "")
+    .replace(/\s/g, "")
+    .trim();
 
-  if (!numbersOnly) {
+  if (!cleanedValue) {
     return null;
   }
 
-  return Number(numbersOnly) / 100;
+  const normalizedValue = cleanedValue.includes(",")
+    ? cleanedValue.replace(/\./g, "").replace(",", ".")
+    : cleanedValue.replace(/,/g, "");
+
+  const parsedValue = Number(normalizedValue);
+
+  if (Number.isNaN(parsedValue)) {
+    return null;
+  }
+
+  return parsedValue;
 }
 
 function formatCurrency(value: number) {
@@ -162,21 +224,15 @@ export default function PaymentScreen() {
   const receivedTotalValue = getParamValue(params.totalValue);
 
   const paymentValues = useMemo(() => {
-    const serviceAmount =
-      parseCurrency(receivedServiceValue) ?? parseCurrency(jobPrice);
-
+    const serviceAmount = parseCurrency(receivedServiceValue);
     const platformFeeFromParam = parseCurrency(receivedPlatformFee);
     const totalValueFromParam = parseCurrency(receivedTotalValue);
 
     if (serviceAmount === null) {
       return {
-        serviceValue: receivedServiceValue || jobPrice || "Valor a combinar",
+        serviceValue: receivedServiceValue || "Valor a combinar",
         platformFee: receivedPlatformFee || "A calcular",
-        totalValue:
-          receivedTotalValue ||
-          receivedServiceValue ||
-          jobPrice ||
-          "A calcular",
+        totalValue: receivedTotalValue || receivedServiceValue || "A calcular",
       };
     }
 
@@ -190,11 +246,42 @@ export default function PaymentScreen() {
       platformFee: formatCurrency(platformFeeAmount),
       totalValue: formatCurrency(totalAmount),
     };
-  }, [jobPrice, receivedServiceValue, receivedPlatformFee, receivedTotalValue]);
+  }, [receivedServiceValue, receivedPlatformFee, receivedTotalValue]);
 
   const serviceValue = paymentValues.serviceValue;
   const platformFee = paymentValues.platformFee;
   const totalValue = paymentValues.totalValue;
+
+  async function recuperarContratoId() {
+    if (!jobId || !candidaturaId) {
+      return "";
+    }
+
+    try {
+      const response = await apiGet<CandidaturasResponse>(
+        `/api/Candidaturas/chamado/${jobId}`
+      );
+
+      const candidaturas = getCandidaturasFromResponse(response);
+
+      const candidaturaEncontrada = candidaturas.find((item) => {
+        const itemId = item.id ?? item.candidaturaId ?? item.candidatura_id;
+        return String(itemId) === String(candidaturaId);
+      });
+
+      const contratoEncontrado = getContratoIdFromCandidatura(
+        candidaturaEncontrada
+      );
+
+      if (contratoEncontrado) {
+        return contratoEncontrado;
+      }
+    } catch (error) {
+      console.log("Erro ao buscar contrato pela candidatura:", error);
+    }
+
+    return "";
+  }
 
   async function handleConfirmPayment() {
     if (isConfirming) {
@@ -216,18 +303,36 @@ export default function PaymentScreen() {
 
       if (!finalContratoId) {
         console.log(
-          "ContratoId não veio nos params. Tentando recuperar pelo aceite..."
+          "ContratoId não veio nos params. Tentando recuperar pela listagem de candidaturas..."
         );
 
-        const response = await apiPost<CandidaturaActionResponse>(
-          `/api/Candidaturas/${candidaturaId}/aceitar`,
-          {}
+        finalContratoId = await recuperarContratoId();
+      }
+
+      if (!finalContratoId) {
+        console.log(
+          "ContratoId ainda não encontrado. Tentando aceitar novamente como último recurso..."
         );
 
-        console.log("Resposta ao recuperar contrato:", response);
+        try {
+          const response = await apiPost<CandidaturaActionResponse>(
+            `/api/Candidaturas/${candidaturaId}/aceitar`,
+            {}
+          );
 
-        if (response?.contratoId) {
-          finalContratoId = String(response.contratoId);
+          console.log("Resposta ao recuperar contrato pelo aceite:", response);
+
+          const responseContratoId =
+            response?.contratoId ?? (response as any)?.contrato_id;
+
+          if (responseContratoId) {
+            finalContratoId = String(responseContratoId);
+          }
+        } catch (error) {
+          console.log(
+            "Não foi possível recuperar contrato pelo aceite novamente:",
+            error
+          );
         }
       }
 
@@ -252,7 +357,12 @@ export default function PaymentScreen() {
         selectedMethod,
       });
 
-      router.push({
+      await AsyncStorage.setItem(
+        getPaymentConfirmedKey(finalContratoId),
+        "true",
+      );
+
+      router.replace({
         pathname: "/payment-success",
         params: {
           contratoId: finalContratoId,
@@ -263,10 +373,10 @@ export default function PaymentScreen() {
 
           jobTitle,
           jobCategory,
-          jobPrice: jobPrice || serviceValue,
+          jobPrice,
           jobLocation,
           jobTime,
-          status,
+          status: status || "em_andamento",
 
           candidateName,
           candidateEmail,
@@ -277,6 +387,9 @@ export default function PaymentScreen() {
           platformFee,
           totalValue,
           paymentMethod: paymentMethodLabel[selectedMethod],
+
+          userRole: "empresa",
+          fromPayment: "true",
         },
       });
     } catch (error) {
@@ -319,9 +432,7 @@ export default function PaymentScreen() {
           <ArrowBack width={28} height={28} color={theme.text} />
         </Pressable>
 
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
-          Pagamento
-        </Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Pagamento</Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -363,15 +474,13 @@ export default function PaymentScreen() {
           </Text>
 
           <Text style={[styles.introText, { color: theme.textSecondary }]}>
-            Confirme o pagamento do valor total do chamado para liberar o
-            andamento do serviço e o chat com o freelancer selecionado.
+            Confirme o pagamento do serviço para liberar o chat entre a empresa
+            e o freelancer selecionado.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Resumo do chamado
-          </Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Resumo</Text>
 
           <View
             style={[
@@ -382,9 +491,7 @@ export default function PaymentScreen() {
               },
             ]}
           >
-            <Text style={[styles.jobTitle, { color: theme.text }]}>
-              {jobTitle}
-            </Text>
+            <Text style={[styles.jobTitle, { color: theme.text }]}>{jobTitle}</Text>
 
             <View style={styles.infoRow}>
               <Text
@@ -412,12 +519,7 @@ export default function PaymentScreen() {
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.divider,
-                { backgroundColor: theme.border },
-              ]}
-            />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
             <View style={styles.infoRow}>
               <Text
@@ -445,12 +547,7 @@ export default function PaymentScreen() {
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.divider,
-                { backgroundColor: theme.border },
-              ]}
-            />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
             <View style={styles.infoRow}>
               <Text
@@ -516,9 +613,7 @@ export default function PaymentScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Forma de pagamento
-          </Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Forma de pagamento</Text>
 
           <View style={styles.methodsArea}>
             {paymentMethods.map((method) => {
@@ -594,14 +689,9 @@ export default function PaymentScreen() {
             },
           ]}
         >
-          <Text style={[styles.warningTitle, { color: theme.text }]}>
-            Pagamento seguro
-          </Text>
+          <Text style={[styles.warningTitle, { color: theme.text }]}>Chat liberado após confirmação</Text>
 
-          <Text style={[styles.warningText, { color: theme.textSecondary }]}>
-            Após a confirmação do pagamento, o chat será liberado para a empresa
-            e o freelancer combinarem os detalhes finais do serviço.
-          </Text>
+          <Text style={[styles.warningText, { color: theme.textSecondary }]}>Após confirmar o pagamento, o chat será liberado para alinhamento dos detalhes finais do serviço.</Text>
         </View>
 
         <Pressable

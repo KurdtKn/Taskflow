@@ -1,1202 +1,1148 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
-  Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
+  StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
-import WalletIcon from "../../assets/icons/wallet.svg";
-import LocationIcon from "../../assets/icons/Location-check.svg";
-import TimeIcon from "../../assets/icons/access_time.svg";
 
-import { styles } from "@/app/styles/jobCandidates";
-import { useTheme } from "@/app/context/ThemeContext";
-import { colors } from "@/styles/colors";
 import { apiGet, apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
+import { useTheme } from "@/app/context/ThemeContext";
+import { colors } from "@/styles/colors";
 
-type Candidate = {
-  id: string;
-  contratoId?: string;
-  freelancerId?: string;
-  name: string;
-  email?: string;
-  photoUrl?: string;
-  role: string;
-  rating: number | null;
-  reviews: number;
-  distance: string;
-  completedJobs: number;
-  price: string;
-  description: string;
-  skills: string[];
-  status: string;
-};
-
-type FreelancerNestedApi = {
-  id?: number | null;
-  nome?: string | null;
-  name?: string | null;
-  email?: string | null;
-  telefone?: string | null;
-  fotoUrl?: string | null;
-  photoUrl?: string | null;
-  habilidades?: string[] | string | null;
-  skills?: string[] | string | null;
-  rating?: number | null;
-  nota?: number | null;
-  avaliacoes?: number | null;
-  reviews?: number | null;
-  servicosConcluidos?: number | null;
-  completedJobs?: number | null;
-};
-
-type CandidaturaApi = {
-  id: number;
-
-  contratoId?: number | null;
-  contrato_id?: number | null;
-
-  freelancerId?: number | null;
-  freelancer_id?: number | null;
-
-  freelancer?: string | FreelancerNestedApi | null;
-
-  nome?: string | null;
-  name?: string | null;
-  nomeFreelancer?: string | null;
-  freelancerNome?: string | null;
-
-  email?: string | null;
-  freelancerEmail?: string | null;
-  emailFreelancer?: string | null;
-
-  fotoUrl?: string | null;
-  photoUrl?: string | null;
-
-  mensagem?: string | null;
-  descricao?: string | null;
-
-  valorProposto?: number | null;
-  valor_proposto?: number | null;
-
-  status?: string | null;
-  dataCandidatura?: string | null;
-
-  habilidades?: string[] | string | null;
-  skills?: string[] | string | null;
-
-  rating?: number | null;
-  nota?: number | null;
-  reviews?: number | null;
-  avaliacoes?: number | null;
-  completedJobs?: number | null;
-  servicosConcluidos?: number | null;
-};
-
-type CandidaturasResponse =
-  | CandidaturaApi[]
-  | {
-      data?: CandidaturaApi[];
-      dados?: CandidaturaApi[];
-      candidaturas?: CandidaturaApi[];
-    };
-
-type CandidaturaActionResponse = {
+type CriarChamadoResponse = {
   mensagem?: string;
-  candidaturaId?: number;
-  contratoId?: number;
-  chamadoId?: number;
-  empresaId?: number;
-  freelancerId?: number;
-  chamadoStatus?: string;
-  contratoStatus?: string;
+  chamado?: {
+    id?: number;
+    empresaId?: number;
+    categoriaId?: number;
+    titulo?: string;
+    descricao?: string;
+    localServico?: string | null;
+    cidade?: string | null;
+    estado?: string | null;
+    dataServico?: string | null;
+    horaServico?: string | null;
+    valorEstimado?: number | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    quantidadeProfissionais?: number;
+    status?: string;
+  };
 };
 
-function getCandidaturasFromResponse(response: CandidaturasResponse) {
-  if (Array.isArray(response)) {
-    return response;
-  }
+type EnderecoSugestao = {
+  nome?: string;
+  endereco: string;
+  cidade?: string;
+  estado?: string;
+  latitude: number;
+  longitude: number;
+};
 
-  return response.data ?? response.dados ?? response.candidaturas ?? [];
+const DEFAULT_CATEGORIA_ID = 1;
+
+const MIN_VALOR_ESTIMADO = 1;
+const MAX_VALOR_ESTIMADO = 1000000;
+
+function normalizeUserType(value?: string | null) {
+  return value?.toLowerCase().trim();
 }
 
-function formatCurrency(value?: number | null) {
-  if (value === null || value === undefined || value === 0) {
-    return "Valor a combinar";
+function onlyNumbers(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function pad2(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function clamp(value: number, min: number, max: number) {
+  if (Number.isNaN(value)) {
+    return min;
   }
 
-  return value.toLocaleString("pt-BR", {
+  if (value < min) {
+    return min;
+  }
+
+  if (value > max) {
+    return max;
+  }
+
+  return value;
+}
+
+function getTodayWithoutTime() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function formatDateToInput(date: Date) {
+  return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}`;
+}
+
+function getLastDayOfMonth(year: number, month: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+function formatDateInput(value: string) {
+  const numbers = onlyNumbers(value).slice(0, 4);
+
+  if (numbers.length <= 2) {
+    return numbers;
+  }
+
+  return `${numbers.slice(0, 2)}/${numbers.slice(2)}`;
+}
+
+function normalizeDateOnBlur(value: string) {
+  const numbers = onlyNumbers(value).slice(0, 4);
+
+  if (!numbers) {
+    return "";
+  }
+
+  const today = getTodayWithoutTime();
+  const currentYear = today.getFullYear();
+
+  let day = Number(numbers.slice(0, 2));
+  let month = Number(numbers.slice(2, 4));
+
+  if (numbers.length <= 2) {
+    month = today.getMonth() + 1;
+  }
+
+  if (Number.isNaN(day) || day <= 0) {
+    day = today.getDate();
+  }
+
+  if (Number.isNaN(month) || month <= 0) {
+    month = today.getMonth() + 1;
+  }
+
+  month = clamp(month, 1, 12);
+
+  const lastDayOfMonth = getLastDayOfMonth(currentYear, month);
+  day = clamp(day, 1, lastDayOfMonth);
+
+  const selectedDate = new Date(currentYear, month - 1, day);
+  selectedDate.setHours(0, 0, 0, 0);
+
+  if (selectedDate < today) {
+    return formatDateToInput(today);
+  }
+
+  return `${pad2(day)}/${pad2(month)}`;
+}
+
+function convertDateToApi(value: string) {
+  const normalizedDate = normalizeDateOnBlur(value);
+
+  if (!normalizedDate) {
+    return null;
+  }
+
+  const [dayText, monthText] = normalizedDate.split("/");
+  const year = new Date().getFullYear();
+
+  return `${year}-${monthText}-${dayText}`;
+}
+
+function formatHourInput(value: string) {
+  const numbers = onlyNumbers(value).slice(0, 4);
+
+  if (numbers.length <= 2) {
+    return numbers;
+  }
+
+  return `${numbers.slice(0, 2)}:${numbers.slice(2)}`;
+}
+
+function normalizeHourOnBlur(value: string) {
+  const numbers = onlyNumbers(value).slice(0, 4);
+
+  if (!numbers) {
+    return "";
+  }
+
+  let hour = Number(numbers.slice(0, 2));
+  let minute = Number(numbers.slice(2, 4));
+
+  if (numbers.length <= 2) {
+    minute = 0;
+  }
+
+  hour = clamp(hour, 0, 23);
+  minute = clamp(minute, 0, 59);
+
+  return `${pad2(hour)}:${pad2(minute)}`;
+}
+
+function formatCurrencyInput(value: string) {
+  const numbers = onlyNumbers(value).slice(0, 9);
+
+  if (!numbers) {
+    return "";
+  }
+
+  let cents = Number(numbers);
+  const maxCents = MAX_VALOR_ESTIMADO * 100;
+
+  if (cents > maxCents) {
+    cents = maxCents;
+  }
+
+  const amount = cents / 100;
+
+  return amount.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
 }
 
-function normalizeStatus(value?: string | null) {
-  return value?.toLowerCase().trim() ?? "";
-}
+function parseCurrencyToNumber(value: string) {
+  const numbers = onlyNumbers(value);
 
-function getCandidateStatusLabel(status?: string | null) {
-  const normalizedStatus = normalizeStatus(status);
+  if (!numbers) {
+    return null;
+  }
+
+  const parsed = Number(numbers) / 100;
 
   if (
-    normalizedStatus === "aceita" ||
-    normalizedStatus === "aceito" ||
-    normalizedStatus === "accepted" ||
-    normalizedStatus === "aprovada" ||
-    normalizedStatus === "aprovado"
+    Number.isNaN(parsed) ||
+    parsed < MIN_VALOR_ESTIMADO ||
+    parsed > MAX_VALOR_ESTIMADO
   ) {
-    return "Aceita";
+    return null;
   }
 
-  if (
-    normalizedStatus === "recusada" ||
-    normalizedStatus === "recusado" ||
-    normalizedStatus === "rejected"
-  ) {
-    return "Recusada";
-  }
-
-  if (
-    normalizedStatus === "cancelada" ||
-    normalizedStatus === "cancelado" ||
-    normalizedStatus === "canceled" ||
-    normalizedStatus === "cancelled"
-  ) {
-    return "Cancelada";
-  }
-
-  return "Pendente";
+  return Number(parsed.toFixed(2));
 }
 
-function isFinishedStatus(status?: string | null) {
-  const normalizedStatus = normalizeStatus(status);
-
-  return (
-    normalizedStatus === "finished" ||
-    normalizedStatus === "finalizado" ||
-    normalizedStatus === "concluido" ||
-    normalizedStatus === "concluído" ||
-    normalizedStatus === "completed" ||
-    normalizedStatus === "cancelado" ||
-    normalizedStatus === "cancelada" ||
-    normalizedStatus === "cancelled" ||
-    normalizedStatus === "canceled"
-  );
-}
-
-function getNestedFreelancer(apiCandidate: CandidaturaApi) {
-  if (
-    apiCandidate.freelancer &&
-    typeof apiCandidate.freelancer === "object"
-  ) {
-    return apiCandidate.freelancer;
-  }
-
-  return null;
-}
-
-function getContratoId(apiCandidate: CandidaturaApi) {
-  return apiCandidate.contratoId ?? apiCandidate.contrato_id ?? null;
-}
-
-function getFreelancerId(apiCandidate: CandidaturaApi) {
-  const nestedFreelancer = getNestedFreelancer(apiCandidate);
-
-  return (
-    apiCandidate.freelancerId ??
-    apiCandidate.freelancer_id ??
-    nestedFreelancer?.id ??
-    null
-  );
-}
-
-function getFreelancerName(apiCandidate: CandidaturaApi) {
-  const nestedFreelancer = getNestedFreelancer(apiCandidate);
-
-  if (typeof apiCandidate.freelancer === "string") {
-    return apiCandidate.freelancer;
-  }
-
-  return (
-    apiCandidate.nomeFreelancer ||
-    apiCandidate.freelancerNome ||
-    apiCandidate.nome ||
-    apiCandidate.name ||
-    nestedFreelancer?.nome ||
-    nestedFreelancer?.name ||
-    "Freelancer não informado"
-  );
-}
-
-function getFreelancerEmail(apiCandidate: CandidaturaApi) {
-  const nestedFreelancer = getNestedFreelancer(apiCandidate);
-
-  return (
-    apiCandidate.freelancerEmail ||
-    apiCandidate.emailFreelancer ||
-    apiCandidate.email ||
-    nestedFreelancer?.email ||
-    undefined
-  );
-}
-
-function getFreelancerPhoto(apiCandidate: CandidaturaApi) {
-  const nestedFreelancer = getNestedFreelancer(apiCandidate);
-
-  return (
-    apiCandidate.photoUrl ||
-    apiCandidate.fotoUrl ||
-    nestedFreelancer?.photoUrl ||
-    nestedFreelancer?.fotoUrl ||
-    undefined
-  );
-}
-
-function getFreelancerRating(apiCandidate: CandidaturaApi) {
-  const nestedFreelancer = getNestedFreelancer(apiCandidate);
-
-  return (
-    apiCandidate.rating ??
-    apiCandidate.nota ??
-    nestedFreelancer?.rating ??
-    nestedFreelancer?.nota ??
-    null
-  );
-}
-
-function getFreelancerReviews(apiCandidate: CandidaturaApi) {
-  const nestedFreelancer = getNestedFreelancer(apiCandidate);
-
-  return (
-    apiCandidate.reviews ??
-    apiCandidate.avaliacoes ??
-    nestedFreelancer?.reviews ??
-    nestedFreelancer?.avaliacoes ??
-    0
-  );
-}
-
-function getCompletedJobs(apiCandidate: CandidaturaApi) {
-  const nestedFreelancer = getNestedFreelancer(apiCandidate);
-
-  return (
-    apiCandidate.completedJobs ??
-    apiCandidate.servicosConcluidos ??
-    nestedFreelancer?.completedJobs ??
-    nestedFreelancer?.servicosConcluidos ??
-    0
-  );
-}
-
-function normalizeSkills(value?: string[] | string | null) {
-  if (!value) {
-    return [];
-  }
-
-  if (Array.isArray(value)) {
-    return value.filter(Boolean);
-  }
-
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function getFreelancerSkills(
-  apiCandidate: CandidaturaApi,
-  jobCategory: string,
-  statusLabel: string
-) {
-  const nestedFreelancer = getNestedFreelancer(apiCandidate);
-
-  const skillsOptions = [
-    normalizeSkills(apiCandidate.habilidades),
-    normalizeSkills(apiCandidate.skills),
-    normalizeSkills(nestedFreelancer?.habilidades),
-    normalizeSkills(nestedFreelancer?.skills),
-  ];
-
-  const skills =
-    skillsOptions.find((skillsList) => skillsList.length > 0) ?? [];
-
-  const baseSkills = skills.length > 0 ? skills : [jobCategory];
-
-  return [...baseSkills, `Status: ${statusLabel}`];
-}
-
-function formatCandidate(
-  apiCandidate: CandidaturaApi,
-  jobCategory: string
-): Candidate {
-  const valorProposto =
-    apiCandidate.valorProposto ?? apiCandidate.valor_proposto ?? null;
-
-  const contratoId = getContratoId(apiCandidate);
-  const freelancerId = getFreelancerId(apiCandidate);
-  const candidateName = getFreelancerName(apiCandidate);
-  const candidateEmail = getFreelancerEmail(apiCandidate);
-  const candidatePhoto = getFreelancerPhoto(apiCandidate);
-  const statusLabel = getCandidateStatusLabel(apiCandidate.status);
-  const rating = getFreelancerRating(apiCandidate);
-  const reviews = getFreelancerReviews(apiCandidate);
-  const completedJobs = getCompletedJobs(apiCandidate);
-
-  return {
-    id: String(apiCandidate.id),
-    contratoId: contratoId ? String(contratoId) : undefined,
-    freelancerId: freelancerId ? String(freelancerId) : undefined,
-    name: candidateName,
-    email: candidateEmail,
-    photoUrl: candidatePhoto,
-    role: candidateEmail ? candidateEmail : "Freelancer",
-    rating,
-    reviews,
-    distance: "Não informado",
-    completedJobs,
-    price: formatCurrency(valorProposto),
-    description:
-      apiCandidate.mensagem ||
-      apiCandidate.descricao ||
-      "O freelancer ainda não enviou uma mensagem para essa candidatura.",
-    skills: getFreelancerSkills(apiCandidate, jobCategory, statusLabel),
-    status: statusLabel,
-  };
-}
-
-export default function JobCandidatesScreen() {
-  const params = useLocalSearchParams<{
-    id?: string | string[];
-    chamadoId?: string | string[];
-    title?: string | string[];
-    category?: string | string[];
-    price?: string | string[];
-    location?: string | string[];
-    time?: string | string[];
-    candidates?: string | string[];
-    status?: string | string[];
-    jobStatus?: string | string[];
-  }>();
-
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [selectedCandidateId, setSelectedCandidateId] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [actionCandidateId, setActionCandidateId] = useState("");
-
+export default function CreateJobScreen() {
   const { isDark, theme } = useTheme();
 
-  const infoIconColor = isDark ? colors.white : colors.black;
+  const [titulo, setTitulo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [localServico, setLocalServico] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [estado, setEstado] = useState("");
+  const [dataServico, setDataServico] = useState("");
+  const [horaServico, setHoraServico] = useState("");
+  const [valorEstimado, setValorEstimado] = useState("");
+  const [quantidadeProfissionais, setQuantidadeProfissionais] = useState("1");
 
-  function getParamValue(value?: string | string[], fallback = "") {
-    if (Array.isArray(value)) {
-      return value[0] ?? fallback;
+  const [sugestoesEndereco, setSugestoesEndereco] = useState<EnderecoSugestao[]>([]);
+  const [latitudeSelecionada, setLatitudeSelecionada] = useState<number | null>(null);
+  const [longitudeSelecionada, setLongitudeSelecionada] = useState<number | null>(null);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const quantidadeNumber = Number(quantidadeProfissionais);
+
+  const hasMultipleProfessionals =
+    !Number.isNaN(quantidadeNumber) && quantidadeNumber > 1;
+
+  const hasSelectedAddress =
+    latitudeSelecionada !== null && longitudeSelecionada !== null;
+
+  const inputStyle = [
+    localStyles.input,
+    {
+      backgroundColor: theme.inputBackground,
+      borderColor: theme.border,
+      color: theme.text,
+      ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+    },
+  ];
+
+  function resolveEmpresaId(loggedUserData: any) {
+    const empresaId = Number(
+      loggedUserData.perfilId ??
+        loggedUserData.empresaId ??
+        loggedUserData.idEmpresa ??
+        loggedUserData.empresa_id
+    );
+
+    if (Number.isNaN(empresaId) || empresaId <= 0) {
+      return null;
     }
 
-    return value ?? fallback;
+    return empresaId;
   }
 
-  const jobId = getParamValue(params.id) || getParamValue(params.chamadoId);
-  const jobTitle = getParamValue(params.title, "Chamado");
-  const jobCategory = getParamValue(params.category, "Categoria");
-  const jobPrice = getParamValue(params.price, "Valor a combinar");
-  const jobLocation = getParamValue(params.location, "Local não informado");
-  const jobTime = getParamValue(params.time, "Data não informada");
-  const jobStatus = getParamValue(params.status) || getParamValue(params.jobStatus);
+  function handleDateBlur() {
+    setDataServico((currentValue) => normalizeDateOnBlur(currentValue));
+  }
 
-  const isJobFinished = isFinishedStatus(jobStatus);
+  function handleHourBlur() {
+    setHoraServico((currentValue) => normalizeHourOnBlur(currentValue));
+  }
 
-  const selectedCandidate = candidates.find(
-    (candidate) => candidate.id === selectedCandidateId
-  );
+  function clearSelectedCoordinates() {
+    setLatitudeSelecionada(null);
+    setLongitudeSelecionada(null);
+  }
 
-  useFocusEffect(
-    useCallback(() => {
-      loadCandidates();
-    }, [jobId])
-  );
+  async function buscarSugestoesEndereco(texto: string) {
+    setLocalServico(texto);
+    clearSelectedCoordinates();
 
-  async function loadCandidates() {
+    if (texto.trim().length < 3) {
+      setSugestoesEndereco([]);
+      return;
+    }
+
     try {
-      setIsLoading(true);
+      setIsSearchingAddress(true);
+
+      const query = `/api/Chamados/sugestoes-endereco?texto=${encodeURIComponent(
+        texto
+      )}&cidade=${encodeURIComponent(cidade)}&estado=${encodeURIComponent(
+        estado
+      )}`;
+
+      const response = await apiGet<EnderecoSugestao[]>(query);
+
+      setSugestoesEndereco(Array.isArray(response) ? response : []);
+    } catch (error) {
+      console.log("Erro ao buscar sugestões de endereço:", error);
+      setSugestoesEndereco([]);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  }
+
+  function normalizeUf(value?: string | null) {
+    if (!value) {
+      return "";
+    }
+
+    const estadoTexto = value.toUpperCase().trim();
+
+    if (estadoTexto === "SÃO PAULO" || estadoTexto === "SAO PAULO") {
+      return "SP";
+    }
+
+    if (estadoTexto === "RIO DE JANEIRO") {
+      return "RJ";
+    }
+
+    if (estadoTexto === "MINAS GERAIS") {
+      return "MG";
+    }
+
+    return estadoTexto.slice(0, 2);
+  }
+
+  function selectEndereco(sugestao: EnderecoSugestao) {
+    setLocalServico(sugestao.endereco);
+    setLatitudeSelecionada(sugestao.latitude);
+    setLongitudeSelecionada(sugestao.longitude);
+    setSugestoesEndereco([]);
+
+    if (sugestao.cidade) {
+      setCidade(sugestao.cidade);
+    }
+
+    if (sugestao.estado) {
+      setEstado(normalizeUf(sugestao.estado));
+    }
+  }
+
+  function validateForm() {
+    if (!titulo.trim()) {
+      Alert.alert("Título obrigatório", "Informe o título do chamado.");
+      return false;
+    }
+
+    if (!descricao.trim()) {
+      Alert.alert("Descrição obrigatória", "Informe a descrição do chamado.");
+      return false;
+    }
+
+    if (!cidade.trim()) {
+      Alert.alert("Cidade obrigatória", "Informe a cidade do chamado.");
+      return false;
+    }
+
+    if (!estado.trim()) {
+      Alert.alert("Estado obrigatório", "Informe a UF do chamado.");
+      return false;
+    }
+
+    if (!localServico.trim()) {
+      Alert.alert(
+        "Local obrigatório",
+        "Digite o endereço ou nome do local do serviço. Se aparecer uma sugestão, selecione para deixar o pin mais preciso."
+      );
+      return false;
+    }
+
+    const quantidade = Number(quantidadeProfissionais);
+
+    if (Number.isNaN(quantidade) || quantidade <= 0) {
+      Alert.alert(
+        "Quantidade inválida",
+        "Informe pelo menos 1 profissional."
+      );
+      return false;
+    }
+
+    if (quantidade > 99) {
+      Alert.alert(
+        "Quantidade inválida",
+        "O limite máximo é de 99 profissionais."
+      );
+      return false;
+    }
+
+    if (dataServico.trim()) {
+      const normalizedDate = normalizeDateOnBlur(dataServico);
+
+      if (!normalizedDate) {
+        Alert.alert(
+          "Data inválida",
+          "Informe uma data válida no formato DD/MM."
+        );
+        return false;
+      }
+
+      if (normalizedDate !== dataServico) {
+        setDataServico(normalizedDate);
+      }
+    }
+
+    if (horaServico.trim()) {
+      const normalizedHour = normalizeHourOnBlur(horaServico);
+
+      if (!normalizedHour) {
+        Alert.alert(
+          "Hora inválida",
+          "Informe uma hora válida entre 00:00 e 23:59."
+        );
+        return false;
+      }
+
+      if (normalizedHour !== horaServico) {
+        setHoraServico(normalizedHour);
+      }
+    }
+
+    if (!valorEstimado.trim()) {
+      Alert.alert(
+        "Valor obrigatório",
+        "Informe um valor entre R$ 1,00 e R$ 1.000.000,00."
+      );
+      return false;
+    }
+
+    const valorConvertido = parseCurrencyToNumber(valorEstimado);
+
+    if (valorConvertido === null) {
+      Alert.alert(
+        "Valor inválido",
+        "Informe um valor entre R$ 1,00 e R$ 1.000.000,00."
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  async function handleCreateJob() {
+    if (isCreating) {
+      return;
+    }
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setIsCreating(true);
 
       const loggedUser = await getLoggedUser();
 
       if (!loggedUser) {
+        Alert.alert("Sessão expirada", "Faça login novamente.");
         router.replace("/login");
         return;
       }
 
-      if (!jobId) {
-        setCandidates([]);
-        setSelectedCandidateId("");
+      const loggedUserData = loggedUser as any;
 
+      const tipoUsuario = normalizeUserType(
+        loggedUserData.tipoUsuario ||
+          loggedUserData.tipo_usuario ||
+          loggedUserData.tipo
+      );
+
+      if (tipoUsuario !== "empresa") {
         Alert.alert(
-          "Chamado não encontrado",
-          "Não foi possível identificar o chamado selecionado."
-        );
-
-        return;
-      }
-
-      const response = await apiGet<CandidaturasResponse>(
-        `/api/Candidaturas/chamado/${jobId}`
-      );
-
-      const candidaturas = getCandidaturasFromResponse(response);
-
-      console.log("Candidaturas retornadas pela API:", candidaturas);
-
-      const formattedCandidates = candidaturas.map((candidatura) =>
-        formatCandidate(candidatura, jobCategory)
-      );
-
-      setCandidates(formattedCandidates);
-      setSelectedCandidateId(formattedCandidates[0]?.id ?? "");
-    } catch (error) {
-      console.log("Erro ao carregar candidatos:", error);
-
-      setCandidates([]);
-      setSelectedCandidateId("");
-
-      Alert.alert(
-        "Erro",
-        "Não foi possível carregar os candidatos desse chamado agora."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function isCandidateAccepted(candidate: Candidate) {
-    return candidate.status === "Aceita";
-  }
-
-  function isCandidateRejected(candidate: Candidate) {
-    return (
-      candidate.status === "Recusada" ||
-      candidate.status === "Cancelada"
-    );
-  }
-
-  function showFinishedAlert() {
-    Alert.alert(
-      "Chamado finalizado",
-      "Este serviço já foi finalizado. Não é possível aceitar candidatos, abrir pagamento ou iniciar chat."
-    );
-  }
-
-  function goToPayment(candidate: Candidate, contratoId?: string) {
-    if (isJobFinished) {
-      showFinishedAlert();
-      return;
-    }
-
-    const finalContratoId = contratoId || candidate.contratoId || "";
-
-    if (!finalContratoId) {
-      Alert.alert(
-        "Contrato não encontrado",
-        "A candidatura foi aceita, mas o app não recebeu o contratoId. Tente aceitar novamente ou recarregue os candidatos."
-      );
-      return;
-    }
-
-    const paymentValue = jobPrice || candidate.price || "Valor a combinar";
-
-    router.push({
-      pathname: "/payment",
-      params: {
-        contratoId: finalContratoId,
-
-        jobId,
-        candidaturaId: candidate.id,
-        freelancerId: candidate.freelancerId ?? "",
-
-        jobTitle,
-        jobCategory,
-        jobPrice: paymentValue,
-        jobLocation,
-        jobTime,
-        status: jobStatus,
-
-        candidateName: candidate.name,
-        candidateEmail: candidate.email ?? "",
-        candidateRating: candidate.rating ? String(candidate.rating) : "",
-
-        serviceValue: paymentValue,
-        candidatePrice: paymentValue,
-      },
-    });
-  }
-
-  async function handleAcceptCandidate(candidate: Candidate) {
-    if (isJobFinished) {
-      showFinishedAlert();
-      return;
-    }
-
-    if (isCandidateRejected(candidate)) {
-      Alert.alert(
-        "Candidatura recusada",
-        "Não é possível aceitar uma candidatura que já foi recusada."
-      );
-      return;
-    }
-
-    if (isCandidateAccepted(candidate) && candidate.contratoId) {
-      goToPayment(candidate, candidate.contratoId);
-      return;
-    }
-
-    try {
-      setActionCandidateId(candidate.id);
-
-      const response = await apiPost<CandidaturaActionResponse>(
-        `/api/Candidaturas/${candidate.id}/aceitar`,
-        {}
-      );
-
-      console.log("Candidatura aceita pela API:", response);
-
-      const contratoId = response.contratoId
-        ? String(response.contratoId)
-        : candidate.contratoId ?? "";
-
-      if (!contratoId) {
-        Alert.alert(
-          "Contrato não encontrado",
-          "A API aceitou a candidatura, mas não retornou o contratoId."
+          "Acesso negado",
+          "Apenas empresas podem criar chamados."
         );
         return;
       }
 
-      setCandidates((currentCandidates) =>
-        currentCandidates.map((item) =>
-          item.id === candidate.id
-            ? {
-                ...item,
-                contratoId,
-                status: "Aceita",
-                skills: item.skills.map((skill) =>
-                  skill.startsWith("Status:") ? "Status: Aceita" : skill
-                ),
-              }
-            : item
-        )
+      const empresaId = resolveEmpresaId(loggedUserData);
+
+      if (!empresaId) {
+        Alert.alert(
+          "Empresa não encontrada",
+          "Não foi possível identificar o perfil da empresa. Faça login novamente."
+        );
+
+        console.log("Usuário logado sem empresaId/perfilId:", loggedUserData);
+        return;
+      }
+
+      const normalizedDate = dataServico.trim()
+        ? normalizeDateOnBlur(dataServico)
+        : "";
+
+      const normalizedHour = horaServico.trim()
+        ? normalizeHourOnBlur(horaServico)
+        : "";
+
+      const valorConvertido = parseCurrencyToNumber(valorEstimado);
+
+      if (valorConvertido === null) {
+        Alert.alert(
+          "Valor inválido",
+          "Informe um valor entre R$ 1,00 e R$ 1.000.000,00."
+        );
+        return;
+      }
+
+      const payload = {
+        EmpresaId: empresaId,
+        CategoriaId: DEFAULT_CATEGORIA_ID,
+        Titulo: titulo.trim(),
+        Descricao: descricao.trim(),
+        LocalServico: localServico.trim(),
+        Cidade: cidade.trim(),
+        Estado: estado.trim().toUpperCase(),
+        DataServico: normalizedDate ? convertDateToApi(normalizedDate) : null,
+        HoraServico: normalizedHour || null,
+        ValorEstimado: valorConvertido,
+        QuantidadeProfissionais: Number(quantidadeProfissionais),
+        Latitude: latitudeSelecionada ?? null,
+        Longitude: longitudeSelecionada ?? null,
+      };
+
+      console.log("Criando chamado:", payload);
+
+      const response = await apiPost<CriarChamadoResponse>(
+        "/api/Chamados",
+        payload
       );
 
-      goToPayment(
-        {
-          ...candidate,
-          contratoId,
-          status: "Aceita",
-        },
-        contratoId
+      console.log("Chamado criado:", response);
+
+      Alert.alert(
+        "Chamado criado",
+        "Seu chamado foi publicado com sucesso."
       );
+
+      router.replace("/company-dashboard");
     } catch (error) {
-      console.log("Erro ao aceitar candidatura:", error);
+      console.log("Erro ao criar chamado:", error);
 
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "Não foi possível aceitar essa candidatura agora.";
+          : "Não foi possível criar o chamado agora.";
 
-      Alert.alert("Erro ao aceitar", errorMessage);
+      Alert.alert("Erro ao criar chamado", errorMessage);
     } finally {
-      setActionCandidateId("");
+      setIsCreating(false);
     }
-  }
-
-  function handleViewFreelancerProfile(candidate: Candidate) {
-    router.push({
-      pathname: "/freelancer-profile",
-      params: {
-        contratoId: candidate.contratoId ?? "",
-
-        jobId,
-        candidaturaId: candidate.id,
-        freelancerId: candidate.freelancerId ?? "",
-
-        jobTitle,
-        jobCategory,
-        jobPrice,
-        jobLocation,
-        jobTime,
-        status: jobStatus,
-
-        candidateName: candidate.name,
-        candidateEmail: candidate.email ?? "",
-        candidateRating: candidate.rating ? String(candidate.rating) : "",
-        candidatePrice: candidate.price,
-      },
-    });
-  }
-
-  async function rejectCandidate(candidate: Candidate) {
-    try {
-      setActionCandidateId(candidate.id);
-
-      const response = await apiPost<CandidaturaActionResponse>(
-        `/api/Candidaturas/${candidate.id}/recusar`,
-        {}
-      );
-
-      console.log("Candidatura recusada pela API:", response);
-
-      setCandidates((currentCandidates) =>
-        currentCandidates.map((item) =>
-          item.id === candidate.id
-            ? {
-                ...item,
-                status: "Recusada",
-                skills: item.skills.map((skill) =>
-                  skill.startsWith("Status:") ? "Status: Recusada" : skill
-                ),
-              }
-            : item
-        )
-      );
-
-      Alert.alert(
-        "Candidatura recusada",
-        `A candidatura de ${candidate.name} foi recusada.`
-      );
-    } catch (error) {
-      console.log("Erro ao recusar candidatura:", error);
-
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Não foi possível recusar essa candidatura agora.";
-
-      Alert.alert("Erro ao recusar", errorMessage);
-    } finally {
-      setActionCandidateId("");
-    }
-  }
-
-  function handleRejectCandidate(candidate: Candidate) {
-    if (isJobFinished) {
-      showFinishedAlert();
-      return;
-    }
-
-    if (isCandidateAccepted(candidate)) {
-      Alert.alert(
-        "Candidatura já aceita",
-        "Não é possível recusar uma candidatura que já foi aceita."
-      );
-      return;
-    }
-
-    if (isCandidateRejected(candidate)) {
-      Alert.alert(
-        "Candidatura já recusada",
-        "Essa candidatura já foi recusada."
-      );
-      return;
-    }
-
-    Alert.alert(
-      "Recusar candidato",
-      `Deseja recusar a candidatura de ${candidate.name}?`,
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Recusar",
-          style: "destructive",
-          onPress: () => rejectCandidate(candidate),
-        },
-      ]
-    );
   }
 
   return (
     <SafeAreaView
       style={[
-        styles.container,
+        localStyles.container,
         { backgroundColor: theme.background },
       ]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: theme.background,
-            borderBottomColor: theme.border,
-          },
-        ]}
-      >
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowBack width={28} height={28} color={theme.text} />
-        </Pressable>
-
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
-          Candidatos
-        </Text>
-
-        <View style={styles.headerPlaceholder} />
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="always"
-        style={{ backgroundColor: theme.background }}
+      <KeyboardAvoidingView
+        style={localStyles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View
           style={[
-            styles.jobCard,
+            localStyles.header,
             {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
+              backgroundColor: theme.background,
+              borderBottomColor: theme.border,
             },
           ]}
         >
-          <Text style={[styles.jobLabel, { color: theme.primary }]}>
-            {isJobFinished ? "Chamado finalizado" : "Chamado"}
-          </Text>
+          <Pressable
+            style={({ pressed }) => [
+              localStyles.backButton,
+              pressed && { opacity: 0.7 },
+            ]}
+            onPress={() => router.back()}
+          >
+            <ArrowBack width={28} height={28} color={theme.text} />
+          </Pressable>
 
-          <Text style={[styles.jobTitle, { color: theme.text }]}>
-            {jobTitle}
-          </Text>
+          <Text style={[localStyles.headerTitle, { color: theme.text }]}>Criar chamado</Text>
 
-          {isJobFinished && (
-            <Text
-              style={{
-                color: colors.danger,
-                fontSize: 12,
-                fontWeight: "900",
-                marginTop: 8,
-              }}
-            >
-              Este chamado está encerrado. Pagamento e chat ficam bloqueados.
-            </Text>
-          )}
-
-          <View style={styles.jobInfoArea}>
-            <View style={styles.jobInfoRow}>
-              <View style={styles.jobInfoIconBox}>
-                <WalletIcon
-                  width={18}
-                  height={18}
-                  color={infoIconColor}
-                  fill={infoIconColor}
-                />
-              </View>
-
-              <Text style={[styles.jobInfoText, { color: theme.text }]}>
-                {jobPrice}
-              </Text>
-            </View>
-
-            <View style={styles.jobInfoRow}>
-              <View style={styles.jobInfoIconBox}>
-                <LocationIcon
-                  width={18}
-                  height={18}
-                  color={infoIconColor}
-                  fill={infoIconColor}
-                />
-              </View>
-
-              <Text style={[styles.jobInfoText, { color: theme.text }]}>
-                {jobLocation}
-              </Text>
-            </View>
-
-            <View style={styles.jobInfoRow}>
-              <View style={styles.jobInfoIconBox}>
-                <TimeIcon
-                  width={18}
-                  height={18}
-                  color={infoIconColor}
-                  fill={infoIconColor}
-                />
-              </View>
-
-              <Text style={[styles.jobInfoText, { color: theme.text }]}>
-                {jobTime}
-              </Text>
-            </View>
-          </View>
+          <View style={localStyles.headerPlaceholder} />
         </View>
 
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              Freelancers interessados
-            </Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={localStyles.scrollContent}
+        >
+          <Text style={[localStyles.pageTitle, { color: theme.text }]}>Publique uma nova oportunidade</Text>
 
-            <Text
+          <Text
+            style={[
+              localStyles.pageSubtitle,
+              { color: theme.textSecondary },
+            ]}
+          >
+            Digite o endereço e selecione uma sugestão para deixar o pin mais preciso.
+            Se não selecionar, a API tentará localizar automaticamente.
+          </Text>
+
+          <View
+            style={[
+              localStyles.card,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text style={[localStyles.label, { color: theme.text }]}>Título do chamado</Text>
+
+            <TextInput
+              style={inputStyle}
+              placeholder="Ex: Garçom para evento"
+              placeholderTextColor={theme.textSecondary}
+              value={titulo}
+              onChangeText={setTitulo}
+              maxLength={80}
+            />
+
+            <Text style={[localStyles.label, { color: theme.text }]}>Descrição</Text>
+
+            <TextInput
               style={[
-                styles.sectionSubtitle,
-                { color: theme.textSecondary },
+                inputStyle,
+                {
+                  minHeight: 110,
+                  textAlignVertical: "top",
+                  paddingTop: 14,
+                },
               ]}
-            >
-              {isLoading
-                ? "Carregando candidatos..."
-                : `${candidates.length} candidatos encontrados`}
-            </Text>
-          </View>
-        </View>
+              placeholder="Descreva o serviço, responsabilidades e detalhes importantes..."
+              placeholderTextColor={theme.textSecondary}
+              value={descricao}
+              onChangeText={setDescricao}
+              multiline
+              maxLength={600}
+            />
 
-        <View style={styles.candidatesList}>
-          {isLoading ? (
+            <View style={localStyles.row}>
+              <View style={localStyles.rowItem}>
+                <Text style={[localStyles.label, { color: theme.text }]}>Cidade</Text>
+
+                <TextInput
+                  style={inputStyle}
+                  placeholder="Sorocaba"
+                  placeholderTextColor={theme.textSecondary}
+                  value={cidade}
+                  onChangeText={(value) => {
+                    setCidade(value);
+                    clearSelectedCoordinates();
+                    setSugestoesEndereco([]);
+                  }}
+                  maxLength={80}
+                />
+              </View>
+
+              <View style={localStyles.stateItem}>
+                <Text style={[localStyles.label, { color: theme.text }]}>UF</Text>
+
+                <TextInput
+                  style={inputStyle}
+                  placeholder="SP"
+                  placeholderTextColor={theme.textSecondary}
+                  value={estado}
+                  onChangeText={(value) => {
+                    setEstado(value.toUpperCase().slice(0, 2));
+                    clearSelectedCoordinates();
+                    setSugestoesEndereco([]);
+                  }}
+                  maxLength={2}
+                  autoCapitalize="characters"
+                />
+              </View>
+            </View>
+
+            <Text style={[localStyles.label, { color: theme.text }]}>Local do serviço</Text>
+
             <View
               style={[
-                styles.infoBox,
+                localStyles.addressSearchBox,
                 {
-                  backgroundColor: theme.card,
+                  backgroundColor: theme.inputBackground,
                   borderColor: theme.border,
                 },
               ]}
             >
-              <Text style={[styles.infoTitle, { color: theme.text }]}>
-                Carregando candidatos...
+              <Text
+                style={[
+                  localStyles.searchIcon,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                🔍
               </Text>
 
-              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                Buscando as candidaturas desse chamado na API.
-              </Text>
+              <TextInput
+                style={[
+                  localStyles.addressInput,
+                  {
+                    color: theme.text,
+                    ...(Platform.OS === "web"
+                      ? ({ outlineStyle: "none" } as any)
+                      : {}),
+                  },
+                ]}
+                placeholder="Digite o endereço ou nome do local"
+                placeholderTextColor={theme.textSecondary}
+                value={localServico}
+                onChangeText={buscarSugestoesEndereco}
+                maxLength={120}
+              />
             </View>
-          ) : candidates.length === 0 ? (
-            <View
-              style={[
-                styles.infoBox,
-                {
-                  backgroundColor: theme.card,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Text style={[styles.infoTitle, { color: theme.text }]}>
-                Nenhum candidato disponível
+
+            {isSearchingAddress && (
+              <Text
+                style={[
+                  localStyles.helperText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Buscando endereços...
               </Text>
+            )}
 
-              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                Ainda não há candidaturas para esse chamado.
-              </Text>
-            </View>
-          ) : (
-            candidates.map((candidate) => {
-              const isSelected = selectedCandidateId === candidate.id;
-              const isAccepted = isCandidateAccepted(candidate);
-              const isRejected = isCandidateRejected(candidate);
-              const isActionLoading = actionCandidateId === candidate.id;
+            {sugestoesEndereco.length > 0 && (
+              <View
+                style={[
+                  localStyles.addressSuggestionsBox,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                {sugestoesEndereco.map((sugestao, index) => {
+                  const nome = sugestao.nome || sugestao.endereco.split(" - ")[0];
+                  const enderecoCompleto = sugestao.endereco;
 
-              return (
-                <Pressable
-                  key={candidate.id}
-                  style={({ pressed }) => [
-                    styles.candidateCard,
-                    {
-                      backgroundColor: theme.card,
-                      borderColor: theme.border,
-                    },
-                    isSelected && styles.candidateCardSelected,
-                    pressed && styles.candidateCardPressed,
-                  ]}
-                  onPress={() => setSelectedCandidateId(candidate.id)}
-                >
-                  <View style={styles.candidateHeader}>
-                    {candidate.photoUrl ? (
-                      <Image
-                        source={{ uri: candidate.photoUrl }}
-                        style={styles.avatar}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Image
-                        source={require("../../assets/images/icon.png")}
-                        style={styles.avatar}
-                        resizeMode="contain"
-                      />
-                    )}
-
-                    <View style={styles.candidateInfo}>
-                      <Text
-                        style={[
-                          styles.candidateName,
-                          { color: theme.text },
-                        ]}
-                      >
-                        {candidate.name}
-                      </Text>
-
-                      <Text
-                        style={[
-                          styles.candidateRole,
-                          { color: theme.textSecondary },
-                        ]}
-                      >
-                        {candidate.role}
-                      </Text>
-
-                      <View style={styles.ratingArea}>
-                        <Text style={styles.ratingIcon}>⭐</Text>
-
-                        <Text
-                          style={[
-                            styles.ratingText,
-                            { color: theme.textSecondary },
-                          ]}
-                        >
-                          {candidate.rating
-                            ? `${candidate.rating} • ${candidate.reviews} avaliações`
-                            : "Sem avaliações"}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <Text
-                      style={[
-                        styles.candidatePrice,
-                        { color: theme.primary },
+                  return (
+                    <Pressable
+                      key={`${sugestao.endereco}-${index}`}
+                      style={({ pressed }) => [
+                        localStyles.addressSuggestionItem,
+                        pressed && {
+                          backgroundColor: isDark
+                            ? "rgba(255,255,255,0.06)"
+                            : "rgba(0,0,0,0.06)",
+                        },
                       ]}
+                      onPress={() => selectEndereco(sugestao)}
                     >
-                      {candidate.price}
-                    </Text>
-                  </View>
+                      <View style={localStyles.addressIconCircle}>
+                        <Text style={localStyles.addressPinIcon}>📍</Text>
+                      </View>
 
-                  <Text
-                    style={[
-                      styles.description,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    {candidate.description}
-                  </Text>
-
-                  <View style={styles.skillsArea}>
-                    {candidate.skills.map((skill) => (
-                      <View
-                        key={skill}
-                        style={[
-                          styles.skillChip,
-                          {
-                            backgroundColor: theme.background,
-                            borderColor: theme.border,
-                          },
-                        ]}
-                      >
+                      <View style={localStyles.addressTextArea}>
                         <Text
                           style={[
-                            styles.skillText,
+                            localStyles.addressSuggestionTitle,
                             { color: theme.text },
                           ]}
+                          numberOfLines={1}
                         >
-                          {skill}
+                          {nome}
+                        </Text>
+
+                        <Text
+                          style={[
+                            localStyles.addressSuggestionSubtitle,
+                            { color: theme.textSecondary },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {enderecoCompleto}
                         </Text>
                       </View>
-                    ))}
-                  </View>
-
-                  <View
-                    style={[
-                      styles.statsArea,
-                      {
-                        backgroundColor: theme.background,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                  >
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: theme.text }]}>
-                        {candidate.completedJobs}
-                      </Text>
-
-                      <Text
-                        style={[
-                          styles.statLabel,
-                          { color: theme.textSecondary },
-                        ]}
-                      >
-                        serviços
-                      </Text>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.statDivider,
-                        { backgroundColor: theme.border },
-                      ]}
-                    />
-
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: theme.text }]}>
-                        {candidate.distance}
-                      </Text>
-
-                      <Text
-                        style={[
-                          styles.statLabel,
-                          { color: theme.textSecondary },
-                        ]}
-                      >
-                        distância
-                      </Text>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.statDivider,
-                        { backgroundColor: theme.border },
-                      ]}
-                    />
-
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: theme.text }]}>
-                        {candidate.rating ?? "-"}
-                      </Text>
-
-                      <Text
-                        style={[
-                          styles.statLabel,
-                          { color: theme.textSecondary },
-                        ]}
-                      >
-                        nota
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.profileButton,
-                      {
-                        backgroundColor: theme.background,
-                        borderColor: theme.border,
-                      },
-                      pressed && styles.profileButtonPressed,
-                    ]}
-                    onPress={() => handleViewFreelancerProfile(candidate)}
-                  >
-                    <Text
-                      style={[
-                        styles.profileButtonText,
-                        { color: theme.text },
-                      ]}
-                    >
-                      Ver perfil completo
-                    </Text>
-                  </Pressable>
-
-                  <View style={styles.actionButtonsRow}>
-                    <Pressable
-                      disabled={
-                        isJobFinished ||
-                        isAccepted ||
-                        isRejected ||
-                        isActionLoading
-                      }
-                      style={({ pressed }) => [
-                        styles.rejectButton,
-                        {
-                          backgroundColor: theme.card,
-                          borderColor: theme.border,
-                        },
-                        (isJobFinished ||
-                          isAccepted ||
-                          isRejected ||
-                          isActionLoading) &&
-                          styles.acceptButtonDisabled,
-                        pressed &&
-                          !isJobFinished &&
-                          !isAccepted &&
-                          !isRejected &&
-                          !isActionLoading &&
-                          styles.rejectButtonPressed,
-                      ]}
-                      onPress={() => handleRejectCandidate(candidate)}
-                    >
-                      <Text style={styles.rejectButtonText}>
-                        {isJobFinished
-                          ? "Finalizado"
-                          : isRejected
-                          ? "Recusada"
-                          : "Recusar"}
-                      </Text>
                     </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
-                    <Pressable
-                      disabled={isJobFinished || isRejected || isActionLoading}
-                      style={({ pressed }) => [
-                        styles.acceptButton,
-                        (isJobFinished || isRejected || isActionLoading) &&
-                          styles.acceptButtonDisabled,
-                        pressed &&
-                          !isJobFinished &&
-                          !isRejected &&
-                          !isActionLoading &&
-                          styles.acceptButtonPressed,
-                      ]}
-                      onPress={() => handleAcceptCandidate(candidate)}
-                    >
-                      <Text
-                        style={[
-                          styles.acceptButtonText,
-                          (isJobFinished || isRejected || isActionLoading) &&
-                            styles.acceptButtonDisabledText,
-                        ]}
-                      >
-                        {isJobFinished
-                          ? "Serviço finalizado"
-                          : isActionLoading
-                          ? "Aguarde..."
-                          : isAccepted
-                          ? "Pagamento"
-                          : isRejected
-                          ? "Recusada"
-                          : "Aceitar"}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </Pressable>
-              );
-            })
-          )}
-        </View>
+            {hasSelectedAddress ? (
+              <Text style={[localStyles.helperText, { color: colors.primary }]}>Endereço selecionado. O pin será criado neste local.</Text>
+            ) : localServico.trim().length >= 3 ? (
+              <Text style={[localStyles.helperText, { color: theme.textSecondary }]}>Nenhuma sugestão selecionada. A API tentará localizar automaticamente ao publicar.</Text>
+            ) : null}
 
-        <View
-          style={[
-            styles.infoBox,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Text style={[styles.infoTitle, { color: theme.text }]}>
-            {isJobFinished ? "Chamado encerrado" : "Antes de aceitar"}
-          </Text>
+            <View style={localStyles.row}>
+              <View style={localStyles.rowItem}>
+                <Text style={[localStyles.label, { color: theme.text }]}>Data</Text>
 
-          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            {isJobFinished
-              ? "Este chamado já foi finalizado. Os candidatos ficam disponíveis apenas para histórico."
-              : "Analise a mensagem enviada pelo freelancer e o valor proposto. Após o aceite, o próximo passo será revisar o pagamento da taxa da plataforma para liberar o chat."}
-          </Text>
-        </View>
+                <TextInput
+                  style={inputStyle}
+                  placeholder="DD/MM"
+                  placeholderTextColor={theme.textSecondary}
+                  value={dataServico}
+                  onChangeText={(value) => setDataServico(formatDateInput(value))}
+                  onBlur={handleDateBlur}
+                  keyboardType="numeric"
+                  maxLength={5}
+                />
 
-        {selectedCandidate && (
-          <Text style={[styles.selectedText, { color: theme.textSecondary }]}>
-            Selecionado: {selectedCandidate.name}
-          </Text>
-        )}
-      </ScrollView>
+                <Text
+                  style={[
+                    localStyles.helperText,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  Se a data for inválida ou passada, ela será corrigida.
+                </Text>
+              </View>
+
+              <View style={localStyles.rowItem}>
+                <Text style={[localStyles.label, { color: theme.text }]}>Hora</Text>
+
+                <TextInput
+                  style={inputStyle}
+                  placeholder="HH:MM"
+                  placeholderTextColor={theme.textSecondary}
+                  value={horaServico}
+                  onChangeText={(value) => setHoraServico(formatHourInput(value))}
+                  onBlur={handleHourBlur}
+                  keyboardType="numeric"
+                  maxLength={5}
+                />
+
+                <Text
+                  style={[
+                    localStyles.helperText,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  Horário permitido entre 00:00 e 23:59.
+                </Text>
+              </View>
+            </View>
+
+            <View style={localStyles.row}>
+              <View style={localStyles.rowItem}>
+                <Text style={[localStyles.label, { color: theme.text }]}>Valor</Text>
+
+                <TextInput
+                  style={inputStyle}
+                  placeholder="Mín: R$ 1,00 | Máx: R$ 1.000.000,00"
+                  placeholderTextColor={theme.textSecondary}
+                  value={valorEstimado}
+                  onChangeText={(value) => {
+                    setValorEstimado(formatCurrencyInput(value));
+                  }}
+                  keyboardType="numeric"
+                  maxLength={16}
+                />
+              </View>
+
+              <View style={localStyles.rowItem}>
+                <Text style={[localStyles.label, { color: theme.text }]}>Profissionais</Text>
+
+                <TextInput
+                  style={inputStyle}
+                  placeholder="1"
+                  placeholderTextColor={theme.textSecondary}
+                  value={quantidadeProfissionais}
+                  onChangeText={(value) => {
+                    const numbers = onlyNumbers(value).slice(0, 2);
+                    setQuantidadeProfissionais(numbers);
+                  }}
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+              </View>
+            </View>
+
+            {hasMultipleProfessionals && (
+              <View
+                style={[
+                  localStyles.noticeBox,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(59,130,246,0.14)"
+                      : "rgba(11,87,208,0.08)",
+                    borderColor: isDark
+                      ? "rgba(96,165,250,0.28)"
+                      : "rgba(11,87,208,0.18)",
+                  },
+                ]}
+              >
+                <Text style={[localStyles.noticeTitle, { color: theme.text }]}>Chamado com múltiplos profissionais</Text>
+
+                <Text
+                  style={[
+                    localStyles.noticeText,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  Como este chamado precisa de mais de 1 profissional, ele continuará disponível até que todas as vagas sejam preenchidas. A empresa poderá aceitar freelancers conforme a quantidade informada.
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <Pressable
+            disabled={isCreating}
+            style={({ pressed }) => [
+              localStyles.button,
+              isCreating && { opacity: 0.7 },
+              pressed && !isCreating && { opacity: 0.85 },
+            ]}
+            onPress={handleCreateJob}
+          >
+            <Text style={localStyles.buttonText}>
+              {isCreating ? "Publicando..." : "Publicar chamado"}
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+const localStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+
+  keyboardView: {
+    flex: 1,
+  },
+
+  header: {
+    height: 74,
+    paddingHorizontal: 18,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  headerPlaceholder: {
+    width: 44,
+    height: 44,
+  },
+
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: "900",
+    marginBottom: 8,
+  },
+
+  pageSubtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: "600",
+    marginBottom: 18,
+  },
+
+  card: {
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 18,
+    gap: 10,
+  },
+
+  label: {
+    fontSize: 13,
+    fontWeight: "900",
+    marginTop: 8,
+  },
+
+  input: {
+    minHeight: 50,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  helperText: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 17,
+    marginTop: 2,
+  },
+
+  row: {
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  rowItem: {
+    flex: 1,
+  },
+
+  stateItem: {
+    width: 86,
+  },
+
+  addressSearchBox: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  searchIcon: {
+    fontSize: 17,
+  },
+
+  addressInput: {
+    flex: 1,
+    minHeight: 50,
+    fontSize: 15,
+    fontWeight: "700",
+    paddingVertical: 0,
+  },
+
+  addressSuggestionsBox: {
+    borderWidth: 1,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginTop: 4,
+  },
+
+  addressSuggestionItem: {
+    minHeight: 62,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(148,163,184,0.22)",
+  },
+
+  addressIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(148,163,184,0.18)",
+  },
+
+  addressPinIcon: {
+    fontSize: 16,
+  },
+
+  addressTextArea: {
+    flex: 1,
+  },
+
+  addressSuggestionTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    marginBottom: 3,
+  },
+
+  addressSuggestionSubtitle: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  noticeBox: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 10,
+  },
+
+  noticeTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    marginBottom: 5,
+  },
+
+  noticeText: {
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19,
+  },
+
+  button: {
+    minHeight: 54,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 18,
+  },
+
+  buttonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+});

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -7,9 +8,16 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { styles } from "@/app/styles/paymentSuccess";
 import { useTheme } from "@/app/context/ThemeContext";
+
+const PAYMENT_CONFIRMED_PREFIX = "payment_confirmed_";
+
+function getPaymentConfirmedKey(contratoId: string) {
+  return `${PAYMENT_CONFIRMED_PREFIX}${contratoId}`;
+}
 
 function getParamValue(value?: string | string[], fallback = "") {
   if (Array.isArray(value)) {
@@ -65,18 +73,25 @@ export default function PaymentSuccessScreen() {
   const candidateEmail = getParamValue(params.candidateEmail);
   const candidateRating = getParamValue(params.candidateRating);
 
-  const serviceValue =
-    getParamValue(params.serviceValue) ||
-    getParamValue(params.candidatePrice) ||
-    jobPrice ||
-    "Valor a combinar";
-
+  const serviceValue = getParamValue(params.serviceValue, "Valor a combinar");
   const candidatePrice = getParamValue(params.candidatePrice, serviceValue);
   const platformFee = getParamValue(params.platformFee, "A calcular");
   const totalValue = getParamValue(params.totalValue, "Valor a combinar");
   const paymentMethod = getParamValue(params.paymentMethod, "Pix");
 
   const { isDark, theme } = useTheme();
+
+  useEffect(() => {
+    if (!contratoId) {
+      return;
+    }
+
+    AsyncStorage.setItem(getPaymentConfirmedKey(contratoId), "true").catch(
+      (error) => {
+        console.log("Erro ao salvar pagamento confirmado:", error);
+      },
+    );
+  }, [contratoId]);
 
   function handleOpenChat() {
     router.push({
@@ -90,7 +105,7 @@ export default function PaymentSuccessScreen() {
 
         jobTitle,
         jobCategory,
-        jobPrice: jobPrice || serviceValue,
+        jobPrice,
         jobLocation,
         jobTime,
         status,
@@ -104,6 +119,9 @@ export default function PaymentSuccessScreen() {
         platformFee,
         totalValue,
         paymentMethod,
+
+        userRole: "empresa",
+        fromPayment: "true",
       },
     });
   }
@@ -143,116 +161,57 @@ export default function PaymentSuccessScreen() {
             },
           ]}
         >
-          <Text style={[styles.cardLabel, { color: theme.primary }]}>
-            Resumo do pagamento
-          </Text>
+          <Text style={[styles.cardLabel, { color: theme.primary }]}>Resumo do pagamento</Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-              Chamado
-            </Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Chamado</Text>
 
-            <Text style={[styles.infoValue, { color: theme.text }]}>
-              {jobTitle}
-            </Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>{jobTitle}</Text>
           </View>
 
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-              Freelancer
-            </Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Freelancer</Text>
 
-            <Text style={[styles.infoValue, { color: theme.text }]}>
-              {candidateName}
-            </Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>{candidateName}</Text>
           </View>
 
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-              Valor do serviço
-            </Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Valor do serviço</Text>
 
-            <Text style={[styles.infoValue, { color: theme.text }]}>
-              {serviceValue}
-            </Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>{serviceValue}</Text>
           </View>
 
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-              Taxa da plataforma
-            </Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Taxa da plataforma</Text>
 
-            <Text style={[styles.infoValue, { color: theme.text }]}>
-              {platformFee}
-            </Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>{platformFee}</Text>
           </View>
 
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-              Forma de pagamento
-            </Text>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Forma de pagamento</Text>
 
-            <Text style={[styles.infoValue, { color: theme.text }]}>
-              {paymentMethod}
-            </Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>{paymentMethod}</Text>
           </View>
 
-          <View
-            style={[
-              styles.totalArea,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                borderWidth: 1,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.totalLabel,
-                {
-                  color: theme.text,
-                  backgroundColor: "transparent",
-                },
-              ]}
-            >
-              Total pago
-            </Text>
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Total pago</Text>
 
             <Text
               style={[
-                styles.totalValue,
+                styles.infoValue,
                 {
                   color: theme.primary,
-                  backgroundColor: "transparent",
+                  fontWeight: "900",
                 },
               ]}
             >
@@ -270,14 +229,9 @@ export default function PaymentSuccessScreen() {
             },
           ]}
         >
-          <Text style={[styles.infoTitle, { color: theme.text }]}>
-            Chat liberado
-          </Text>
+          <Text style={[styles.infoTitle, { color: theme.text }]}>Chat liberado</Text>
 
-          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            Agora a empresa e o freelancer podem conversar para alinhar os
-            detalhes finais do serviço.
-          </Text>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>Agora a empresa e o freelancer podem conversar para alinhar os detalhes finais do serviço.</Text>
         </View>
       </ScrollView>
 
@@ -311,9 +265,7 @@ export default function PaymentSuccessScreen() {
           ]}
           onPress={() => router.replace("/company-dashboard")}
         >
-          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
-            Voltar ao painel
-          </Text>
+          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>Voltar ao painel</Text>
         </Pressable>
       </View>
     </SafeAreaView>

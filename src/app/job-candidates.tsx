@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import WalletIcon from "../../assets/icons/wallet.svg";
@@ -38,6 +39,7 @@ type Candidate = {
   description: string;
   skills: string[];
   status: string;
+  paymentConfirmed?: boolean;
 };
 
 type FreelancerNestedApi = {
@@ -61,11 +63,12 @@ type FreelancerNestedApi = {
 type CandidaturaApi = {
   id: number;
 
-  contratoId?: number | null;
-  contrato_id?: number | null;
-
   freelancerId?: number | null;
   freelancer_id?: number | null;
+
+  contratoId?: number | null;
+  contrato_id?: number | null;
+  contrato?: { id?: number | null } | null;
 
   freelancer?: string | FreelancerNestedApi | null;
 
@@ -112,13 +115,38 @@ type CandidaturasResponse =
 type CandidaturaActionResponse = {
   mensagem?: string;
   candidaturaId?: number;
-  contratoId?: number;
+  contratoId?: number | null;
+  contrato_id?: number | null;
   chamadoId?: number;
-  empresaId?: number;
   freelancerId?: number;
+  quantidadeProfissionais?: number;
+  totalAceitos?: number;
+  vagasDisponiveis?: number;
   chamadoStatus?: string;
-  contratoStatus?: string;
 };
+
+const PAYMENT_CONFIRMED_PREFIX = "payment_confirmed_";
+
+function getPaymentConfirmedKey(contratoId?: string | null) {
+  return `${PAYMENT_CONFIRMED_PREFIX}${contratoId ?? ""}`;
+}
+
+async function checkPaymentConfirmed(contratoId?: string | null) {
+  if (!contratoId) {
+    return false;
+  }
+
+  try {
+    const storedValue = await AsyncStorage.getItem(
+      getPaymentConfirmedKey(contratoId),
+    );
+
+    return storedValue === "true";
+  } catch (error) {
+    console.log("Erro ao verificar pagamento confirmado:", error);
+    return false;
+  }
+}
 
 function getCandidaturasFromResponse(response: CandidaturasResponse) {
   if (Array.isArray(response)) {
@@ -193,18 +221,11 @@ function isFinishedStatus(status?: string | null) {
 }
 
 function getNestedFreelancer(apiCandidate: CandidaturaApi) {
-  if (
-    apiCandidate.freelancer &&
-    typeof apiCandidate.freelancer === "object"
-  ) {
+  if (apiCandidate.freelancer && typeof apiCandidate.freelancer === "object") {
     return apiCandidate.freelancer;
   }
 
   return null;
-}
-
-function getContratoId(apiCandidate: CandidaturaApi) {
-  return apiCandidate.contratoId ?? apiCandidate.contrato_id ?? null;
 }
 
 function getFreelancerId(apiCandidate: CandidaturaApi) {
@@ -214,6 +235,15 @@ function getFreelancerId(apiCandidate: CandidaturaApi) {
     apiCandidate.freelancerId ??
     apiCandidate.freelancer_id ??
     nestedFreelancer?.id ??
+    null
+  );
+}
+
+function getContratoId(apiCandidate: CandidaturaApi) {
+  return (
+    apiCandidate.contratoId ??
+    apiCandidate.contrato_id ??
+    apiCandidate.contrato?.id ??
     null
   );
 }
@@ -314,7 +344,7 @@ function normalizeSkills(value?: string[] | string | null) {
 function getFreelancerSkills(
   apiCandidate: CandidaturaApi,
   jobCategory: string,
-  statusLabel: string
+  statusLabel: string,
 ) {
   const nestedFreelancer = getNestedFreelancer(apiCandidate);
 
@@ -335,13 +365,13 @@ function getFreelancerSkills(
 
 function formatCandidate(
   apiCandidate: CandidaturaApi,
-  jobCategory: string
+  jobCategory: string,
 ): Candidate {
   const valorProposto =
     apiCandidate.valorProposto ?? apiCandidate.valor_proposto ?? null;
 
-  const contratoId = getContratoId(apiCandidate);
   const freelancerId = getFreelancerId(apiCandidate);
+  const contratoId = getContratoId(apiCandidate);
   const candidateName = getFreelancerName(apiCandidate);
   const candidateEmail = getFreelancerEmail(apiCandidate);
   const candidatePhoto = getFreelancerPhoto(apiCandidate);
@@ -409,18 +439,19 @@ export default function JobCandidatesScreen() {
   const jobPrice = getParamValue(params.price, "Valor a combinar");
   const jobLocation = getParamValue(params.location, "Local não informado");
   const jobTime = getParamValue(params.time, "Data não informada");
-  const jobStatus = getParamValue(params.status) || getParamValue(params.jobStatus);
+  const jobStatus =
+    getParamValue(params.status) || getParamValue(params.jobStatus);
 
   const isJobFinished = isFinishedStatus(jobStatus);
 
   const selectedCandidate = candidates.find(
-    (candidate) => candidate.id === selectedCandidateId
+    (candidate) => candidate.id === selectedCandidateId,
   );
 
   useFocusEffect(
     useCallback(() => {
       loadCandidates();
-    }, [jobId])
+    }, [jobId]),
   );
 
   async function loadCandidates() {
@@ -440,14 +471,14 @@ export default function JobCandidatesScreen() {
 
         Alert.alert(
           "Chamado não encontrado",
-          "Não foi possível identificar o chamado selecionado."
+          "Não foi possível identificar o chamado selecionado.",
         );
 
         return;
       }
 
       const response = await apiGet<CandidaturasResponse>(
-        `/api/Candidaturas/chamado/${jobId}`
+        `/api/Candidaturas/chamado/${jobId}`,
       );
 
       const candidaturas = getCandidaturasFromResponse(response);
@@ -455,11 +486,18 @@ export default function JobCandidatesScreen() {
       console.log("Candidaturas retornadas pela API:", candidaturas);
 
       const formattedCandidates = candidaturas.map((candidatura) =>
-        formatCandidate(candidatura, jobCategory)
+        formatCandidate(candidatura, jobCategory),
       );
 
-      setCandidates(formattedCandidates);
-      setSelectedCandidateId(formattedCandidates[0]?.id ?? "");
+      const formattedCandidatesWithPayment = await Promise.all(
+        formattedCandidates.map(async (candidate) => ({
+          ...candidate,
+          paymentConfirmed: await checkPaymentConfirmed(candidate.contratoId),
+        })),
+      );
+
+      setCandidates(formattedCandidatesWithPayment);
+      setSelectedCandidateId(formattedCandidatesWithPayment[0]?.id ?? "");
     } catch (error) {
       console.log("Erro ao carregar candidatos:", error);
 
@@ -468,7 +506,7 @@ export default function JobCandidatesScreen() {
 
       Alert.alert(
         "Erro",
-        "Não foi possível carregar os candidatos desse chamado agora."
+        "Não foi possível carregar os candidatos desse chamado agora.",
       );
     } finally {
       setIsLoading(false);
@@ -479,21 +517,22 @@ export default function JobCandidatesScreen() {
     return candidate.status === "Aceita";
   }
 
+  function isCandidatePaid(candidate: Candidate) {
+    return Boolean(candidate.paymentConfirmed);
+  }
+
   function isCandidateRejected(candidate: Candidate) {
-    return (
-      candidate.status === "Recusada" ||
-      candidate.status === "Cancelada"
-    );
+    return candidate.status === "Recusada" || candidate.status === "Cancelada";
   }
 
   function showFinishedAlert() {
     Alert.alert(
       "Chamado finalizado",
-      "Este serviço já foi finalizado. Não é possível aceitar candidatos, abrir pagamento ou iniciar chat."
+      "Este serviço já foi finalizado. Não é possível aceitar candidatos, abrir pagamento ou iniciar chat.",
     );
   }
 
-  function goToPayment(candidate: Candidate, contratoId?: string) {
+  function openChat(candidate: Candidate, contratoId?: string) {
     if (isJobFinished) {
       showFinishedAlert();
       return;
@@ -504,10 +543,48 @@ export default function JobCandidatesScreen() {
     if (!finalContratoId) {
       Alert.alert(
         "Contrato não encontrado",
-        "A candidatura foi aceita, mas o app não recebeu o contratoId. Tente aceitar novamente ou recarregue os candidatos."
+        "Esse freelancer já foi aceito, mas o app não recebeu o contratoId. Recarregue a tela ou confira se a API está retornando contratoId na listagem de candidaturas.",
       );
       return;
     }
+
+    const paymentValue = jobPrice || candidate.price || "Valor a combinar";
+
+    router.push({
+      pathname: "/chat",
+      params: {
+        contratoId: finalContratoId,
+
+        jobId,
+        candidaturaId: candidate.id,
+        freelancerId: candidate.freelancerId ?? "",
+
+        jobTitle,
+        jobCategory,
+        jobPrice: paymentValue,
+        jobLocation,
+        jobTime,
+        status: jobStatus || "em_andamento",
+
+        candidateName: candidate.name,
+        candidateEmail: candidate.email ?? "",
+        candidateRating: candidate.rating ? String(candidate.rating) : "",
+
+        serviceValue: paymentValue,
+        candidatePrice: paymentValue,
+
+        userRole: "empresa",
+      },
+    });
+  }
+
+  function goToPayment(candidate: Candidate, contratoId?: string) {
+    if (isJobFinished) {
+      showFinishedAlert();
+      return;
+    }
+
+    const finalContratoId = contratoId || candidate.contratoId || "";
 
     router.push({
       pathname: "/payment",
@@ -531,6 +608,8 @@ export default function JobCandidatesScreen() {
 
         serviceValue: candidate.price,
         candidatePrice: candidate.price,
+
+        userRole: "empresa",
       },
     });
   }
@@ -544,12 +623,17 @@ export default function JobCandidatesScreen() {
     if (isCandidateRejected(candidate)) {
       Alert.alert(
         "Candidatura recusada",
-        "Não é possível aceitar uma candidatura que já foi recusada."
+        "Não é possível aceitar uma candidatura que já foi recusada.",
       );
       return;
     }
 
-    if (isCandidateAccepted(candidate) && candidate.contratoId) {
+    if (isCandidateAccepted(candidate)) {
+      if (isCandidatePaid(candidate)) {
+        openChat(candidate, candidate.contratoId);
+        return;
+      }
+
       goToPayment(candidate, candidate.contratoId);
       return;
     }
@@ -559,21 +643,21 @@ export default function JobCandidatesScreen() {
 
       const response = await apiPost<CandidaturaActionResponse>(
         `/api/Candidaturas/${candidate.id}/aceitar`,
-        {}
+        {},
       );
 
       console.log("Candidatura aceita pela API:", response);
 
-      const contratoId = response.contratoId
-        ? String(response.contratoId)
-        : candidate.contratoId ?? "";
+      const responseContratoId =
+        response.contratoId ?? response.contrato_id ?? null;
+      const contratoId = responseContratoId
+        ? String(responseContratoId)
+        : (candidate.contratoId ?? "");
 
       if (!contratoId) {
-        Alert.alert(
-          "Contrato não encontrado",
-          "A API aceitou a candidatura, mas não retornou o contratoId."
+        console.log(
+          "A API aceitou a candidatura, mas não retornou contratoId. O pagamento não vai conseguir confirmar sem esse ID.",
         );
-        return;
       }
 
       setCandidates((currentCandidates) =>
@@ -583,12 +667,13 @@ export default function JobCandidatesScreen() {
                 ...item,
                 contratoId,
                 status: "Aceita",
+                paymentConfirmed: false,
                 skills: item.skills.map((skill) =>
-                  skill.startsWith("Status:") ? "Status: Aceita" : skill
+                  skill.startsWith("Status:") ? "Status: Aceita" : skill,
                 ),
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       goToPayment(
@@ -596,8 +681,9 @@ export default function JobCandidatesScreen() {
           ...candidate,
           contratoId,
           status: "Aceita",
+          paymentConfirmed: false,
         },
-        contratoId
+        contratoId,
       );
     } catch (error) {
       console.log("Erro ao aceitar candidatura:", error);
@@ -644,7 +730,7 @@ export default function JobCandidatesScreen() {
 
       const response = await apiPost<CandidaturaActionResponse>(
         `/api/Candidaturas/${candidate.id}/recusar`,
-        {}
+        {},
       );
 
       console.log("Candidatura recusada pela API:", response);
@@ -656,16 +742,16 @@ export default function JobCandidatesScreen() {
                 ...item,
                 status: "Recusada",
                 skills: item.skills.map((skill) =>
-                  skill.startsWith("Status:") ? "Status: Recusada" : skill
+                  skill.startsWith("Status:") ? "Status: Recusada" : skill,
                 ),
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       Alert.alert(
         "Candidatura recusada",
-        `A candidatura de ${candidate.name} foi recusada.`
+        `A candidatura de ${candidate.name} foi recusada.`,
       );
     } catch (error) {
       console.log("Erro ao recusar candidatura:", error);
@@ -690,7 +776,7 @@ export default function JobCandidatesScreen() {
     if (isCandidateAccepted(candidate)) {
       Alert.alert(
         "Candidatura já aceita",
-        "Não é possível recusar uma candidatura que já foi aceita."
+        "Não é possível recusar uma candidatura que já foi aceita.",
       );
       return;
     }
@@ -698,7 +784,7 @@ export default function JobCandidatesScreen() {
     if (isCandidateRejected(candidate)) {
       Alert.alert(
         "Candidatura já recusada",
-        "Essa candidatura já foi recusada."
+        "Essa candidatura já foi recusada.",
       );
       return;
     }
@@ -716,16 +802,13 @@ export default function JobCandidatesScreen() {
           style: "destructive",
           onPress: () => rejectCandidate(candidate),
         },
-      ]
+      ],
     );
   }
 
   return (
     <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: theme.background },
-      ]}
+      style={[styles.container, { backgroundColor: theme.background }]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
@@ -840,10 +923,7 @@ export default function JobCandidatesScreen() {
             </Text>
 
             <Text
-              style={[
-                styles.sectionSubtitle,
-                { color: theme.textSecondary },
-              ]}
+              style={[styles.sectionSubtitle, { color: theme.textSecondary }]}
             >
               {isLoading
                 ? "Carregando candidatos..."
@@ -893,6 +973,7 @@ export default function JobCandidatesScreen() {
             candidates.map((candidate) => {
               const isSelected = selectedCandidateId === candidate.id;
               const isAccepted = isCandidateAccepted(candidate);
+              const isPaid = isCandidatePaid(candidate);
               const isRejected = isCandidateRejected(candidate);
               const isActionLoading = actionCandidateId === candidate.id;
 
@@ -927,10 +1008,7 @@ export default function JobCandidatesScreen() {
 
                     <View style={styles.candidateInfo}>
                       <Text
-                        style={[
-                          styles.candidateName,
-                          { color: theme.text },
-                        ]}
+                        style={[styles.candidateName, { color: theme.text }]}
                       >
                         {candidate.name}
                       </Text>
@@ -961,20 +1039,14 @@ export default function JobCandidatesScreen() {
                     </View>
 
                     <Text
-                      style={[
-                        styles.candidatePrice,
-                        { color: theme.primary },
-                      ]}
+                      style={[styles.candidatePrice, { color: theme.primary }]}
                     >
                       {candidate.price}
                     </Text>
                   </View>
 
                   <Text
-                    style={[
-                      styles.description,
-                      { color: theme.textSecondary },
-                    ]}
+                    style={[styles.description, { color: theme.textSecondary }]}
                   >
                     {candidate.description}
                   </Text>
@@ -991,12 +1063,7 @@ export default function JobCandidatesScreen() {
                           },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.skillText,
-                            { color: theme.text },
-                          ]}
-                        >
+                        <Text style={[styles.skillText, { color: theme.text }]}>
                           {skill}
                         </Text>
                       </View>
@@ -1084,10 +1151,7 @@ export default function JobCandidatesScreen() {
                     onPress={() => handleViewFreelancerProfile(candidate)}
                   >
                     <Text
-                      style={[
-                        styles.profileButtonText,
-                        { color: theme.text },
-                      ]}
+                      style={[styles.profileButtonText, { color: theme.text }]}
                     >
                       Ver perfil completo
                     </Text>
@@ -1125,8 +1189,8 @@ export default function JobCandidatesScreen() {
                         {isJobFinished
                           ? "Finalizado"
                           : isRejected
-                          ? "Recusada"
-                          : "Recusar"}
+                            ? "Recusada"
+                            : "Recusar"}
                       </Text>
                     </Pressable>
 
@@ -1154,12 +1218,14 @@ export default function JobCandidatesScreen() {
                         {isJobFinished
                           ? "Serviço finalizado"
                           : isActionLoading
-                          ? "Aguarde..."
-                          : isAccepted
-                          ? "Pagamento"
-                          : isRejected
-                          ? "Recusada"
-                          : "Aceitar"}
+                            ? "Aguarde..."
+                            : isAccepted
+                              ? isPaid
+                                ? "Abrir chat"
+                                : "Pagamento"
+                              : isRejected
+                                ? "Recusada"
+                                : "Aceitar"}
                       </Text>
                     </Pressable>
                   </View>
@@ -1179,13 +1245,23 @@ export default function JobCandidatesScreen() {
           ]}
         >
           <Text style={[styles.infoTitle, { color: theme.text }]}>
-            {isJobFinished ? "Chamado encerrado" : "Antes de aceitar"}
+            {isJobFinished
+              ? "Chamado encerrado"
+              : selectedCandidate && isCandidateAccepted(selectedCandidate)
+                ? isCandidatePaid(selectedCandidate)
+                  ? "Chat liberado"
+                  : "Freelancer aceito"
+                : "Antes de aceitar"}
           </Text>
 
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             {isJobFinished
               ? "Este chamado já foi finalizado. Os candidatos ficam disponíveis apenas para histórico."
-              : "Analise a mensagem enviada pelo freelancer e o valor proposto. Após o aceite, o próximo passo será revisar o pagamento da taxa da plataforma para liberar o chat."}
+              : selectedCandidate && isCandidateAccepted(selectedCandidate)
+                ? isCandidatePaid(selectedCandidate)
+                  ? "Pagamento confirmado. Clique em Abrir chat para conversar, finalizar e avaliar o serviço."
+                  : "Este freelancer já foi aceito. Clique em Pagamento para confirmar o pagamento e liberar o chat."
+                : "Analise a mensagem enviada pelo freelancer e o valor proposto. Após o aceite, o próximo passo será revisar o pagamento da taxa da plataforma para liberar o chat."}
           </Text>
         </View>
 
