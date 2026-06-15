@@ -154,7 +154,9 @@ function normalizeJob(chamado: ChamadoApi): MapJob | null {
   const city = chamado.cidade ?? "";
   const state = chamado.estado ?? "";
 
-  const rawPrice = String(chamado.valorEstimado ?? chamado.valor_estimado ?? "");
+  const rawPrice = String(
+    chamado.valorEstimado ?? chamado.valor_estimado ?? "",
+  );
 
   return {
     id,
@@ -177,7 +179,7 @@ function normalizeJob(chamado: ChamadoApi): MapJob | null {
         chamado.vagas_disponiveis ??
         chamado.quantidadeProfissionais ??
         chamado.quantidade_profissionais ??
-        1
+        1,
     ),
   };
 }
@@ -227,21 +229,25 @@ function buildMapHtml(jobs: MapJob[]) {
 
   <style>
     html, body, #map {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: #e5e7eb;
-      font-family: Arial, Helvetica, sans-serif;
-    }
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #e5e7eb;
+  font-family: Arial, Helvetica, sans-serif;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
 
-    .leaflet-container {
-      width: 100%;
-      height: 100%;
-      background: #e5e7eb;
-      cursor: grab;
-    }
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #e5e7eb;
+  cursor: grab;
+  touch-action: none;
+}
 
     .leaflet-container:active {
       cursor: grabbing;
@@ -394,16 +400,24 @@ function buildMapHtml(jobs: MapJob[]) {
 
     function startMap() {
       const map = L.map("map", {
-        center: [center.latitude, center.longitude],
-        zoom: jobs.length > 1 ? 12 : 15,
-        zoomControl: true,
-        scrollWheelZoom: true,
-        dragging: true,
-        doubleClickZoom: true,
-        boxZoom: true,
-        keyboard: true,
-        touchZoom: true,
-      });
+  center: [center.latitude, center.longitude],
+  zoom: jobs.length > 1 ? 12 : 15,
+  zoomControl: true,
+  scrollWheelZoom: true,
+  dragging: true,
+  doubleClickZoom: true,
+  boxZoom: true,
+  keyboard: true,
+  touchZoom: true,
+  tap: true,
+inertia: true,
+inertiaDeceleration: 3000,
+inertiaMaxSpeed: 1500,
+  tap: true,
+  inertia: true,
+  inertiaDeceleration: 3000,
+  inertiaMaxSpeed: 1500,
+});
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -511,6 +525,7 @@ function getWebViewComponent() {
 export default function MapScreen() {
   const { isDark, theme } = useTheme();
 
+  const [isPageScrollEnabled, setIsPageScrollEnabled] = useState(true);
   const [jobs, setJobs] = useState<MapJob[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -602,7 +617,7 @@ export default function MapScreen() {
         }
       }
     },
-    [filteredJobs, goToJobDetails]
+    [filteredJobs, goToJobDetails],
   );
 
   const loadJobs = useCallback(async () => {
@@ -629,7 +644,7 @@ export default function MapScreen() {
       if (normalizedJobs.length > 0) {
         setSelectedJobId((currentId) => {
           const stillExists = normalizedJobs.some(
-            (job) => job.id === currentId
+            (job) => job.id === currentId,
           );
 
           if (currentId && stillExists) {
@@ -653,7 +668,7 @@ export default function MapScreen() {
   useFocusEffect(
     useCallback(() => {
       loadJobs();
-    }, [loadJobs])
+    }, [loadJobs]),
   );
 
   useEffect(() => {
@@ -683,22 +698,29 @@ export default function MapScreen() {
               borderColor: theme.border,
             },
           ]}
+          onTouchStart={() => setIsPageScrollEnabled(false)}
+          onTouchEnd={() => setIsPageScrollEnabled(true)}
+          onTouchCancel={() => setIsPageScrollEnabled(true)}
         >
-          {React.createElement("iframe" as any, {
-            key: mapHtml.length + filteredJobs.map((job) => job.id).join("-"),
-            title: "TaskFlow Map",
-            srcDoc: mapHtml,
-            style: {
-              width: "100%",
-              height: "430px",
-              minHeight: "430px",
-              border: "0",
-              borderRadius: "20px",
-              display: "block",
-              backgroundColor: "#E5E7EB",
-            },
-            sandbox: "allow-scripts allow-same-origin allow-popups allow-forms",
-          } as any)}
+          {React.createElement(
+            "iframe" as any,
+            {
+              key: mapHtml.length + filteredJobs.map((job) => job.id).join("-"),
+              title: "TaskFlow Map",
+              srcDoc: mapHtml,
+              style: {
+                width: "100%",
+                height: "430px",
+                minHeight: "430px",
+                border: "0",
+                borderRadius: "20px",
+                display: "block",
+                backgroundColor: "#E5E7EB",
+              },
+              sandbox:
+                "allow-scripts allow-same-origin allow-popups allow-forms",
+            } as any,
+          )}
         </View>
       );
     }
@@ -721,10 +743,7 @@ export default function MapScreen() {
           </Text>
 
           <Text
-            style={[
-              styles.nativeFallbackText,
-              { color: theme.textSecondary },
-            ]}
+            style={[styles.nativeFallbackText, { color: theme.textSecondary }]}
           >
             Rode: npx expo install react-native-webview
           </Text>
@@ -751,6 +770,11 @@ export default function MapScreen() {
           domStorageEnabled
           startInLoadingState
           mixedContentMode="always"
+          scrollEnabled={false}
+          bounces={false}
+          overScrollMode="never"
+          nestedScrollEnabled
+          androidLayerType="hardware"
           onMessage={(event: any) => {
             handleMapMessage(event.nativeEvent.data);
           }}
@@ -771,7 +795,9 @@ export default function MapScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView
+        scrollEnabled={isPageScrollEnabled}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.header}>
@@ -916,25 +942,18 @@ export default function MapScreen() {
                   </Text>
                 </View>
 
-                <Text
-                  style={[styles.jobInfo, { color: theme.textSecondary }]}
-                >
+                <Text style={[styles.jobInfo, { color: theme.textSecondary }]}>
                   📍 {selectedJob.location}
                   {selectedJob.city ? ` - ${selectedJob.city}` : ""}
                   {selectedJob.state ? `/${selectedJob.state}` : ""}
                 </Text>
 
-                <Text
-                  style={[styles.jobInfo, { color: theme.textSecondary }]}
-                >
+                <Text style={[styles.jobInfo, { color: theme.textSecondary }]}>
                   🕒 {selectedJob.date}, {selectedJob.time}
                 </Text>
 
                 <Text
-                  style={[
-                    styles.coordinates,
-                    { color: theme.textSecondary },
-                  ]}
+                  style={[styles.coordinates, { color: theme.textSecondary }]}
                 >
                   Coordenadas: {selectedJob.latitude.toFixed(6)},{" "}
                   {selectedJob.longitude.toFixed(6)}
