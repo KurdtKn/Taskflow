@@ -16,7 +16,7 @@ import { router } from "expo-router";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 
-import { apiPost } from "@/services/api";
+import { apiGet, apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
@@ -42,7 +42,19 @@ type CriarChamadoResponse = {
   };
 };
 
+type EnderecoSugestao = {
+  nome?: string;
+  endereco: string;
+  cidade?: string;
+  estado?: string;
+  latitude: number;
+  longitude: number;
+};
+
 const DEFAULT_CATEGORIA_ID = 1;
+
+const MIN_VALOR_ESTIMADO = 1;
+const MAX_VALOR_ESTIMADO = 1000000;
 
 function normalizeUserType(value?: string | null) {
   return value?.toLowerCase().trim();
@@ -74,9 +86,7 @@ function clamp(value: number, min: number, max: number) {
 
 function getTodayWithoutTime() {
   const today = new Date();
-
   today.setHours(0, 0, 0, 0);
-
   return today;
 }
 
@@ -126,7 +136,6 @@ function normalizeDateOnBlur(value: string) {
   month = clamp(month, 1, 12);
 
   const lastDayOfMonth = getLastDayOfMonth(currentYear, month);
-
   day = clamp(day, 1, lastDayOfMonth);
 
   const selectedDate = new Date(currentYear, month - 1, day);
@@ -182,24 +191,46 @@ function normalizeHourOnBlur(value: string) {
   return `${pad2(hour)}:${pad2(minute)}`;
 }
 
+function formatCurrencyInput(value: string) {
+  const numbers = onlyNumbers(value).slice(0, 9);
+
+  if (!numbers) {
+    return "";
+  }
+
+  let cents = Number(numbers);
+  const maxCents = MAX_VALOR_ESTIMADO * 100;
+
+  if (cents > maxCents) {
+    cents = maxCents;
+  }
+
+  const amount = cents / 100;
+
+  return amount.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
 function parseCurrencyToNumber(value: string) {
-  if (!value.trim()) {
+  const numbers = onlyNumbers(value);
+
+  if (!numbers) {
     return null;
   }
 
-  const normalized = value
-    .replace("R$", "")
-    .replace(/\./g, "")
-    .replace(",", ".")
-    .trim();
+  const parsed = Number(numbers) / 100;
 
-  const parsed = Number(normalized);
-
-  if (Number.isNaN(parsed) || parsed <= 0) {
+  if (
+    Number.isNaN(parsed) ||
+    parsed < MIN_VALOR_ESTIMADO ||
+    parsed > MAX_VALOR_ESTIMADO
+  ) {
     return null;
   }
 
-  return parsed;
+  return Number(parsed.toFixed(2));
 }
 
 export default function CreateJobScreen() {
@@ -215,12 +246,19 @@ export default function CreateJobScreen() {
   const [valorEstimado, setValorEstimado] = useState("");
   const [quantidadeProfissionais, setQuantidadeProfissionais] = useState("1");
 
+  const [sugestoesEndereco, setSugestoesEndereco] = useState<EnderecoSugestao[]>([]);
+  const [latitudeSelecionada, setLatitudeSelecionada] = useState<number | null>(null);
+  const [longitudeSelecionada, setLongitudeSelecionada] = useState<number | null>(null);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   const quantidadeNumber = Number(quantidadeProfissionais);
 
   const hasMultipleProfessionals =
     !Number.isNaN(quantidadeNumber) && quantidadeNumber > 1;
+
+  const hasSelectedAddress =
+    latitudeSelecionada !== null && longitudeSelecionada !== null;
 
   const inputStyle = [
     localStyles.input,
@@ -255,6 +293,77 @@ export default function CreateJobScreen() {
     setHoraServico((currentValue) => normalizeHourOnBlur(currentValue));
   }
 
+  function clearSelectedCoordinates() {
+    setLatitudeSelecionada(null);
+    setLongitudeSelecionada(null);
+  }
+
+  async function buscarSugestoesEndereco(texto: string) {
+    setLocalServico(texto);
+    clearSelectedCoordinates();
+
+    if (texto.trim().length < 3) {
+      setSugestoesEndereco([]);
+      return;
+    }
+
+    try {
+      setIsSearchingAddress(true);
+
+      const query = `/api/Chamados/sugestoes-endereco?texto=${encodeURIComponent(
+        texto
+      )}&cidade=${encodeURIComponent(cidade)}&estado=${encodeURIComponent(
+        estado
+      )}`;
+
+      const response = await apiGet<EnderecoSugestao[]>(query);
+
+      setSugestoesEndereco(Array.isArray(response) ? response : []);
+    } catch (error) {
+      console.log("Erro ao buscar sugestões de endereço:", error);
+      setSugestoesEndereco([]);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  }
+
+  function normalizeUf(value?: string | null) {
+    if (!value) {
+      return "";
+    }
+
+    const estadoTexto = value.toUpperCase().trim();
+
+    if (estadoTexto === "SÃO PAULO" || estadoTexto === "SAO PAULO") {
+      return "SP";
+    }
+
+    if (estadoTexto === "RIO DE JANEIRO") {
+      return "RJ";
+    }
+
+    if (estadoTexto === "MINAS GERAIS") {
+      return "MG";
+    }
+
+    return estadoTexto.slice(0, 2);
+  }
+
+  function selectEndereco(sugestao: EnderecoSugestao) {
+    setLocalServico(sugestao.endereco);
+    setLatitudeSelecionada(sugestao.latitude);
+    setLongitudeSelecionada(sugestao.longitude);
+    setSugestoesEndereco([]);
+
+    if (sugestao.cidade) {
+      setCidade(sugestao.cidade);
+    }
+
+    if (sugestao.estado) {
+      setEstado(normalizeUf(sugestao.estado));
+    }
+  }
+
   function validateForm() {
     if (!titulo.trim()) {
       Alert.alert("Título obrigatório", "Informe o título do chamado.");
@@ -267,17 +376,19 @@ export default function CreateJobScreen() {
     }
 
     if (!cidade.trim()) {
-      Alert.alert(
-        "Cidade obrigatória",
-        "Informe a cidade para a TomTom gerar o ponto no mapa."
-      );
+      Alert.alert("Cidade obrigatória", "Informe a cidade do chamado.");
       return false;
     }
 
     if (!estado.trim()) {
+      Alert.alert("Estado obrigatório", "Informe a UF do chamado.");
+      return false;
+    }
+
+    if (!localServico.trim()) {
       Alert.alert(
-        "Estado obrigatório",
-        "Informe o estado para a TomTom gerar o ponto no mapa."
+        "Local obrigatório",
+        "Digite o endereço ou nome do local do serviço. Se aparecer uma sugestão, selecione para deixar o pin mais preciso."
       );
       return false;
     }
@@ -304,7 +415,10 @@ export default function CreateJobScreen() {
       const normalizedDate = normalizeDateOnBlur(dataServico);
 
       if (!normalizedDate) {
-        Alert.alert("Data inválida", "Informe uma data válida no formato DD/MM.");
+        Alert.alert(
+          "Data inválida",
+          "Informe uma data válida no formato DD/MM."
+        );
         return false;
       }
 
@@ -327,6 +441,24 @@ export default function CreateJobScreen() {
       if (normalizedHour !== horaServico) {
         setHoraServico(normalizedHour);
       }
+    }
+
+    if (!valorEstimado.trim()) {
+      Alert.alert(
+        "Valor obrigatório",
+        "Informe um valor entre R$ 1,00 e R$ 1.000.000,00."
+      );
+      return false;
+    }
+
+    const valorConvertido = parseCurrencyToNumber(valorEstimado);
+
+    if (valorConvertido === null) {
+      Alert.alert(
+        "Valor inválido",
+        "Informe um valor entre R$ 1,00 e R$ 1.000.000,00."
+      );
+      return false;
     }
 
     return true;
@@ -388,18 +520,30 @@ export default function CreateJobScreen() {
         ? normalizeHourOnBlur(horaServico)
         : "";
 
+      const valorConvertido = parseCurrencyToNumber(valorEstimado);
+
+      if (valorConvertido === null) {
+        Alert.alert(
+          "Valor inválido",
+          "Informe um valor entre R$ 1,00 e R$ 1.000.000,00."
+        );
+        return;
+      }
+
       const payload = {
         EmpresaId: empresaId,
         CategoriaId: DEFAULT_CATEGORIA_ID,
         Titulo: titulo.trim(),
         Descricao: descricao.trim(),
-        LocalServico: localServico.trim() || null,
-        Cidade: cidade.trim() || null,
-        Estado: estado.trim().toUpperCase() || null,
+        LocalServico: localServico.trim(),
+        Cidade: cidade.trim(),
+        Estado: estado.trim().toUpperCase(),
         DataServico: normalizedDate ? convertDateToApi(normalizedDate) : null,
         HoraServico: normalizedHour || null,
-        ValorEstimado: parseCurrencyToNumber(valorEstimado),
+        ValorEstimado: valorConvertido,
         QuantidadeProfissionais: Number(quantidadeProfissionais),
+        Latitude: latitudeSelecionada ?? null,
+        Longitude: longitudeSelecionada ?? null,
       };
 
       console.log("Criando chamado:", payload);
@@ -463,9 +607,7 @@ export default function CreateJobScreen() {
             <ArrowBack width={28} height={28} color={theme.text} />
           </Pressable>
 
-          <Text style={[localStyles.headerTitle, { color: theme.text }]}>
-            Criar chamado
-          </Text>
+          <Text style={[localStyles.headerTitle, { color: theme.text }]}>Criar chamado</Text>
 
           <View style={localStyles.headerPlaceholder} />
         </View>
@@ -474,9 +616,7 @@ export default function CreateJobScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={localStyles.scrollContent}
         >
-          <Text style={[localStyles.pageTitle, { color: theme.text }]}>
-            Publique uma nova oportunidade
-          </Text>
+          <Text style={[localStyles.pageTitle, { color: theme.text }]}>Publique uma nova oportunidade</Text>
 
           <Text
             style={[
@@ -484,8 +624,8 @@ export default function CreateJobScreen() {
               { color: theme.textSecondary },
             ]}
           >
-            Preencha as informações do serviço. A API vai usar o endereço para
-            gerar latitude e longitude com a TomTom.
+            Digite o endereço e selecione uma sugestão para deixar o pin mais preciso.
+            Se não selecionar, a API tentará localizar automaticamente.
           </Text>
 
           <View
@@ -497,9 +637,7 @@ export default function CreateJobScreen() {
               },
             ]}
           >
-            <Text style={[localStyles.label, { color: theme.text }]}>
-              Título do chamado
-            </Text>
+            <Text style={[localStyles.label, { color: theme.text }]}>Título do chamado</Text>
 
             <TextInput
               style={inputStyle}
@@ -510,9 +648,7 @@ export default function CreateJobScreen() {
               maxLength={80}
             />
 
-            <Text style={[localStyles.label, { color: theme.text }]}>
-              Descrição
-            </Text>
+            <Text style={[localStyles.label, { color: theme.text }]}>Descrição</Text>
 
             <TextInput
               style={[
@@ -531,68 +667,166 @@ export default function CreateJobScreen() {
               maxLength={600}
             />
 
-            <Text style={[localStyles.label, { color: theme.text }]}>
-              Local do serviço
-            </Text>
-
-            <TextInput
-              style={inputStyle}
-              placeholder="Ex: Centro, Shopping, Rua..."
-              placeholderTextColor={theme.textSecondary}
-              value={localServico}
-              onChangeText={setLocalServico}
-              maxLength={120}
-            />
-
             <View style={localStyles.row}>
               <View style={localStyles.rowItem}>
-                <Text style={[localStyles.label, { color: theme.text }]}>
-                  Cidade
-                </Text>
+                <Text style={[localStyles.label, { color: theme.text }]}>Cidade</Text>
 
                 <TextInput
                   style={inputStyle}
                   placeholder="Sorocaba"
                   placeholderTextColor={theme.textSecondary}
                   value={cidade}
-                  onChangeText={setCidade}
+                  onChangeText={(value) => {
+                    setCidade(value);
+                    clearSelectedCoordinates();
+                    setSugestoesEndereco([]);
+                  }}
                   maxLength={80}
                 />
               </View>
 
               <View style={localStyles.stateItem}>
-                <Text style={[localStyles.label, { color: theme.text }]}>
-                  UF
-                </Text>
+                <Text style={[localStyles.label, { color: theme.text }]}>UF</Text>
 
                 <TextInput
                   style={inputStyle}
                   placeholder="SP"
                   placeholderTextColor={theme.textSecondary}
                   value={estado}
-                  onChangeText={(value) =>
-                    setEstado(value.toUpperCase().slice(0, 2))
-                  }
+                  onChangeText={(value) => {
+                    setEstado(value.toUpperCase().slice(0, 2));
+                    clearSelectedCoordinates();
+                    setSugestoesEndereco([]);
+                  }}
                   maxLength={2}
                   autoCapitalize="characters"
                 />
               </View>
             </View>
 
+            <Text style={[localStyles.label, { color: theme.text }]}>Local do serviço</Text>
+
+            <View
+              style={[
+                localStyles.addressSearchBox,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  localStyles.searchIcon,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                🔍
+              </Text>
+
+              <TextInput
+                style={[
+                  localStyles.addressInput,
+                  {
+                    color: theme.text,
+                    ...(Platform.OS === "web"
+                      ? ({ outlineStyle: "none" } as any)
+                      : {}),
+                  },
+                ]}
+                placeholder="Digite o endereço ou nome do local"
+                placeholderTextColor={theme.textSecondary}
+                value={localServico}
+                onChangeText={buscarSugestoesEndereco}
+                maxLength={120}
+              />
+            </View>
+
+            {isSearchingAddress && (
+              <Text
+                style={[
+                  localStyles.helperText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Buscando endereços...
+              </Text>
+            )}
+
+            {sugestoesEndereco.length > 0 && (
+              <View
+                style={[
+                  localStyles.addressSuggestionsBox,
+                  {
+                    backgroundColor: theme.inputBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                {sugestoesEndereco.map((sugestao, index) => {
+                  const nome = sugestao.nome || sugestao.endereco.split(" - ")[0];
+                  const enderecoCompleto = sugestao.endereco;
+
+                  return (
+                    <Pressable
+                      key={`${sugestao.endereco}-${index}`}
+                      style={({ pressed }) => [
+                        localStyles.addressSuggestionItem,
+                        pressed && {
+                          backgroundColor: isDark
+                            ? "rgba(255,255,255,0.06)"
+                            : "rgba(0,0,0,0.06)",
+                        },
+                      ]}
+                      onPress={() => selectEndereco(sugestao)}
+                    >
+                      <View style={localStyles.addressIconCircle}>
+                        <Text style={localStyles.addressPinIcon}>📍</Text>
+                      </View>
+
+                      <View style={localStyles.addressTextArea}>
+                        <Text
+                          style={[
+                            localStyles.addressSuggestionTitle,
+                            { color: theme.text },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {nome}
+                        </Text>
+
+                        <Text
+                          style={[
+                            localStyles.addressSuggestionSubtitle,
+                            { color: theme.textSecondary },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {enderecoCompleto}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+
+            {hasSelectedAddress ? (
+              <Text style={[localStyles.helperText, { color: colors.primary }]}>Endereço selecionado. O pin será criado neste local.</Text>
+            ) : localServico.trim().length >= 3 ? (
+              <Text style={[localStyles.helperText, { color: theme.textSecondary }]}>Nenhuma sugestão selecionada. A API tentará localizar automaticamente ao publicar.</Text>
+            ) : null}
+
             <View style={localStyles.row}>
               <View style={localStyles.rowItem}>
-                <Text style={[localStyles.label, { color: theme.text }]}>
-                  Data
-                </Text>
+                <Text style={[localStyles.label, { color: theme.text }]}>Data</Text>
 
                 <TextInput
                   style={inputStyle}
                   placeholder="DD/MM"
                   placeholderTextColor={theme.textSecondary}
                   value={dataServico}
-                  onChangeText={(value) =>
-                    setDataServico(formatDateInput(value))
-                  }
+                  onChangeText={(value) => setDataServico(formatDateInput(value))}
                   onBlur={handleDateBlur}
                   keyboardType="numeric"
                   maxLength={5}
@@ -604,24 +838,19 @@ export default function CreateJobScreen() {
                     { color: theme.textSecondary },
                   ]}
                 >
-                  Se a data for inválida ou passada, ela será corrigida
-                  automaticamente.
+                  Se a data for inválida ou passada, ela será corrigida.
                 </Text>
               </View>
 
               <View style={localStyles.rowItem}>
-                <Text style={[localStyles.label, { color: theme.text }]}>
-                  Hora
-                </Text>
+                <Text style={[localStyles.label, { color: theme.text }]}>Hora</Text>
 
                 <TextInput
                   style={inputStyle}
                   placeholder="HH:MM"
                   placeholderTextColor={theme.textSecondary}
                   value={horaServico}
-                  onChangeText={(value) =>
-                    setHoraServico(formatHourInput(value))
-                  }
+                  onChangeText={(value) => setHoraServico(formatHourInput(value))}
                   onBlur={handleHourBlur}
                   keyboardType="numeric"
                   maxLength={5}
@@ -640,25 +869,23 @@ export default function CreateJobScreen() {
 
             <View style={localStyles.row}>
               <View style={localStyles.rowItem}>
-                <Text style={[localStyles.label, { color: theme.text }]}>
-                  Valor
-                </Text>
+                <Text style={[localStyles.label, { color: theme.text }]}>Valor</Text>
 
                 <TextInput
                   style={inputStyle}
-                  placeholder="Ex: 200,00"
+                  placeholder="Mín: R$ 1,00 | Máx: R$ 1.000.000,00"
                   placeholderTextColor={theme.textSecondary}
                   value={valorEstimado}
-                  onChangeText={setValorEstimado}
-                  keyboardType="decimal-pad"
-                  maxLength={14}
+                  onChangeText={(value) => {
+                    setValorEstimado(formatCurrencyInput(value));
+                  }}
+                  keyboardType="numeric"
+                  maxLength={16}
                 />
               </View>
 
               <View style={localStyles.rowItem}>
-                <Text style={[localStyles.label, { color: theme.text }]}>
-                  Profissionais
-                </Text>
+                <Text style={[localStyles.label, { color: theme.text }]}>Profissionais</Text>
 
                 <TextInput
                   style={inputStyle}
@@ -689,9 +916,7 @@ export default function CreateJobScreen() {
                   },
                 ]}
               >
-                <Text style={[localStyles.noticeTitle, { color: theme.text }]}>
-                  Chamado com múltiplos profissionais
-                </Text>
+                <Text style={[localStyles.noticeTitle, { color: theme.text }]}>Chamado com múltiplos profissionais</Text>
 
                 <Text
                   style={[
@@ -699,10 +924,7 @@ export default function CreateJobScreen() {
                     { color: theme.textSecondary },
                   ]}
                 >
-                  Como este chamado precisa de mais de 1 profissional, ele
-                  continuará disponível até que todas as vagas sejam preenchidas.
-                  A empresa poderá aceitar freelancers conforme a quantidade
-                  informada.
+                  Como este chamado precisa de mais de 1 profissional, ele continuará disponível até que todas as vagas sejam preenchidas. A empresa poderá aceitar freelancers conforme a quantidade informada.
                 </Text>
               </View>
             )}
@@ -820,6 +1042,74 @@ const localStyles = StyleSheet.create({
 
   stateItem: {
     width: 86,
+  },
+
+  addressSearchBox: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  searchIcon: {
+    fontSize: 17,
+  },
+
+  addressInput: {
+    flex: 1,
+    minHeight: 50,
+    fontSize: 15,
+    fontWeight: "700",
+    paddingVertical: 0,
+  },
+
+  addressSuggestionsBox: {
+    borderWidth: 1,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginTop: 4,
+  },
+
+  addressSuggestionItem: {
+    minHeight: 62,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(148,163,184,0.22)",
+  },
+
+  addressIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(148,163,184,0.18)",
+  },
+
+  addressPinIcon: {
+    fontSize: 16,
+  },
+
+  addressTextArea: {
+    flex: 1,
+  },
+
+  addressSuggestionTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    marginBottom: 3,
+  },
+
+  addressSuggestionSubtitle: {
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   noticeBox: {
