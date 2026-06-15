@@ -152,6 +152,24 @@ function getCandidaturasFromResponse(response: CandidaturasResponse) {
   return response.data ?? response.dados ?? response.candidaturas ?? [];
 }
 
+function resolveLoggedUserId(loggedUserData: any) {
+  const value = Number(
+    loggedUserData?.id ??
+      loggedUserData?.usuario?.id ??
+      loggedUserData?.user?.id ??
+      loggedUserData?.usuarioId ??
+      loggedUserData?.usuario_id ??
+      loggedUserData?.userId ??
+      loggedUserData?.user_id
+  );
+
+  if (Number.isNaN(value) || value <= 0) {
+    return "";
+  }
+
+  return String(value);
+}
+
 function parseNumberValue(value: unknown, fallback = 0) {
   if (value === null || value === undefined || value === "") {
     return fallback;
@@ -550,8 +568,16 @@ export default function RequestsScreen() {
     handleDetails(request);
   }
 
-  function handleRateCompany(request: RequestItem) {
-    console.log("Abrindo avaliação da empresa:", request);
+  async function handleRateCompany(request: RequestItem) {
+    const loggedUser = await getLoggedUser();
+    const avaliadorId = resolveLoggedUserId(loggedUser as any);
+
+    console.log("Abrindo avaliação da empresa:", {
+      request,
+      avaliadorId,
+      companyUserId: request.companyUserId,
+      contratoId: request.contratoId,
+    });
 
     router.push({
       pathname: "/rate-company",
@@ -563,6 +589,8 @@ export default function RequestsScreen() {
         companyName: request.company,
 
         contratoId: request.contratoId ?? "",
+        avaliadorId,
+
         avaliadoId: request.companyUserId ?? "",
         companyUserId: request.companyUserId ?? "",
         empresaUsuarioId: request.companyUserId ?? "",
