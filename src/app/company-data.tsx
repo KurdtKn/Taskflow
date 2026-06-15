@@ -59,6 +59,32 @@ function removeSpaces(value: string) {
   return value.replace(/\s/g, "");
 }
 
+function resolveImageUrl(...sources: any[]) {
+  for (const source of sources) {
+    if (!source) {
+      continue;
+    }
+
+    const value =
+      source.logoUrl ??
+      source.logo_url ??
+      source.photoUrl ??
+      source.photo_url ??
+      source.fotoUrl ??
+      source.foto_url ??
+      source.imageUrl ??
+      source.image_url ??
+      source.avatarUrl ??
+      source.avatar_url;
+
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
 export default function CompanyDataScreen() {
   const [companyName, setCompanyName] = useState("");
   const [cnpj, setCnpj] = useState("");
@@ -104,22 +130,35 @@ export default function CompanyDataScreen() {
       const savedCompanyData = await getCompanyData(loggedUser.id);
 
       if (savedCompanyData) {
-        setCompanyName(savedCompanyData.name.slice(0, COMPANY_NAME_MAX_LENGTH));
-        setCnpj(formatCnpj(savedCompanyData.cnpj));
-        setEmail(removeSpaces(savedCompanyData.email).slice(0, EMAIL_MAX_LENGTH));
-        setPhone(formatPhone(savedCompanyData.phone));
-        setCity(savedCompanyData.location.slice(0, CITY_MAX_LENGTH));
-        setAddress(savedCompanyData.address.slice(0, ADDRESS_MAX_LENGTH));
-        setDescription(savedCompanyData.about.slice(0, DESCRIPTION_MAX_LENGTH));
-        setIsVerified(savedCompanyData.isVerified);
-        setSelectedAreas(savedCompanyData.tags);
-        setLogoUrl(savedCompanyData.logoUrl);
+        const savedData = savedCompanyData as any;
+
+        setCompanyName(
+          String(savedData.name ?? loggedUser.nome ?? "").slice(
+            0,
+            COMPANY_NAME_MAX_LENGTH
+          )
+        );
+        setCnpj(formatCnpj(String(savedData.cnpj ?? "")));
+        setEmail(
+          removeSpaces(String(savedData.email ?? loggedUser.email ?? "")).slice(
+            0,
+            EMAIL_MAX_LENGTH
+          )
+        );
+        setPhone(formatPhone(String(savedData.phone ?? loggedUser.telefone ?? "")));
+        setCity(String(savedData.location ?? "").slice(0, CITY_MAX_LENGTH));
+        setAddress(String(savedData.address ?? "").slice(0, ADDRESS_MAX_LENGTH));
+        setDescription(String(savedData.about ?? "").slice(0, DESCRIPTION_MAX_LENGTH));
+        setIsVerified(Boolean(savedData.isVerified));
+        setSelectedAreas(Array.isArray(savedData.tags) ? savedData.tags : []);
+        setLogoUrl(resolveImageUrl(savedData, loggedUser));
         return;
       }
 
-      setCompanyName(loggedUser.nome.slice(0, COMPANY_NAME_MAX_LENGTH));
-      setEmail(removeSpaces(loggedUser.email).slice(0, EMAIL_MAX_LENGTH));
-      setPhone(formatPhone(loggedUser.telefone ?? ""));
+      setCompanyName(String(loggedUser.nome ?? "").slice(0, COMPANY_NAME_MAX_LENGTH));
+      setEmail(removeSpaces(String(loggedUser.email ?? "")).slice(0, EMAIL_MAX_LENGTH));
+      setPhone(formatPhone(String(loggedUser.telefone ?? "")));
+      setLogoUrl(resolveImageUrl(loggedUser));
     } catch (error) {
       console.log("Erro ao carregar dados da empresa:", error);
 
@@ -328,7 +367,7 @@ export default function CompanyDataScreen() {
         return;
       }
 
-      await saveCompanyData(loggedUser.id, {
+      const dataToSave = {
         name: companyData.companyName,
         cnpj: companyData.cnpj,
         email: companyData.email,
@@ -338,8 +377,16 @@ export default function CompanyDataScreen() {
         about: companyData.description,
         isVerified: companyData.isVerified,
         tags: companyData.selectedAreas,
+
+        // Mantemos vários nomes para a foto aparecer em qualquer tela do app.
         logoUrl: companyData.logoUrl,
-      });
+        photoUrl: companyData.logoUrl,
+        fotoUrl: companyData.logoUrl,
+        imageUrl: companyData.logoUrl,
+        avatarUrl: companyData.logoUrl,
+      };
+
+      await saveCompanyData(loggedUser.id, dataToSave as any);
 
       console.log("Dados da empresa salvos com sucesso:", companyData);
 
@@ -381,8 +428,8 @@ export default function CompanyDataScreen() {
         mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.6,
-        base64: true,
+        quality: 0.45,
+        base64: false,
       });
 
       if (result.canceled) {
@@ -396,16 +443,16 @@ export default function CompanyDataScreen() {
         return;
       }
 
+      if (selectedImage.uri) {
+        setLogoUrl(selectedImage.uri);
+        return;
+      }
+
       if (selectedImage.base64) {
         const mimeType = selectedImage.mimeType ?? "image/jpeg";
         const base64Image = `data:${mimeType};base64,${selectedImage.base64}`;
 
         setLogoUrl(base64Image);
-        return;
-      }
-
-      if (selectedImage.uri) {
-        setLogoUrl(selectedImage.uri);
         return;
       }
 
@@ -837,11 +884,11 @@ export default function CompanyDataScreen() {
             </View>
 
             <Pressable
-              disabled={isSaving}
+              disabled={isSaving || isLoading}
               style={({ pressed }) => [
                 styles.saveButton,
-                pressed && styles.saveButtonPressed,
-                isSaving && { opacity: 0.7 },
+                pressed && !isSaving && !isLoading && styles.saveButtonPressed,
+                (isSaving || isLoading) && { opacity: 0.7 },
               ]}
               onPress={handleSaveCompanyData}
             >

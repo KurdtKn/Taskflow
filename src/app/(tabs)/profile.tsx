@@ -136,6 +136,32 @@ function calculateRating(avaliacoes: AvaliacaoApi[]) {
   };
 }
 
+function resolveImageUrl(...sources: any[]) {
+  for (const source of sources) {
+    if (!source) {
+      continue;
+    }
+
+    const value =
+      source.photoUrl ??
+      source.photo_url ??
+      source.fotoUrl ??
+      source.foto_url ??
+      source.logoUrl ??
+      source.logo_url ??
+      source.imageUrl ??
+      source.image_url ??
+      source.avatarUrl ??
+      source.avatar_url;
+
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
 export default function ProfileScreen() {
   const { isDark, theme } = useTheme();
 
@@ -227,7 +253,7 @@ export default function ProfileScreen() {
         id: String(loggedUser.perfilId ?? loggedUser.id),
         name: savedFreelancerData?.name || loggedUser.nome,
         userType: "Freelancer",
-        photoUrl: savedFreelancerData?.photoUrl,
+        photoUrl: resolveImageUrl(savedFreelancerData, loggedUser),
         rating,
         reviewsCount,
         completedServices,

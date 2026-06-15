@@ -144,6 +144,7 @@ function normalizeJob(chamado: ChamadoApi): MapJob | null {
   }
 
   const title = chamado.titulo ?? chamado.title ?? "Chamado disponível";
+
   const location =
     chamado.localServico ??
     chamado.local_servico ??
@@ -153,9 +154,7 @@ function normalizeJob(chamado: ChamadoApi): MapJob | null {
   const city = chamado.cidade ?? "";
   const state = chamado.estado ?? "";
 
-  const rawPrice = String(
-    chamado.valorEstimado ?? chamado.valor_estimado ?? ""
-  );
+  const rawPrice = String(chamado.valorEstimado ?? chamado.valor_estimado ?? "");
 
   return {
     id,
@@ -220,8 +219,12 @@ function buildMapHtml(jobs: MapJob[]) {
 <html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <meta 
+    name="viewport" 
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" 
+  />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
   <style>
     html, body, #map {
       width: 100%;
@@ -248,31 +251,61 @@ function buildMapHtml(jobs: MapJob[]) {
       font-size: 10px;
     }
 
+    .leaflet-popup-content {
+      width: 260px !important;
+      max-width: 260px !important;
+      margin: 14px 16px;
+    }
+
     .popup {
-      min-width: 210px;
+      width: 100%;
       max-width: 260px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .popup,
+    .popup * {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+      box-sizing: border-box;
     }
 
     .popup-title {
+      max-width: 100%;
       font-size: 14px;
       font-weight: 800;
       color: #111827;
       margin-bottom: 6px;
+      line-height: 18px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .popup-line {
+      max-width: 100%;
       font-size: 12px;
       color: #4b5563;
       margin-bottom: 4px;
       line-height: 16px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .popup-price {
+      max-width: 100%;
       font-size: 13px;
       font-weight: 800;
       color: #0b57d0;
       margin-top: 7px;
       margin-bottom: 9px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .popup-button {
@@ -291,25 +324,72 @@ function buildMapHtml(jobs: MapJob[]) {
       opacity: 0.9;
     }
 
-    .pin-dot {
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
+    .pin-marker {
+      width: 46px;
+      height: 58px;
+      position: relative;
+    }
+
+    .pin-body {
+      width: 42px;
+      height: 42px;
       background: #0b57d0;
       border: 4px solid white;
-      box-shadow: 0 8px 18px rgba(0,0,0,0.32);
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.36);
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    .pin-dot {
+      width: 15px;
+      height: 15px;
+      background: white;
+      border-radius: 999px;
+      position: absolute;
+      left: 13.5px;
+      top: 13.5px;
+      transform: rotate(45deg);
+    }
+
+    .pin-label {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0b57d0;
+      font-size: 13px;
+      font-weight: 900;
+      transform: rotate(45deg);
+      z-index: 2;
     }
   </style>
 </head>
+
 <body>
   <div id="map"></div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <script>
     const jobs = ${JSON.stringify(safeJobs)};
     const center = ${JSON.stringify(center)};
 
     function sendToParent(type, id) {
-      window.parent.postMessage({ type, id }, "*");
+      const payload = { type, id };
+
+      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+        return;
+      }
+
+      window.parent.postMessage(payload, "*");
     }
 
     function startMap() {
@@ -330,12 +410,20 @@ function buildMapHtml(jobs: MapJob[]) {
         attribution: "© OpenStreetMap",
       }).addTo(map);
 
+      const iconHtml = \`
+        <div class="pin-marker">
+          <div class="pin-body">
+            <div class="pin-dot"></div>
+          </div>
+        </div>
+      \`;
+
       const pinIcon = L.divIcon({
         className: "",
-        html: '<div class="pin-dot"></div>',
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
-        popupAnchor: [0, -10],
+        html: iconHtml,
+        iconSize: [46, 58],
+        iconAnchor: [23, 58],
+        popupAnchor: [0, -54],
       });
 
       const bounds = [];
@@ -352,7 +440,10 @@ function buildMapHtml(jobs: MapJob[]) {
 
         const location = document.createElement("div");
         location.className = "popup-line";
-        location.textContent = job.location + (job.city ? " - " + job.city : "") + (job.state ? "/" + job.state : "");
+        location.textContent =
+          job.location +
+          (job.city ? " - " + job.city : "") +
+          (job.state ? "/" + job.state : "");
 
         const status = document.createElement("div");
         status.className = "popup-line";
@@ -404,6 +495,19 @@ function buildMapHtml(jobs: MapJob[]) {
 </html>`;
 }
 
+function getWebViewComponent() {
+  if (Platform.OS === "web") {
+    return null;
+  }
+
+  try {
+    return require("react-native-webview").WebView;
+  } catch (error) {
+    console.log("react-native-webview não instalado:", error);
+    return null;
+  }
+}
+
 export default function MapScreen() {
   const { isDark, theme } = useTheme();
 
@@ -436,6 +540,71 @@ export default function MapScreen() {
 
   const mapHtml = useMemo(() => buildMapHtml(filteredJobs), [filteredJobs]);
 
+  const goToJobDetails = useCallback((job: MapJob) => {
+    router.push({
+      pathname: "/job-details",
+      params: {
+        id: job.id,
+        jobId: job.id,
+        chamadoId: job.id,
+
+        title: job.title,
+        description: job.description,
+        category: job.category,
+        price: job.price,
+        rawPrice: job.rawPrice,
+
+        location: job.location,
+        city: job.city,
+        state: job.state,
+        time: `${job.date}, ${job.time}`,
+        distance: job.city,
+
+        status: job.status,
+        company: job.company,
+        companyName: job.company,
+
+        vacancies: String(job.vacancies),
+        vagasDisponiveis: String(job.vacancies),
+        availableVacancies: String(job.vacancies),
+
+        latitude: String(job.latitude),
+        longitude: String(job.longitude),
+      },
+    });
+  }, []);
+
+  const handleMapMessage = useCallback(
+    (rawData: unknown) => {
+      let data = rawData as any;
+
+      if (typeof rawData === "string") {
+        try {
+          data = JSON.parse(rawData);
+        } catch {
+          return;
+        }
+      }
+
+      if (!data || typeof data !== "object") {
+        return;
+      }
+
+      if (data.type === "TASKFLOW_SELECT_JOB" && data.id) {
+        setSelectedJobId(String(data.id));
+      }
+
+      if (data.type === "TASKFLOW_OPEN_DETAILS" && data.id) {
+        const job = filteredJobs.find((item) => item.id === String(data.id));
+
+        if (job) {
+          goToJobDetails(job);
+        }
+      }
+    },
+    [filteredJobs, goToJobDetails]
+  );
+
   const loadJobs = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -448,7 +617,8 @@ export default function MapScreen() {
         .filter((job): job is MapJob => job !== null)
         .filter((job) => {
           const status = normalizeStatus(job.status);
-          const estaDisponivel = status === "aberto" || status === "em_andamento";
+          const estaDisponivel =
+            status === "aberto" || status === "em_andamento";
           const temVaga = job.vacancies > 0;
 
           return estaDisponivel && temVaga;
@@ -458,7 +628,9 @@ export default function MapScreen() {
 
       if (normalizedJobs.length > 0) {
         setSelectedJobId((currentId) => {
-          const stillExists = normalizedJobs.some((job) => job.id === currentId);
+          const stillExists = normalizedJobs.some(
+            (job) => job.id === currentId
+          );
 
           if (currentId && stillExists) {
             return currentId;
@@ -490,23 +662,7 @@ export default function MapScreen() {
     }
 
     const handleMessage = (event: MessageEvent) => {
-      const data = event.data;
-
-      if (!data || typeof data !== "object") {
-        return;
-      }
-
-      if (data.type === "TASKFLOW_SELECT_JOB" && data.id) {
-        setSelectedJobId(String(data.id));
-      }
-
-      if (data.type === "TASKFLOW_OPEN_DETAILS" && data.id) {
-        const job = filteredJobs.find((item) => item.id === String(data.id));
-
-        if (job) {
-          goToJobDetails(job);
-        }
-      }
+      handleMapMessage(event.data);
     };
 
     window.addEventListener("message", handleMessage);
@@ -514,41 +670,42 @@ export default function MapScreen() {
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [filteredJobs]);
+  }, [handleMapMessage]);
 
-  function goToJobDetails(job: MapJob) {
-    router.push({
-      pathname: "/job-details",
-      params: {
-        id: job.id,
-        jobId: job.id,
-        chamadoId: job.id,
+  function renderMap() {
+    if (Platform.OS === "web") {
+      return (
+        <View
+          style={[
+            styles.mapBox,
+            {
+              backgroundColor: "#E5E7EB",
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          {React.createElement("iframe" as any, {
+            key: mapHtml.length + filteredJobs.map((job) => job.id).join("-"),
+            title: "TaskFlow Map",
+            srcDoc: mapHtml,
+            style: {
+              width: "100%",
+              height: "430px",
+              minHeight: "430px",
+              border: "0",
+              borderRadius: "20px",
+              display: "block",
+              backgroundColor: "#E5E7EB",
+            },
+            sandbox: "allow-scripts allow-same-origin allow-popups allow-forms",
+          } as any)}
+        </View>
+      );
+    }
 
-        title: job.title,
-        description: job.description,
-        category: job.category,
-        price: job.price,
-        rawPrice: job.rawPrice,
+    const WebView = getWebViewComponent();
 
-        location: job.location,
-        city: job.city,
-        state: job.state,
-        time: `${job.date}, ${job.time}`,
-        distance: job.city,
-
-        status: job.status,
-        company: job.company,
-        companyName: job.company,
-
-        vacancies: String(job.vacancies),
-        vagasDisponiveis: String(job.vacancies),
-        availableVacancies: String(job.vacancies),
-      },
-    });
-  }
-
-  function renderWebMap() {
-    if (Platform.OS !== "web") {
+    if (!WebView) {
       return (
         <View
           style={[
@@ -559,9 +716,18 @@ export default function MapScreen() {
             },
           ]}
         >
-          <Text style={[styles.nativeFallbackTitle, { color: theme.text }]}>Mapa disponível no navegador</Text>
+          <Text style={[styles.nativeFallbackTitle, { color: theme.text }]}>
+            WebView não instalado
+          </Text>
 
-          <Text style={[styles.nativeFallbackText, { color: theme.textSecondary }]}>Para celular, depois criamos uma versão nativa separada.</Text>
+          <Text
+            style={[
+              styles.nativeFallbackText,
+              { color: theme.textSecondary },
+            ]}
+          >
+            Rode: npx expo install react-native-webview
+          </Text>
         </View>
       );
     }
@@ -576,21 +742,19 @@ export default function MapScreen() {
           },
         ]}
       >
-        {React.createElement("iframe" as any, {
-          key: mapHtml.length + filteredJobs.map((job) => job.id).join("-"),
-          title: "TaskFlow Map",
-          srcDoc: mapHtml,
-          style: {
-            width: "100%",
-            height: "430px",
-            minHeight: "430px",
-            border: "0",
-            borderRadius: "20px",
-            display: "block",
-            backgroundColor: "#E5E7EB",
-          },
-          sandbox: "allow-scripts allow-same-origin allow-popups allow-forms",
-        } as any)}
+        <WebView
+          key={mapHtml.length + filteredJobs.map((job) => job.id).join("-")}
+          originWhitelist={["*"]}
+          source={{ html: mapHtml }}
+          style={styles.mobileWebView}
+          javaScriptEnabled
+          domStorageEnabled
+          startInLoadingState
+          mixedContentMode="always"
+          onMessage={(event: any) => {
+            handleMapMessage(event.nativeEvent.data);
+          }}
+        />
       </View>
     );
   }
@@ -606,26 +770,40 @@ export default function MapScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.header}>
           <View style={styles.headerTextArea}>
-            <Text style={[styles.title, { color: theme.text }]}>Mapa de chamados</Text>
+            <Text style={[styles.title, { color: theme.text }]}>
+              Mapa de chamados
+            </Text>
 
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Arraste, dê zoom e clique nos pins para ver os chamados disponíveis.</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              Arraste, dê zoom e clique nos pins para ver os chamados
+              disponíveis.
+            </Text>
           </View>
 
           <Pressable
             style={({ pressed }) => [
               styles.reloadButton,
               {
-                backgroundColor: isDark ? "rgba(59,130,246,0.16)" : "rgba(11,87,208,0.1)",
-                borderColor: isDark ? "rgba(96,165,250,0.25)" : "rgba(11,87,208,0.18)",
+                backgroundColor: isDark
+                  ? "rgba(59,130,246,0.16)"
+                  : "rgba(11,87,208,0.1)",
+                borderColor: isDark
+                  ? "rgba(96,165,250,0.25)"
+                  : "rgba(11,87,208,0.18)",
               },
               pressed && { opacity: 0.75 },
             ]}
             onPress={loadJobs}
           >
-            <Text style={[styles.reloadText, { color: colors.primary }]}>Atualizar</Text>
+            <Text style={[styles.reloadText, { color: colors.primary }]}>
+              Atualizar
+            </Text>
           </Pressable>
         </View>
 
@@ -638,14 +816,18 @@ export default function MapScreen() {
             },
           ]}
         >
-          <Text style={[styles.searchIcon, { color: theme.textSecondary }]}>🔎</Text>
+          <Text style={[styles.searchIcon, { color: theme.textSecondary }]}>
+            🔎
+          </Text>
 
           <TextInput
             style={[
               styles.searchInput,
               {
                 color: theme.text,
-                ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+                ...(Platform.OS === "web"
+                  ? ({ outlineStyle: "none" } as any)
+                  : {}),
               },
             ]}
             placeholder="Buscar no mapa..."
@@ -666,7 +848,10 @@ export default function MapScreen() {
             ]}
           >
             <ActivityIndicator color={colors.primary} />
-            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Carregando chamados...</Text>
+
+            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+              Carregando chamados...
+            </Text>
           </View>
         ) : filteredJobs.length === 0 ? (
           <View
@@ -678,13 +863,18 @@ export default function MapScreen() {
               },
             ]}
           >
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>Nenhum chamado disponível no mapa</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              Nenhum chamado disponível no mapa
+            </Text>
 
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Só aparecem chamados abertos ou em andamento, com vaga disponível e latitude/longitude.</Text>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              Só aparecem chamados abertos ou em andamento, com vaga disponível
+              e latitude/longitude.
+            </Text>
           </View>
         ) : (
           <>
-            {renderWebMap()}
+            {renderMap()}
 
             {selectedJob && (
               <View
@@ -698,27 +888,65 @@ export default function MapScreen() {
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.cardTextArea}>
-                    <Text style={[styles.jobTitle, { color: theme.text }]}>{selectedJob.title}</Text>
+                    <Text
+                      style={[styles.jobTitle, { color: theme.text }]}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {selectedJob.title}
+                    </Text>
 
-                    <Text style={[styles.jobCompany, { color: theme.textSecondary }]}>
-                      {selectedJob.category} • {selectedJob.status} • {selectedJob.vacancies} vaga(s)
+                    <Text
+                      style={[
+                        styles.jobCompany,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {selectedJob.category} • {selectedJob.status} •{" "}
+                      {selectedJob.vacancies} vaga(s)
                     </Text>
                   </View>
 
-                  <Text style={styles.jobPrice}>{selectedJob.price}</Text>
+                  <Text
+                    style={styles.jobPrice}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {selectedJob.price}
+                  </Text>
                 </View>
 
-                <Text style={[styles.jobInfo, { color: theme.textSecondary }]}>
+                <Text
+                  style={[styles.jobInfo, { color: theme.textSecondary }]}
+                >
                   📍 {selectedJob.location}
                   {selectedJob.city ? ` - ${selectedJob.city}` : ""}
                   {selectedJob.state ? `/${selectedJob.state}` : ""}
                 </Text>
 
-                <Text style={[styles.jobInfo, { color: theme.textSecondary }]}>🕒 {selectedJob.date}, {selectedJob.time}</Text>
+                <Text
+                  style={[styles.jobInfo, { color: theme.textSecondary }]}
+                >
+                  🕒 {selectedJob.date}, {selectedJob.time}
+                </Text>
 
-                <Text style={[styles.coordinates, { color: theme.textSecondary }]}>Coordenadas: {selectedJob.latitude.toFixed(6)}, {selectedJob.longitude.toFixed(6)}</Text>
+                <Text
+                  style={[
+                    styles.coordinates,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  Coordenadas: {selectedJob.latitude.toFixed(6)},{" "}
+                  {selectedJob.longitude.toFixed(6)}
+                </Text>
 
-                <Pressable style={({ pressed }) => [styles.detailsButton, pressed && { opacity: 0.85 }]} onPress={() => goToJobDetails(selectedJob)}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.detailsButton,
+                    pressed && { opacity: 0.85 },
+                  ]}
+                  onPress={() => goToJobDetails(selectedJob)}
+                >
                   <Text style={styles.detailsButtonText}>Ver detalhes</Text>
                 </Pressable>
               </View>
@@ -810,6 +1038,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
+  mobileWebView: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#E5E7EB",
+  },
+
   loadingBox: {
     minHeight: 240,
     borderWidth: 1,
@@ -881,6 +1116,7 @@ const styles = StyleSheet.create({
 
   cardTextArea: {
     flex: 1,
+    minWidth: 0,
   },
 
   jobTitle: {
@@ -912,6 +1148,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 18,
     fontWeight: "900",
+    maxWidth: 180,
+    flexShrink: 1,
+    textAlign: "right",
   },
 
   detailsButton: {

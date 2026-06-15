@@ -82,6 +82,23 @@ function getParamValue(value?: string | string[], fallback = "") {
   return value ?? fallback;
 }
 
+function getProfilePhotoUrl(profileData: any, fallback = "") {
+  return String(
+    profileData?.photoUrl ??
+      profileData?.photo_url ??
+      profileData?.fotoUrl ??
+      profileData?.foto_url ??
+      profileData?.logoUrl ??
+      profileData?.logo_url ??
+      profileData?.imageUrl ??
+      profileData?.image_url ??
+      profileData?.avatarUrl ??
+      profileData?.avatar_url ??
+      fallback ??
+      ""
+  ).trim();
+}
+
 export default function FreelancerChatScreen() {
   const params = useLocalSearchParams<{
     requestId?: string | string[];
@@ -91,7 +108,12 @@ export default function FreelancerChatScreen() {
     freelancerId?: string | string[];
     jobTitle?: string | string[];
     candidateName?: string | string[];
+    candidatePhotoUrl?: string | string[];
+    freelancerPhotoUrl?: string | string[];
     companyName?: string | string[];
+    companyPhotoUrl?: string | string[];
+    empresaFotoUrl?: string | string[];
+    companyLogoUrl?: string | string[];
     userType?: string | string[];
   }>();
 
@@ -103,7 +125,14 @@ export default function FreelancerChatScreen() {
   const candidaturaId = getParamValue(params.candidaturaId) || requestId;
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
   const candidateName = getParamValue(params.candidateName, "Freelancer");
+  const candidatePhotoUrl =
+    getParamValue(params.candidatePhotoUrl) ||
+    getParamValue(params.freelancerPhotoUrl);
   const companyName = getParamValue(params.companyName, "Empresa");
+  const companyPhotoUrl =
+    getParamValue(params.companyPhotoUrl) ||
+    getParamValue(params.empresaFotoUrl) ||
+    getParamValue(params.companyLogoUrl);
 
   const chatId = paramChatId || jobId || candidaturaId || "sem-chamado";
   const chatKey = `${CHAT_STORAGE_KEY}:${chatId}`;
@@ -118,6 +147,8 @@ export default function FreelancerChatScreen() {
   const [currentUserId, setCurrentUserId] = useState("");
   const [currentUserName, setCurrentUserName] = useState("Usuário");
   const [currentUserPhotoUrl, setCurrentUserPhotoUrl] = useState<string>();
+  const [companyProfilePhotoUrl, setCompanyProfilePhotoUrl] = useState("");
+  const [freelancerProfilePhotoUrl, setFreelancerProfilePhotoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   const { isDark, theme } = useTheme();
@@ -170,13 +201,23 @@ export default function FreelancerChatScreen() {
         setCurrentUserType("empresa");
 
         const companyData = await getCompanyData(userId);
-        setCurrentUserPhotoUrl(companyData?.logoUrl);
+        const companyPhoto =
+          getProfilePhotoUrl(companyData, companyPhotoUrl) || companyPhotoUrl;
+
+        setCompanyProfilePhotoUrl(companyPhoto);
+        setFreelancerProfilePhotoUrl(candidatePhotoUrl);
+        setCurrentUserPhotoUrl(companyPhoto || undefined);
       } else {
         setCurrentSender("freelancer");
         setCurrentUserType("freelancer");
 
         const freelancerData = await getFreelancerData(userId);
-        setCurrentUserPhotoUrl(freelancerData?.photoUrl);
+        const freelancerPhoto =
+          getProfilePhotoUrl(freelancerData, candidatePhotoUrl) || candidatePhotoUrl;
+
+        setFreelancerProfilePhotoUrl(freelancerPhoto);
+        setCompanyProfilePhotoUrl(companyPhotoUrl);
+        setCurrentUserPhotoUrl(freelancerPhoto || undefined);
       }
 
       const storedMessages = await AsyncStorage.getItem(chatKey);
@@ -283,11 +324,29 @@ export default function FreelancerChatScreen() {
     router.replace("/requests");
   }
 
-  function renderAvatar(message: Message, isCurrentUser: boolean) {
+  function getMessageSenderPhoto(message: Message) {
     if (message.senderPhotoUrl) {
+      return message.senderPhotoUrl;
+    }
+
+    if (message.senderType === "company") {
+      return companyProfilePhotoUrl || companyPhotoUrl;
+    }
+
+    if (message.senderType === "freelancer") {
+      return freelancerProfilePhotoUrl || candidatePhotoUrl;
+    }
+
+    return "";
+  }
+
+  function renderAvatar(message: Message, isCurrentUser: boolean) {
+    const photoUrl = getMessageSenderPhoto(message);
+
+    if (photoUrl) {
       return (
         <Image
-          source={{ uri: message.senderPhotoUrl }}
+          source={{ uri: photoUrl }}
           style={styles.senderAvatar}
           resizeMode="cover"
         />

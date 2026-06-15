@@ -35,6 +35,8 @@ type RequestItem = {
   id: string;
   jobId: string;
   chatId?: string;
+  contratoId?: string;
+  companyUserId?: string;
   title: string;
   company: string;
   category: string;
@@ -54,9 +56,22 @@ type ReviewPayload = {
 
 type CandidaturaApi = {
   id: number;
+
   chamadoId?: number | string | null;
   chamado_id?: number | string | null;
   jobId?: number | string | null;
+
+  contratoId?: number | string | null;
+  contrato_id?: number | string | null;
+  contrato?: {
+    id?: number | string | null;
+  } | null;
+
+  empresaUsuarioId?: number | string | null;
+  empresa_usuario_id?: number | string | null;
+  companyUserId?: number | string | null;
+  usuarioEmpresaId?: number | string | null;
+  usuario_empresa_id?: number | string | null;
 
   chamado?: string | null;
   titulo?: string | null;
@@ -138,9 +153,34 @@ function getCandidaturasFromResponse(response: CandidaturasResponse) {
 }
 
 function parseNumberValue(value: unknown, fallback = 0) {
-  const parsedValue = Number(value);
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
 
-  if (Number.isNaN(parsedValue)) {
+  if (typeof value === "number") {
+    return Number.isNaN(value) ? fallback : value;
+  }
+
+  const text = String(value)
+    .replace("R$", "")
+    .replace(/\s/g, "")
+    .trim();
+
+  if (!text) {
+    return fallback;
+  }
+
+  let normalized = text;
+
+  if (text.includes(",") && text.includes(".")) {
+    normalized = text.replace(/\./g, "").replace(",", ".");
+  } else if (text.includes(",")) {
+    normalized = text.replace(",", ".");
+  }
+
+  const parsedValue = Number(normalized);
+
+  if (Number.isNaN(parsedValue) || !Number.isFinite(parsedValue)) {
     return fallback;
   }
 
@@ -199,13 +239,32 @@ function formatCurrency(value?: number | string | null) {
   const parsedValue = parseNumberValue(value, 0);
 
   if (!parsedValue || parsedValue <= 0) {
-    return "Valor a combinar";
+    return "";
   }
 
   return parsedValue.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
+}
+
+function getRequestPrice(
+  valorProposto?: number | string | null,
+  valorEstimado?: number | string | null
+) {
+  const proposedValue = parseNumberValue(valorProposto, 0);
+
+  if (proposedValue > 0) {
+    return formatCurrency(proposedValue);
+  }
+
+  const estimatedValue = parseNumberValue(valorEstimado, 0);
+
+  if (estimatedValue > 0) {
+    return formatCurrency(estimatedValue);
+  }
+
+  return "Valor não informado";
 }
 
 function formatDate(value?: string | null) {
@@ -287,6 +346,20 @@ function mapCandidaturaToRequest(candidatura: CandidaturaApi): RequestItem {
     candidatura.jobId ??
     "";
 
+  const contratoId =
+    candidatura.contratoId ??
+    candidatura.contrato_id ??
+    candidatura.contrato?.id ??
+    "";
+
+  const companyUserId =
+    candidatura.empresaUsuarioId ??
+    candidatura.empresa_usuario_id ??
+    candidatura.companyUserId ??
+    candidatura.usuarioEmpresaId ??
+    candidatura.usuario_empresa_id ??
+    "";
+
   const chamadoStatus =
     candidatura.chamadoStatus ?? candidatura.chamado_status ?? "";
 
@@ -309,6 +382,8 @@ function mapCandidaturaToRequest(candidatura: CandidaturaApi): RequestItem {
     id: String(candidatura.id),
     jobId: String(jobId),
     chatId: String(jobId),
+    contratoId: contratoId ? String(contratoId) : "",
+    companyUserId: companyUserId ? String(companyUserId) : "",
     title:
       candidatura.chamado ??
       candidatura.titulo ??
@@ -322,7 +397,7 @@ function mapCandidaturaToRequest(candidatura: CandidaturaApi): RequestItem {
       candidatura.categoria ??
       candidatura.category ??
       "Categoria",
-    price: formatCurrency(valorProposto ?? valorEstimado),
+    price: getRequestPrice(valorProposto, valorEstimado),
     location: formatLocation(candidatura),
     time: formatDateTime(dataServico, horaServico),
     status: getRequestStatus(candidatura.status, chamadoStatus),
@@ -406,6 +481,8 @@ export default function RequestsScreen() {
 
       const mappedRequests = candidaturas.map(mapCandidaturaToRequest);
 
+      console.log("Solicitações mapeadas:", mappedRequests);
+
       setRequests(mappedRequests);
     } catch (error) {
       console.log("Erro ao carregar solicitações:", error);
@@ -441,6 +518,7 @@ export default function RequestsScreen() {
         requestId: request.id,
         jobId: request.jobId,
         chatId: request.chatId ?? request.jobId,
+        contratoId: request.contratoId ?? "",
         jobTitle: request.title,
         companyName: request.company,
         userType: "freelancer",
@@ -473,13 +551,21 @@ export default function RequestsScreen() {
   }
 
   function handleRateCompany(request: RequestItem) {
+    console.log("Abrindo avaliação da empresa:", request);
+
     router.push({
       pathname: "/rate-company",
       params: {
         requestId: request.id,
+        candidaturaId: request.id,
         jobId: request.jobId,
         jobTitle: request.title,
         companyName: request.company,
+
+        contratoId: request.contratoId ?? "",
+        avaliadoId: request.companyUserId ?? "",
+        companyUserId: request.companyUserId ?? "",
+        empresaUsuarioId: request.companyUserId ?? "",
       },
     });
   }

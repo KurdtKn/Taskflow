@@ -159,6 +159,32 @@ function removeDuplicateReviews(avaliacoes: AvaliacaoApi[]) {
   });
 }
 
+function resolveImageUrl(...sources: any[]) {
+  for (const source of sources) {
+    if (!source) {
+      continue;
+    }
+
+    const value =
+      source.logoUrl ??
+      source.logo_url ??
+      source.photoUrl ??
+      source.photo_url ??
+      source.fotoUrl ??
+      source.foto_url ??
+      source.imageUrl ??
+      source.image_url ??
+      source.avatarUrl ??
+      source.avatar_url;
+
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
 export default function CompanyProfileScreen() {
   const { isDark, theme } = useTheme();
 
@@ -267,7 +293,7 @@ export default function CompanyProfileScreen() {
         id: perfilId,
         name: savedCompanyData?.name || loggedUser.nome,
         type: "Empresa contratante",
-        logoUrl: savedCompanyData?.logoUrl,
+        logoUrl: resolveImageUrl(savedCompanyData, loggedUser),
         isVerified: savedCompanyData?.isVerified ?? false,
         rating,
         reviewsCount,

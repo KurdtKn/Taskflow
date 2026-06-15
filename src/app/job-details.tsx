@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import {
   Alert,
+  Image,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -15,6 +17,8 @@ import { apiGet } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
+
+const splashIcon = require("../../assets/images/splash-icon.png");
 
 type ChamadoApi = {
   id?: number | string;
@@ -31,6 +35,18 @@ type ChamadoApi = {
   company?: string;
   nomeEmpresa?: string;
   nome_empresa?: string;
+  empresaFotoUrl?: string | null;
+  empresa_foto_url?: string | null;
+  empresaPhotoUrl?: string | null;
+  empresa_photo_url?: string | null;
+  companyPhotoUrl?: string | null;
+  company_photo_url?: string | null;
+  companyLogoUrl?: string | null;
+  company_logo_url?: string | null;
+  logoUrl?: string | null;
+  logo_url?: string | null;
+  avatarUrl?: string | null;
+  avatar_url?: string | null;
   localServico?: string | null;
   local_servico?: string | null;
   cidade?: string | null;
@@ -52,6 +68,21 @@ type ChamadoApi = {
   total_candidaturas?: number | string;
   totalAceitos?: number | string;
   total_aceitos?: number | string;
+
+  imagemUrl?: string | null;
+  imagem_url?: string | null;
+  fotoUrl?: string | null;
+  foto_url?: string | null;
+  imageUrl?: string | null;
+  image_url?: string | null;
+
+  imagens?: string[] | string | null;
+  images?: string[] | string | null;
+  imageUrls?: string[] | string | null;
+  image_urls?: string[] | string | null;
+  anexos?: string[] | string | null;
+  anexosImagem?: string[] | string | null;
+  anexos_imagem?: string[] | string | null;
 };
 
 type ChamadosResponse =
@@ -94,7 +125,11 @@ type JobDetails = {
   date: string;
   status: string;
   companyName: string;
+  companyPhotoUrl: string;
   vacancies: number;
+  latitude: number | null;
+  longitude: number | null;
+  imageUrls: string[];
 };
 
 function firstParam(value: string | string[] | undefined) {
@@ -126,7 +161,9 @@ function toNumber(value: unknown) {
     return null;
   }
 
-  const parsed = Number(String(value).replace("R$", "").replace(/\./g, "").replace(",", ".").trim());
+  const parsed = Number(
+    String(value).replace("R$", "").replace(/\./g, "").replace(",", ".").trim()
+  );
 
   if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
     return null;
@@ -188,10 +225,119 @@ function getVacanciesFromApi(chamado: ChamadoApi) {
     return Math.max(Math.trunc(vagas), 0);
   }
 
-  const quantidade = toNumber(chamado.quantidadeProfissionais ?? chamado.quantidade_profissionais) ?? 1;
+  const quantidade =
+    toNumber(chamado.quantidadeProfissionais ?? chamado.quantidade_profissionais) ?? 1;
+
   const aceitos = toNumber(chamado.totalAceitos ?? chamado.total_aceitos) ?? 0;
 
   return Math.max(Math.trunc(quantidade - aceitos), 0);
+}
+
+function normalizeImageList(value: unknown) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).trim())
+      .filter(Boolean);
+  }
+
+  const text = String(value).trim();
+
+  if (!text) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item) => String(item).trim())
+        .filter(Boolean);
+    }
+  } catch {
+    // segue para tentativa com separadores
+  }
+
+  return text
+    .split(/[,;|]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getImageUrlsFromApi(chamado: ChamadoApi, fallback: string[] = []) {
+  const possibleLists = [
+    chamado.imagens,
+    chamado.images,
+    chamado.imageUrls,
+    chamado.image_urls,
+    chamado.anexos,
+    chamado.anexosImagem,
+    chamado.anexos_imagem,
+  ];
+
+  const listFromApi = possibleLists
+    .map(normalizeImageList)
+    .find((list) => list.length > 0);
+
+  if (listFromApi && listFromApi.length > 0) {
+    return listFromApi;
+  }
+
+  const singleImages = [
+    chamado.imagemUrl,
+    chamado.imagem_url,
+    chamado.fotoUrl,
+    chamado.foto_url,
+    chamado.imageUrl,
+    chamado.image_url,
+  ]
+    .map((item) => String(item ?? "").trim())
+    .filter(Boolean);
+
+  if (singleImages.length > 0) {
+    return singleImages;
+  }
+
+  return fallback;
+}
+
+
+function pickImageUrl(...values: Array<unknown>) {
+  const foundValue = values.find((value) => {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    return String(value).trim().length > 0;
+  });
+
+  if (!foundValue) {
+    return "";
+  }
+
+  return String(foundValue).trim();
+}
+
+function getCompanyPhotoFromApi(chamado: ChamadoApi, fallback = "") {
+  return pickImageUrl(
+    chamado.companyPhotoUrl,
+    chamado.company_photo_url,
+    chamado.empresaPhotoUrl,
+    chamado.empresa_photo_url,
+    chamado.empresaFotoUrl,
+    chamado.empresa_foto_url,
+    chamado.companyLogoUrl,
+    chamado.company_logo_url,
+    chamado.logoUrl,
+    chamado.logo_url,
+    chamado.avatarUrl,
+    chamado.avatar_url,
+    fallback
+  );
 }
 
 function normalizeJobFromApi(chamado: ChamadoApi, fallback: JobDetails): JobDetails {
@@ -217,7 +363,9 @@ function normalizeJobFromApi(chamado: ChamadoApi, fallback: JobDetails): JobDeta
     title: chamado.titulo ?? chamado.title ?? fallback.title,
     description: chamado.descricao ?? chamado.description ?? fallback.description,
     category: chamado.categoria ?? fallback.category,
-    price: formatCurrency(chamado.valorEstimado ?? chamado.valor_estimado ?? fallback.rawPrice ?? fallback.price),
+    price: formatCurrency(
+      chamado.valorEstimado ?? chamado.valor_estimado ?? fallback.rawPrice ?? fallback.price
+    ),
     rawPrice: String(chamado.valorEstimado ?? chamado.valor_estimado ?? fallback.rawPrice ?? ""),
     location: local,
     city,
@@ -232,7 +380,11 @@ function normalizeJobFromApi(chamado: ChamadoApi, fallback: JobDetails): JobDeta
       chamado.nome_empresa ??
       fallback.companyName ??
       "Empresa contratante",
+    companyPhotoUrl: getCompanyPhotoFromApi(chamado, fallback.companyPhotoUrl),
     vacancies,
+    latitude: toNumber(chamado.latitude) ?? fallback.latitude,
+    longitude: toNumber(chamado.longitude) ?? fallback.longitude,
+    imageUrls: getImageUrlsFromApi(chamado, fallback.imageUrls),
   };
 }
 
@@ -281,17 +433,37 @@ export default function JobDetailsScreen() {
     status?: string;
     company?: string;
     companyName?: string;
+    companyPhotoUrl?: string;
+    empresaFotoUrl?: string;
+    companyLogoUrl?: string;
+    logoUrl?: string;
+    avatarUrl?: string;
     vacancies?: string;
     vagasDisponiveis?: string;
     availableVacancies?: string;
+    latitude?: string;
+    longitude?: string;
+    imageUrl?: string;
+    imagemUrl?: string;
+    imageUrls?: string;
+    imagens?: string;
   }>();
 
   const { isDark, theme } = useTheme();
 
+  const initialImages = [
+    ...normalizeImageList(firstParam(params.imageUrls)),
+    ...normalizeImageList(firstParam(params.imagens)),
+    ...normalizeImageList(firstParam(params.imageUrl)),
+    ...normalizeImageList(firstParam(params.imagemUrl)),
+  ];
+
   const initialJob: JobDetails = {
     id: firstParam(params.chamadoId) || firstParam(params.jobId) || firstParam(params.id),
     title: firstParam(params.title) || "Chamado disponível",
-    description: firstParam(params.description) || "A descrição deste chamado será carregada conforme os dados cadastrados pela empresa.",
+    description:
+      firstParam(params.description) ||
+      "A descrição deste chamado será carregada conforme os dados cadastrados pela empresa.",
     category: firstParam(params.category) || "Serviço",
     price: firstParam(params.price) || "Valor a combinar",
     rawPrice: firstParam(params.rawPrice),
@@ -301,22 +473,36 @@ export default function JobDetailsScreen() {
     time: firstParam(params.time) || "Data e horário a combinar",
     date: "",
     status: firstParam(params.status) || "aberto",
-    companyName: firstParam(params.companyName) || firstParam(params.company) || "Empresa contratante",
+    companyName:
+      firstParam(params.companyName) || firstParam(params.company) || "Empresa contratante",
+    companyPhotoUrl:
+      firstParam(params.companyPhotoUrl) ||
+      firstParam(params.empresaFotoUrl) ||
+      firstParam(params.companyLogoUrl) ||
+      firstParam(params.logoUrl) ||
+      firstParam(params.avatarUrl),
     vacancies: Number(
       firstParam(params.vagasDisponiveis) ||
         firstParam(params.availableVacancies) ||
         firstParam(params.vacancies) ||
         "1"
     ),
+    latitude: toNumber(firstParam(params.latitude)),
+    longitude: toNumber(firstParam(params.longitude)),
+    imageUrls: initialImages,
   };
 
   const [job, setJob] = useState<JobDetails>(initialJob);
   const [isLoading, setIsLoading] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [loggedUserType, setLoggedUserType] = useState("");
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 
   const hasVacancies = job.vacancies > 0 && !isUnavailableStatus(job.status);
   const canApply = loggedUserType !== "empresa" && hasVacancies && !hasApplied;
+  const hasImages = job.imageUrls.length > 0;
+  const currentImage = hasImages ? job.imageUrls[selectedImageIndex] : "";
 
   useFocusEffect(
     useCallback(() => {
@@ -338,7 +524,15 @@ export default function JobDetailsScreen() {
       const chamado = chamados.find((item) => String(item.id) === String(job.id));
 
       if (chamado) {
-        setJob((currentJob) => normalizeJobFromApi(chamado, currentJob));
+        setJob((currentJob) => {
+          const updatedJob = normalizeJobFromApi(chamado, currentJob);
+
+          if (selectedImageIndex > updatedJob.imageUrls.length - 1) {
+            setSelectedImageIndex(0);
+          }
+
+          return updatedJob;
+        });
       }
     } catch (error) {
       console.log("Erro ao carregar detalhes do chamado:", error);
@@ -376,13 +570,12 @@ export default function JobDetailsScreen() {
       const response = await apiGet<CandidaturasResponse>(
         `/api/Candidaturas/freelancer/${freelancerId}`
       );
+
       const candidaturas = getCandidaturasFromResponse(response);
 
       const candidaturaEncontrada = candidaturas.some((candidatura) => {
         const chamadoId =
-          candidatura.chamadoId ??
-          candidatura.chamado_id ??
-          candidatura.chamado?.id;
+          candidatura.chamadoId ?? candidatura.chamado_id ?? candidatura.chamado?.id;
 
         return String(chamadoId) === String(job.id);
       });
@@ -392,6 +585,61 @@ export default function JobDetailsScreen() {
       console.log("Erro ao verificar candidatura existente:", error);
       setHasApplied(false);
     }
+  }
+
+  function goToMap() {
+    router.push({
+      pathname: "/map",
+      params: {
+        id: job.id,
+        jobId: job.id,
+        chamadoId: job.id,
+        selectedJobId: job.id,
+        title: job.title,
+        location: job.location,
+        city: job.city,
+        state: job.state,
+        latitude: job.latitude !== null ? String(job.latitude) : "",
+        longitude: job.longitude !== null ? String(job.longitude) : "",
+      },
+    });
+  }
+
+  function openImageModal(index = selectedImageIndex) {
+    if (!hasImages) {
+      return;
+    }
+
+    setSelectedImageIndex(index);
+    setIsImageModalVisible(true);
+  }
+
+  function goToPreviousImage() {
+    if (!hasImages) {
+      return;
+    }
+
+    setSelectedImageIndex((currentIndex) => {
+      if (currentIndex === 0) {
+        return job.imageUrls.length - 1;
+      }
+
+      return currentIndex - 1;
+    });
+  }
+
+  function goToNextImage() {
+    if (!hasImages) {
+      return;
+    }
+
+    setSelectedImageIndex((currentIndex) => {
+      if (currentIndex >= job.imageUrls.length - 1) {
+        return 0;
+      }
+
+      return currentIndex + 1;
+    });
   }
 
   function goToRequestConfirmation() {
@@ -430,15 +678,17 @@ export default function JobDetailsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}> 
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={[styles.header, { borderBottomColor: theme.border }]}> 
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Text style={[styles.backText, { color: theme.text }]}>‹</Text>
         </Pressable>
 
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Detalhes do chamado</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Detalhes do chamado
+        </Text>
 
         <View style={styles.headerPlaceholder} />
       </View>
@@ -458,13 +708,81 @@ export default function JobDetailsScreen() {
             },
           ]}
         >
-          <Text style={styles.heroIcon}>📍</Text>
-          <Text style={[styles.heroText, { color: theme.textSecondary }]}>Local do chamado</Text>
+          {hasImages ? (
+            <>
+              <Image
+                source={{ uri: currentImage }}
+                style={styles.heroImage}
+                resizeMode="cover"
+              />
+
+              <View style={styles.heroOverlay}>
+                <Text style={styles.heroOverlayTitle}>Imagens do chamado</Text>
+
+                <Text style={styles.heroOverlaySubtitle}>
+                  {selectedImageIndex + 1}/{job.imageUrls.length}
+                </Text>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.expandImageButton,
+                  pressed && { opacity: 0.8 },
+                ]}
+                onPress={() => openImageModal()}
+              >
+                <Text style={styles.expandImageButtonText}>Expandir imagem</Text>
+              </Pressable>
+
+              {job.imageUrls.length > 1 && (
+                <View style={styles.heroArrowsArea}>
+                  <Pressable
+                    style={styles.heroArrowButton}
+                    onPress={goToPreviousImage}
+                  >
+                    <Text style={styles.heroArrowText}>‹</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.heroArrowButton}
+                    onPress={goToNextImage}
+                  >
+                    <Text style={styles.heroArrowText}>›</Text>
+                  </Pressable>
+                </View>
+              )}
+            </>
+          ) : (
+            <>
+              <Image
+                source={splashIcon}
+                style={styles.heroPinImage}
+                resizeMode="contain"
+              />
+              <Text style={[styles.heroText, { color: theme.textSecondary }]}>
+                Local do chamado
+              </Text>
+
+              <Text
+                style={[
+                  styles.noImageText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                A empresa ainda não adicionou imagens.
+              </Text>
+            </>
+          )}
         </View>
 
         <View style={styles.titleArea}>
           <View style={styles.badgeRow}>
-            <View style={[styles.categoryBadge, { backgroundColor: "rgba(11,87,208,0.14)" }]}> 
+            <View
+              style={[
+                styles.categoryBadge,
+                { backgroundColor: "rgba(11,87,208,0.14)" },
+              ]}
+            >
               <Text style={styles.categoryText}>{job.category}</Text>
             </View>
 
@@ -495,17 +813,57 @@ export default function JobDetailsScreen() {
           <Text style={styles.jobPrice}>{job.price}</Text>
         </View>
 
-        <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}> 
+        <View
+          style={[
+            styles.infoCard,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+        >
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <Text style={styles.infoEmoji}>📍</Text>
+              <Image
+                source={splashIcon}
+                style={styles.infoPinImage}
+                resizeMode="contain"
+              />
             </View>
 
             <View style={styles.infoTextArea}>
-              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Localização</Text>
-              <Text style={[styles.infoValue, { color: theme.text }]}> 
-                {job.city ? `${job.city} - ` : ""}{job.location}{job.state ? `/${job.state}` : ""}
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Localização
               </Text>
+
+              <Text style={[styles.infoValue, { color: theme.text }]}>
+                {job.city ? `${job.city} - ` : ""}
+                {job.location}
+                {job.state ? `/${job.state}` : ""}
+              </Text>
+
+              <View style={styles.locationButtonsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.mapButton,
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  onPress={goToMap}
+                >
+                  <Text style={styles.mapButtonText}>Ver no mapa</Text>
+                </Pressable>
+
+                {hasImages && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.imageMiniButton,
+                      pressed && { opacity: 0.75 },
+                    ]}
+                    onPress={() => openImageModal()}
+                  >
+                    <Text style={styles.imageMiniButtonText}>
+                      Ver imagens
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
           </View>
 
@@ -517,44 +875,92 @@ export default function JobDetailsScreen() {
             </View>
 
             <View style={styles.infoTextArea}>
-              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Data e horário</Text>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                Data e horário
+              </Text>
               <Text style={[styles.infoValue, { color: theme.text }]}>{job.time}</Text>
             </View>
           </View>
         </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Descrição do serviço</Text>
-        <Text style={[styles.description, { color: theme.textSecondary }]}> 
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          Descrição do serviço
+        </Text>
+
+        <Text style={[styles.description, { color: theme.textSecondary }]}>
           {job.description}
         </Text>
 
-        <View style={[styles.companyCard, { backgroundColor: theme.card, borderColor: theme.border }]}> 
-          <View style={styles.companyAvatar}>
-            <Text style={styles.companyAvatarText}>TF</Text>
-          </View>
+        <View
+          style={[
+            styles.companyCard,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+        >
+          {job.companyPhotoUrl ? (
+            <Image
+              source={{ uri: job.companyPhotoUrl }}
+              style={styles.companyAvatar}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.companyAvatar}>
+              <Text style={styles.companyAvatarText}>TF</Text>
+            </View>
+          )}
 
           <View style={styles.companyTextArea}>
-            <Text style={[styles.companyName, { color: theme.text }]}>{job.companyName}</Text>
-            <Text style={[styles.companySubtitle, { color: theme.textSecondary }]}>Empresa responsável pelo chamado</Text>
+            <Text style={[styles.companyName, { color: theme.text }]}>
+              {job.companyName}
+            </Text>
+            <Text style={[styles.companySubtitle, { color: theme.textSecondary }]}>
+              Empresa responsável pelo chamado
+            </Text>
           </View>
         </View>
 
         {isLoading && (
-          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Atualizando dados pela API...</Text>
+          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+            Atualizando dados pela API...
+          </Text>
         )}
 
         {loggedUserType === "empresa" ? (
-          <View style={[styles.noticeBox, { backgroundColor: theme.card, borderColor: theme.border }]}> 
-            <Text style={[styles.noticeText, { color: theme.textSecondary }]}>Você está logado como empresa. Para se candidatar, acesse com perfil freelancer.</Text>
+          <View
+            style={[
+              styles.noticeBox,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <Text style={[styles.noticeText, { color: theme.textSecondary }]}>
+              Você está logado como empresa. Para se candidatar, acesse com perfil
+              freelancer.
+            </Text>
           </View>
         ) : hasApplied ? (
-          <View style={[styles.noticeBox, { backgroundColor: theme.card, borderColor: theme.border }]}> 
-            <Text style={[styles.noticeTitle, { color: theme.text }]}>Candidatura já enviada</Text>
-            <Text style={[styles.noticeText, { color: theme.textSecondary }]}>Aguarde a resposta da empresa para continuar o atendimento.</Text>
+          <View
+            style={[
+              styles.noticeBox,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <Text style={[styles.noticeTitle, { color: theme.text }]}>
+              Candidatura já enviada
+            </Text>
+            <Text style={[styles.noticeText, { color: theme.textSecondary }]}>
+              Aguarde a resposta da empresa para continuar o atendimento.
+            </Text>
           </View>
         ) : !hasVacancies ? (
-          <View style={[styles.noticeBox, { backgroundColor: theme.card, borderColor: theme.border }]}> 
-            <Text style={[styles.noticeText, { color: theme.textSecondary }]}>Este chamado não possui vagas disponíveis no momento.</Text>
+          <View
+            style={[
+              styles.noticeBox,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <Text style={[styles.noticeText, { color: theme.textSecondary }]}>
+              Este chamado não possui vagas disponíveis no momento.
+            </Text>
           </View>
         ) : null}
 
@@ -576,6 +982,60 @@ export default function JobDetailsScreen() {
           </Text>
         </Pressable>
       </ScrollView>
+
+      <Modal
+        visible={isImageModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsImageModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalCounter}>
+              {selectedImageIndex + 1}/{job.imageUrls.length}
+            </Text>
+
+            <Pressable
+              style={styles.modalCloseButton}
+              onPress={() => setIsImageModalVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>×</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.modalImageArea}>
+            {job.imageUrls.length > 1 && (
+              <Pressable
+                style={[styles.modalArrowButton, styles.modalArrowLeft]}
+                onPress={goToPreviousImage}
+              >
+                <Text style={styles.modalArrowText}>‹</Text>
+              </Pressable>
+            )}
+
+            {currentImage ? (
+              <Image
+                source={{ uri: currentImage }}
+                style={styles.modalImage}
+                resizeMode="contain"
+              />
+            ) : null}
+
+            {job.imageUrls.length > 1 && (
+              <Pressable
+                style={[styles.modalArrowButton, styles.modalArrowRight]}
+                onPress={goToNextImage}
+              >
+                <Text style={styles.modalArrowText}>›</Text>
+              </Pressable>
+            )}
+          </View>
+
+          <Text style={styles.modalHint}>
+            Imagens adicionadas pela empresa para ajudar no entendimento do serviço.
+          </Text>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -623,12 +1083,87 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    height: 190,
+    height: 210,
     borderWidth: 1,
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
+    overflow: "hidden",
+    position: "relative",
+  },
+
+  heroImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  heroOverlay: {
+    position: "absolute",
+    left: 14,
+    top: 14,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "rgba(2,6,23,0.68)",
+  },
+
+  heroOverlayTitle: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+
+  heroOverlaySubtitle: {
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 11,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+
+  expandImageButton: {
+    position: "absolute",
+    right: 14,
+    bottom: 14,
+    minHeight: 36,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  expandImageButtonText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+
+  heroArrowsArea: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    top: "50%",
+    marginTop: -20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  heroArrowButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(2,6,23,0.62)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  heroArrowText: {
+    color: colors.white,
+    fontSize: 34,
+    lineHeight: 36,
+    fontWeight: "700",
   },
 
   heroIcon: {
@@ -636,9 +1171,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  heroPinImage: {
+    width: 76,
+    height: 76,
+    marginBottom: 8,
+  },
+
   heroText: {
     fontSize: 13,
     fontWeight: "800",
+  },
+
+  noImageText: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   titleArea: {
@@ -699,7 +1246,7 @@ const styles = StyleSheet.create({
 
   infoRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
   },
 
@@ -716,6 +1263,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
 
+  infoPinImage: {
+    width: 24,
+    height: 24,
+  },
+
   infoTextArea: {
     flex: 1,
   },
@@ -730,6 +1282,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "900",
     lineHeight: 20,
+  },
+
+  locationButtonsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10,
+  },
+
+  mapButton: {
+    alignSelf: "flex-start",
+    minHeight: 34,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  mapButtonText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+
+  imageMiniButton: {
+    alignSelf: "flex-start",
+    minHeight: 34,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "rgba(11,87,208,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(11,87,208,0.24)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  imageMiniButtonText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "900",
   },
 
   separator: {
@@ -831,5 +1425,88 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: "900",
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(2,6,23,0.96)",
+    paddingTop: 46,
+    paddingHorizontal: 18,
+    paddingBottom: 26,
+  },
+
+  modalHeader: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  modalCounter: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+
+  modalCloseButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  modalCloseText: {
+    color: colors.white,
+    fontSize: 32,
+    lineHeight: 34,
+    fontWeight: "700",
+  },
+
+  modalImageArea: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+
+  modalImage: {
+    width: "100%",
+    height: "86%",
+  },
+
+  modalArrowButton: {
+    position: "absolute",
+    zIndex: 5,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  modalArrowLeft: {
+    left: 0,
+  },
+
+  modalArrowRight: {
+    right: 0,
+  },
+
+  modalArrowText: {
+    color: colors.white,
+    fontSize: 42,
+    lineHeight: 44,
+    fontWeight: "700",
+  },
+
+  modalHint: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+    lineHeight: 18,
   },
 });
