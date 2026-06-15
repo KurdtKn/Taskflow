@@ -17,8 +17,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import { styles } from "@/app/styles/rateService";
 import { useTheme } from "@/app/context/ThemeContext";
+import { getLoggedUser } from "@/services/storage";
 
-const API_URL = "http://192.168.86.12:5275";
+const API_URL = "http://192.168.1.111:5275";
 
 const ratingTags = [
   "Pontual",
@@ -38,6 +39,7 @@ type ReviewPayload = {
   jobId: string;
   candidaturaId: string;
   freelancerId: string;
+  contratoId: string;
   jobTitle: string;
   companyName: string;
   ratedUserName: string;
@@ -69,6 +71,22 @@ function getParamNumber(value?: string | string[], fallback = 0) {
     : fallback;
 }
 
+function resolveLoggedUserId(loggedUserData: any) {
+  const value = Number(
+    loggedUserData?.id ??
+      loggedUserData?.usuarioId ??
+      loggedUserData?.usuario_id ??
+      loggedUserData?.userId ??
+      loggedUserData?.user_id
+  );
+
+  if (Number.isNaN(value) || value <= 0) {
+    return null;
+  }
+
+  return value;
+}
+
 export default function RateServiceScreen() {
   const params = useLocalSearchParams<{
     jobId?: string | string[];
@@ -80,8 +98,11 @@ export default function RateServiceScreen() {
     ratedUserName?: string | string[];
     ratedUserType?: string | string[];
     contratoId?: string | string[];
+    contrato_id?: string | string[];
     avaliadorId?: string | string[];
+    avaliador_id?: string | string[];
     avaliadoId?: string | string[];
+    avaliado_id?: string | string[];
   }>();
 
   const jobId = getParamValue(params.jobId);
@@ -92,14 +113,21 @@ export default function RateServiceScreen() {
   const companyName = getParamValue(params.companyName, "Empresa");
 
   const ratedUserName = getParamValue(params.ratedUserName, candidateName);
-
   const ratedUserType = getParamValue(params.ratedUserType, "freelancer");
 
-  const contratoId = getParamNumber(params.contratoId, 1);
-  const avaliadorId = getParamNumber(params.avaliadorId, 1);
-  const avaliadoId = getParamNumber(
-    params.avaliadoId,
-    Number(freelancerId) > 0 ? Number(freelancerId) : 3
+  const contratoIdFromParams = getParamNumber(
+    params.contratoId ?? params.contrato_id,
+    0
+  );
+
+  const avaliadorIdFromParams = getParamNumber(
+    params.avaliadorId ?? params.avaliador_id,
+    0
+  );
+
+  const avaliadoIdFromParams = getParamNumber(
+    params.avaliadoId ?? params.avaliado_id,
+    Number(freelancerId) > 0 ? Number(freelancerId) : 0
   );
 
   const [rating, setRating] = useState(5);
@@ -113,6 +141,9 @@ export default function RateServiceScreen() {
   const { isDark, theme } = useTheme();
 
   const isRatingFreelancer = ratedUserType === "freelancer";
+  const normalizedComment = normalizeComment(comment);
+  const isCommentValid = normalizedComment.length >= COMMENT_MIN_LENGTH;
+  const canSubmit = rating > 0 && isCommentValid && !isSubmitting;
 
   const cleanTextAreaStyle = {
     backgroundColor: theme.inputBackground,
@@ -137,8 +168,6 @@ export default function RateServiceScreen() {
   }
 
   function getValidationError() {
-    const normalizedComment = normalizeComment(comment);
-
     if (rating <= 0) {
       return "Selecione uma nota para o serviço.";
     }
@@ -160,9 +189,43 @@ export default function RateServiceScreen() {
 
   async function saveReview(review: ReviewPayload) {
     const storedReviews = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
-    const currentReviews = storedReviews ? JSON.parse(storedReviews) : [];
+    const currentReviews: ReviewPayload[] = storedReviews
+      ? JSON.parse(storedReviews)
+      : [];
 
-    const updatedReviews = [...currentReviews, review];
+    const alreadySaved = currentReviews.some((item) => {
+      if (review.contratoId && item.contratoId === review.contratoId) {
+        return true;
+      }
+
+      if (review.jobId && item.jobId === review.jobId) {
+        return true;
+      }
+
+      if (review.candidaturaId && item.candidaturaId === review.candidaturaId) {
+        return true;
+      }
+
+      return false;
+    });
+
+    const updatedReviews = alreadySaved
+      ? currentReviews.map((item) => {
+          const sameContrato =
+            review.contratoId && item.contratoId === review.contratoId;
+
+          const sameJob = review.jobId && item.jobId === review.jobId;
+
+          const sameCandidatura =
+            review.candidaturaId && item.candidaturaId === review.candidaturaId;
+
+          if (sameContrato || sameJob || sameCandidatura) {
+            return review;
+          }
+
+          return item;
+        })
+      : [...currentReviews, review];
 
     await AsyncStorage.setItem(
       REVIEWS_STORAGE_KEY,
@@ -170,98 +233,165 @@ export default function RateServiceScreen() {
     );
   }
 
-  async function handleSubmitReview() {
-  const normalizedComment = normalizeComment(comment);
-
-  if (rating <= 0) {
-    window.alert?.("Selecione uma nota para o serviço.");
-    return;
-  }
-
-  if (!normalizedComment) {
-    window.alert?.("Escreva um comentário sobre sua experiência.");
-    return;
-  }
-
-  if (normalizedComment.length < COMMENT_MIN_LENGTH) {
-    window.alert?.(
-      `O comentário precisa ter pelo menos ${COMMENT_MIN_LENGTH} caracteres.`
-    );
-    return;
-  }
-
-  try {
-    setIsSubmitting(true);
-
-    const payload = {
-      contratoId: Number(contratoId),
-      avaliadorId: Number(avaliadorId),
-      avaliadoId: Number(avaliadoId),
-      nota: Number(rating),
-      comentario: normalizedComment,
-    };
-
-    console.log("ENVIANDO AVALIAÇÃO:", payload);
-    console.log("URL:", `${API_URL}/api/Avaliacoes`);
-
-    const response = await fetch(`${API_URL}/api/Avaliacoes`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const text = await response.text();
-
-    let data: any = null;
-
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = null;
+  async function resolveAvaliadorId() {
+    if (avaliadorIdFromParams > 0) {
+      return avaliadorIdFromParams;
     }
 
-    console.log("STATUS:", response.status);
-    console.log("RESPOSTA:", data || text);
+    const loggedUser = await getLoggedUser();
 
-    if (!response.ok) {
-      window.alert?.(
-        data?.mensagem || text || "Erro ao salvar avaliação."
-      );
+    if (!loggedUser) {
+      return null;
+    }
+
+    return resolveLoggedUserId(loggedUser as any);
+  }
+
+  function handleGoBack() {
+    if (isSubmitting) {
       return;
     }
 
-    const review: ReviewPayload = {
-      id: `${Date.now()}-${jobId || "review"}`,
-      jobId,
-      candidaturaId,
-      freelancerId,
-      jobTitle,
-      companyName,
-      ratedUserName,
-      ratedUserType,
-      rating,
-      tags: selectedTags,
-      comment: normalizedComment,
-      createdAt: new Date().toISOString(),
-    };
+    if (!normalizedComment && rating === 5) {
+      router.back();
+      return;
+    }
 
-    await saveReview(review);
-
-    window.alert?.("Avaliação enviada com sucesso!");
-
-    router.replace("/company-dashboard");
-  } catch (error) {
-    console.log("ERRO AO ENVIAR AVALIAÇÃO:", error);
-
-    window.alert?.(
-      "Erro de conexão com a API. Verifique se a API está aberta em http://localhost:5275/swagger"
+    Alert.alert(
+      "Sair sem enviar?",
+      "A avaliação ainda não foi enviada. Se você voltar agora, ela não será salva.",
+      [
+        {
+          text: "Continuar avaliando",
+          style: "cancel",
+        },
+        {
+          text: "Sair sem enviar",
+          style: "destructive",
+          onPress: () => router.back(),
+        },
+      ]
     );
-  } finally {
-    setIsSubmitting(false);
   }
-}
+
+  async function handleSubmitReview() {
+    const validationError = getValidationError();
+
+    if (validationError) {
+      Alert.alert("Atenção", validationError);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const contratoId = contratoIdFromParams;
+      const avaliadorId = await resolveAvaliadorId();
+      const avaliadoId = avaliadoIdFromParams;
+
+      if (!contratoId) {
+        Alert.alert(
+          "Contrato não encontrado",
+          "Não foi possível identificar o contrato desse serviço. Volte para o chat ou para o chamado e tente abrir a avaliação novamente."
+        );
+        return;
+      }
+
+      if (!avaliadorId) {
+        Alert.alert(
+          "Usuário não encontrado",
+          "Não foi possível identificar seu usuário logado. Faça login novamente."
+        );
+        return;
+      }
+
+      if (!avaliadoId) {
+        Alert.alert(
+          "Freelancer não encontrado",
+          "Não foi possível identificar quem será avaliado. A tela anterior precisa enviar o avaliadoId ou freelancerId."
+        );
+        return;
+      }
+
+      const payload = {
+        contratoId: Number(contratoId),
+        avaliadorId: Number(avaliadorId),
+        avaliadoId: Number(avaliadoId),
+        nota: Number(rating),
+        comentario: normalizedComment,
+      };
+
+      console.log("ENVIANDO AVALIAÇÃO:", payload);
+      console.log("URL:", `${API_URL}/api/Avaliacoes`);
+
+      const response = await fetch(`${API_URL}/api/Avaliacoes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const text = await response.text();
+
+      let data: any = null;
+
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = null;
+      }
+
+      console.log("STATUS:", response.status);
+      console.log("RESPOSTA:", data || text);
+
+      if (!response.ok) {
+        Alert.alert(
+          "Erro ao salvar avaliação",
+          data?.mensagem || text || "Erro ao salvar avaliação."
+        );
+        return;
+      }
+
+      const review: ReviewPayload = {
+        id: `${Date.now()}-${jobId || "review"}`,
+        jobId,
+        candidaturaId,
+        freelancerId,
+        contratoId: String(contratoId),
+        jobTitle,
+        companyName,
+        ratedUserName,
+        ratedUserType,
+        rating,
+        tags: selectedTags,
+        comment: normalizedComment,
+        createdAt: new Date().toISOString(),
+      };
+
+      await saveReview(review);
+
+      console.log("Avaliação salva localmente:", review);
+
+      Alert.alert("Sucesso", "Avaliação enviada com sucesso!", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/company-dashboard"),
+        },
+      ]);
+    } catch (error) {
+      console.log("ERRO AO ENVIAR AVALIAÇÃO:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Erro de conexão com a API.";
+
+      Alert.alert("Erro ao enviar avaliação", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <SafeAreaView
@@ -285,7 +415,7 @@ export default function RateServiceScreen() {
             },
           ]}
         >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Pressable style={styles.backButton} onPress={handleGoBack}>
             <ArrowBack
               width={28}
               height={28}
@@ -489,10 +619,7 @@ export default function RateServiceScreen() {
 
             <Text
               style={{
-                color:
-                  normalizeComment(comment).length >= COMMENT_MIN_LENGTH
-                    ? theme.textSecondary
-                    : "#DC2626",
+                color: isCommentValid ? theme.textSecondary : "#DC2626",
                 fontSize: 12,
                 fontWeight: "700",
                 marginTop: 8,
@@ -522,11 +649,11 @@ export default function RateServiceScreen() {
           </View>
 
           <Pressable
-            disabled={isSubmitting}
+            disabled={!canSubmit}
             style={({ pressed }) => [
               styles.submitButton,
-              pressed && !isSubmitting && styles.submitButtonPressed,
-              isSubmitting && { opacity: 0.55 },
+              pressed && canSubmit && styles.submitButtonPressed,
+              !canSubmit && { opacity: 0.55 },
             ]}
             onPress={handleSubmitReview}
           >

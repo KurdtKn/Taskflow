@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -39,6 +40,9 @@ type CriarChamadoResponse = {
     longitude?: number | null;
     quantidadeProfissionais?: number;
     status?: string;
+    imagens?: string[] | string | null;
+    imageUrls?: string[] | string | null;
+    anexosImagem?: string[] | string | null;
   };
 };
 
@@ -55,6 +59,12 @@ const DEFAULT_CATEGORIA_ID = 1;
 
 const MIN_VALOR_ESTIMADO = 1;
 const MAX_VALOR_ESTIMADO = 1000000;
+
+const DESCRIPTION_MIN_LENGTH = 20;
+const DESCRIPTION_MAX_LENGTH = 500;
+
+const IMAGE_URL_MAX_LENGTH = 500;
+const MAX_IMAGE_ATTACHMENTS = 5;
 
 function normalizeUserType(value?: string | null) {
   return value?.toLowerCase().trim();
@@ -233,6 +243,84 @@ function parseCurrencyToNumber(value: string) {
   return Number(parsed.toFixed(2));
 }
 
+function normalizeTextValue(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizeImageUrl(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function isValidImageUrl(value: string) {
+  const normalizedUrl = normalizeImageUrl(value);
+
+  if (!normalizedUrl) {
+    return false;
+  }
+
+  return /^https?:\/\//i.test(normalizedUrl);
+}
+
+function getDateFromInput(value: string) {
+  const normalizedDate = normalizeDateOnBlur(value);
+
+  if (!normalizedDate) {
+    return null;
+  }
+
+  const [dayText, monthText] = normalizedDate.split("/");
+  const year = new Date().getFullYear();
+
+  const day = Number(dayText);
+  const month = Number(monthText);
+
+  if (
+    Number.isNaN(day) ||
+    Number.isNaN(month) ||
+    day <= 0 ||
+    month <= 0
+  ) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  date.setHours(0, 0, 0, 0);
+
+  return date;
+}
+
+function isSameDate(dateA: Date, dateB: Date) {
+  return (
+    dateA.getFullYear() === dateB.getFullYear() &&
+    dateA.getMonth() === dateB.getMonth() &&
+    dateA.getDate() === dateB.getDate()
+  );
+}
+
+function isHourBeforeNowForSelectedDate(dateValue: string, hourValue: string) {
+  const selectedDate = getDateFromInput(dateValue);
+  const normalizedHour = normalizeHourOnBlur(hourValue);
+
+  if (!selectedDate || !normalizedHour) {
+    return false;
+  }
+
+  const [hourText, minuteText] = normalizedHour.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+
+  if (Number.isNaN(hour) || Number.isNaN(minute)) {
+    return false;
+  }
+
+  const now = new Date();
+  const selectedDateTime = new Date(selectedDate);
+
+  selectedDateTime.setHours(hour, minute, 0, 0);
+
+  return isSameDate(selectedDateTime, now) && selectedDateTime < now;
+}
+
 export default function CreateJobScreen() {
   const { isDark, theme } = useTheme();
 
@@ -245,6 +333,8 @@ export default function CreateJobScreen() {
   const [horaServico, setHoraServico] = useState("");
   const [valorEstimado, setValorEstimado] = useState("");
   const [quantidadeProfissionais, setQuantidadeProfissionais] = useState("1");
+  const [imageUrlInput, setImageUrlInput] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const [sugestoesEndereco, setSugestoesEndereco] = useState<EnderecoSugestao[]>([]);
   const [latitudeSelecionada, setLatitudeSelecionada] = useState<number | null>(null);
@@ -259,6 +349,51 @@ export default function CreateJobScreen() {
 
   const hasSelectedAddress =
     latitudeSelecionada !== null && longitudeSelecionada !== null;
+
+  const normalizedImageUrlInput = normalizeImageUrl(imageUrlInput);
+  const canAddImageUrl =
+    imageUrls.length < MAX_IMAGE_ATTACHMENTS &&
+    isValidImageUrl(normalizedImageUrlInput) &&
+    !imageUrls.includes(normalizedImageUrlInput);
+
+  const normalizedDescription = normalizeTextValue(descricao);
+  const descriptionLength = descricao.length;
+
+  const isDescriptionValid =
+    normalizedDescription.length >= DESCRIPTION_MIN_LENGTH &&
+    normalizedDescription.length <= DESCRIPTION_MAX_LENGTH;
+
+  const normalizedDateForValidation = dataServico.trim()
+    ? normalizeDateOnBlur(dataServico)
+    : "";
+
+  const normalizedHourForValidation = horaServico.trim()
+    ? normalizeHourOnBlur(horaServico)
+    : "";
+
+  const isSelectedHourInPast =
+    Boolean(normalizedDateForValidation) &&
+    Boolean(normalizedHourForValidation) &&
+    isHourBeforeNowForSelectedDate(
+      normalizedDateForValidation,
+      normalizedHourForValidation
+    );
+
+  const quantidadeValidationNumber = Number(quantidadeProfissionais);
+
+  const isFormValid =
+    Boolean(titulo.trim()) &&
+    isDescriptionValid &&
+    Boolean(cidade.trim()) &&
+    estado.trim().length === 2 &&
+    Boolean(localServico.trim()) &&
+    Boolean(normalizedDateForValidation) &&
+    Boolean(normalizedHourForValidation) &&
+    !isSelectedHourInPast &&
+    !Number.isNaN(quantidadeValidationNumber) &&
+    quantidadeValidationNumber > 0 &&
+    quantidadeValidationNumber <= 99 &&
+    parseCurrencyToNumber(valorEstimado) !== null;
 
   const inputStyle = [
     localStyles.input,
@@ -291,6 +426,53 @@ export default function CreateJobScreen() {
 
   function handleHourBlur() {
     setHoraServico((currentValue) => normalizeHourOnBlur(currentValue));
+  }
+
+  function handleDescriptionChange(value: string) {
+    setDescricao(value.slice(0, DESCRIPTION_MAX_LENGTH));
+  }
+
+  function handleImageUrlChange(value: string) {
+    setImageUrlInput(value.slice(0, IMAGE_URL_MAX_LENGTH));
+  }
+
+  function handleAddImageUrl() {
+    const normalizedUrl = normalizeImageUrl(imageUrlInput);
+
+    if (!normalizedUrl) {
+      Alert.alert("Imagem obrigatória", "Cole a URL da imagem antes de adicionar.");
+      return;
+    }
+
+    if (!isValidImageUrl(normalizedUrl)) {
+      Alert.alert(
+        "URL inválida",
+        "Informe uma URL de imagem começando com http:// ou https://."
+      );
+      return;
+    }
+
+    if (imageUrls.includes(normalizedUrl)) {
+      Alert.alert("Imagem repetida", "Essa imagem já foi adicionada.");
+      return;
+    }
+
+    if (imageUrls.length >= MAX_IMAGE_ATTACHMENTS) {
+      Alert.alert(
+        "Limite de imagens",
+        `Você pode adicionar no máximo ${MAX_IMAGE_ATTACHMENTS} imagens por chamado.`
+      );
+      return;
+    }
+
+    setImageUrls((currentImages) => [...currentImages, normalizedUrl]);
+    setImageUrlInput("");
+  }
+
+  function removeImageUrl(imageUrl: string) {
+    setImageUrls((currentImages) =>
+      currentImages.filter((currentImage) => currentImage !== imageUrl)
+    );
   }
 
   function clearSelectedCoordinates() {
@@ -370,8 +552,26 @@ export default function CreateJobScreen() {
       return false;
     }
 
-    if (!descricao.trim()) {
+    const descricaoNormalizada = normalizeTextValue(descricao);
+
+    if (!descricaoNormalizada) {
       Alert.alert("Descrição obrigatória", "Informe a descrição do chamado.");
+      return false;
+    }
+
+    if (descricaoNormalizada.length < DESCRIPTION_MIN_LENGTH) {
+      Alert.alert(
+        "Descrição muito curta",
+        `A descrição precisa ter pelo menos ${DESCRIPTION_MIN_LENGTH} caracteres.`
+      );
+      return false;
+    }
+
+    if (descricaoNormalizada.length > DESCRIPTION_MAX_LENGTH) {
+      Alert.alert(
+        "Descrição muito longa",
+        `A descrição pode ter no máximo ${DESCRIPTION_MAX_LENGTH} caracteres.`
+      );
       return false;
     }
 
@@ -393,6 +593,16 @@ export default function CreateJobScreen() {
       return false;
     }
 
+    if (!dataServico.trim()) {
+      Alert.alert("Data obrigatória", "Informe a data do serviço.");
+      return false;
+    }
+
+    if (!horaServico.trim()) {
+      Alert.alert("Hora obrigatória", "Informe o horário do serviço.");
+      return false;
+    }
+
     const quantidade = Number(quantidadeProfissionais);
 
     if (Number.isNaN(quantidade) || quantidade <= 0) {
@@ -411,36 +621,40 @@ export default function CreateJobScreen() {
       return false;
     }
 
-    if (dataServico.trim()) {
-      const normalizedDate = normalizeDateOnBlur(dataServico);
+    const normalizedDate = normalizeDateOnBlur(dataServico);
 
-      if (!normalizedDate) {
-        Alert.alert(
-          "Data inválida",
-          "Informe uma data válida no formato DD/MM."
-        );
-        return false;
-      }
-
-      if (normalizedDate !== dataServico) {
-        setDataServico(normalizedDate);
-      }
+    if (!normalizedDate) {
+      Alert.alert(
+        "Data inválida",
+        "Informe uma data válida no formato DD/MM."
+      );
+      return false;
     }
 
-    if (horaServico.trim()) {
-      const normalizedHour = normalizeHourOnBlur(horaServico);
+    if (normalizedDate !== dataServico) {
+      setDataServico(normalizedDate);
+    }
 
-      if (!normalizedHour) {
-        Alert.alert(
-          "Hora inválida",
-          "Informe uma hora válida entre 00:00 e 23:59."
-        );
-        return false;
-      }
+    const normalizedHour = normalizeHourOnBlur(horaServico);
 
-      if (normalizedHour !== horaServico) {
-        setHoraServico(normalizedHour);
-      }
+    if (!normalizedHour) {
+      Alert.alert(
+        "Hora inválida",
+        "Informe uma hora válida entre 00:00 e 23:59."
+      );
+      return false;
+    }
+
+    if (normalizedHour !== horaServico) {
+      setHoraServico(normalizedHour);
+    }
+
+    if (isHourBeforeNowForSelectedDate(normalizedDate, normalizedHour)) {
+      Alert.alert(
+        "Horário inválido",
+        "Para chamados de hoje, o horário não pode ser antes do horário atual."
+      );
+      return false;
     }
 
     if (!valorEstimado.trim()) {
@@ -534,7 +748,7 @@ export default function CreateJobScreen() {
         EmpresaId: empresaId,
         CategoriaId: DEFAULT_CATEGORIA_ID,
         Titulo: titulo.trim(),
-        Descricao: descricao.trim(),
+        Descricao: normalizeTextValue(descricao),
         LocalServico: localServico.trim(),
         Cidade: cidade.trim(),
         Estado: estado.trim().toUpperCase(),
@@ -544,6 +758,12 @@ export default function CreateJobScreen() {
         QuantidadeProfissionais: Number(quantidadeProfissionais),
         Latitude: latitudeSelecionada ?? null,
         Longitude: longitudeSelecionada ?? null,
+
+        // Campos prontos para a API futura de anexos/imagens.
+        // Quando a API aceitar esses campos, basta salvar e devolver "imagens" ou "imageUrls" no GET /api/Chamados.
+        Imagens: imageUrls,
+        ImageUrls: imageUrls,
+        AnexosImagem: imageUrls,
       };
 
       console.log("Criando chamado:", payload);
@@ -662,10 +882,141 @@ export default function CreateJobScreen() {
               placeholder="Descreva o serviço, responsabilidades e detalhes importantes..."
               placeholderTextColor={theme.textSecondary}
               value={descricao}
-              onChangeText={setDescricao}
+              onChangeText={handleDescriptionChange}
               multiline
-              maxLength={600}
+              maxLength={DESCRIPTION_MAX_LENGTH}
             />
+
+            <View style={localStyles.descriptionInfoRow}>
+              <Text
+                style={[
+                  localStyles.descriptionHelper,
+                  {
+                    color: isDescriptionValid ? theme.textSecondary : "#DC2626",
+                  },
+                ]}
+              >
+                Mínimo de {DESCRIPTION_MIN_LENGTH} caracteres.
+              </Text>
+
+              <Text
+                style={[
+                  localStyles.descriptionCounter,
+                  {
+                    color:
+                      descriptionLength >= DESCRIPTION_MAX_LENGTH
+                        ? "#DC2626"
+                        : theme.textSecondary,
+                  },
+                ]}
+              >
+                {descriptionLength}/{DESCRIPTION_MAX_LENGTH}
+              </Text>
+            </View>
+
+            <Text style={[localStyles.label, { color: theme.text }]}>
+              Imagens do chamado
+            </Text>
+
+            <Text
+              style={[
+                localStyles.helperText,
+                { color: theme.textSecondary },
+              ]}
+            >
+              Campo opcional. Cole URLs de imagens para deixar o chamado pronto quando a API salvar anexos.
+            </Text>
+
+            <View style={localStyles.imageInputRow}>
+              <TextInput
+                style={[
+                  inputStyle,
+                  localStyles.imageInput,
+                ]}
+                placeholder="https://exemplo.com/imagem.jpg"
+                placeholderTextColor={theme.textSecondary}
+                value={imageUrlInput}
+                onChangeText={handleImageUrlChange}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={IMAGE_URL_MAX_LENGTH}
+              />
+
+              <Pressable
+                disabled={!canAddImageUrl}
+                style={({ pressed }) => [
+                  localStyles.addImageButton,
+                  !canAddImageUrl && localStyles.addImageButtonDisabled,
+                  pressed && canAddImageUrl && { opacity: 0.82 },
+                ]}
+                onPress={handleAddImageUrl}
+              >
+                <Text style={localStyles.addImageButtonText}>+</Text>
+              </Pressable>
+            </View>
+
+            <View style={localStyles.imageInfoRow}>
+              <Text
+                style={[
+                  localStyles.helperText,
+                  {
+                    color:
+                      imageUrlInput.trim().length > 0 && !isValidImageUrl(imageUrlInput)
+                        ? "#DC2626"
+                        : theme.textSecondary,
+                  },
+                ]}
+              >
+                {imageUrlInput.trim().length > 0 && !isValidImageUrl(imageUrlInput)
+                  ? "A URL precisa começar com http:// ou https://."
+                  : `Até ${MAX_IMAGE_ATTACHMENTS} imagens.`}
+              </Text>
+
+              <Text
+                style={[
+                  localStyles.imageCounter,
+                  {
+                    color:
+                      imageUrls.length >= MAX_IMAGE_ATTACHMENTS
+                        ? "#DC2626"
+                        : theme.textSecondary,
+                  },
+                ]}
+              >
+                {imageUrls.length}/{MAX_IMAGE_ATTACHMENTS}
+              </Text>
+            </View>
+
+            {imageUrls.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={localStyles.imagesPreviewContent}
+              >
+                {imageUrls.map((imageUrl, index) => (
+                  <View key={imageUrl} style={localStyles.imagePreviewCard}>
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={localStyles.imagePreview}
+                      resizeMode="cover"
+                    />
+
+                    <View style={localStyles.imagePreviewBadge}>
+                      <Text style={localStyles.imagePreviewBadgeText}>
+                        {index + 1}
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      style={localStyles.removeImageButton}
+                      onPress={() => removeImageUrl(imageUrl)}
+                    >
+                      <Text style={localStyles.removeImageButtonText}>×</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
 
             <View style={localStyles.row}>
               <View style={localStyles.rowItem}>
@@ -859,10 +1210,16 @@ export default function CreateJobScreen() {
                 <Text
                   style={[
                     localStyles.helperText,
-                    { color: theme.textSecondary },
+                    {
+                      color: isSelectedHourInPast
+                        ? "#DC2626"
+                        : theme.textSecondary,
+                    },
                   ]}
                 >
-                  Horário permitido entre 00:00 e 23:59.
+                  {isSelectedHourInPast
+                    ? "Para hoje, o horário não pode ser antes do horário atual."
+                    : "Horário permitido entre 00:00 e 23:59."}
                 </Text>
               </View>
             </View>
@@ -931,11 +1288,11 @@ export default function CreateJobScreen() {
           </View>
 
           <Pressable
-            disabled={isCreating}
+            disabled={isCreating || !isFormValid}
             style={({ pressed }) => [
               localStyles.button,
-              isCreating && { opacity: 0.7 },
-              pressed && !isCreating && { opacity: 0.85 },
+              (isCreating || !isFormValid) && localStyles.buttonDisabled,
+              pressed && !isCreating && isFormValid && { opacity: 0.85 },
             ]}
             onPress={handleCreateJob}
           >
@@ -1112,6 +1469,127 @@ const localStyles = StyleSheet.create({
     fontWeight: "700",
   },
 
+  descriptionInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 2,
+    gap: 10,
+  },
+
+  descriptionHelper: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 17,
+  },
+
+  descriptionCounter: {
+    fontSize: 12,
+    fontWeight: "900",
+  },
+
+  imageInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  imageInput: {
+    flex: 1,
+  },
+
+  addImageButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  addImageButtonDisabled: {
+    backgroundColor: "rgba(100,116,139,0.45)",
+  },
+
+  addImageButtonText: {
+    color: colors.white,
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: "900",
+  },
+
+  imageInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginTop: 2,
+  },
+
+  imageCounter: {
+    fontSize: 12,
+    fontWeight: "900",
+  },
+
+  imagesPreviewContent: {
+    gap: 12,
+    paddingTop: 4,
+    paddingBottom: 2,
+  },
+
+  imagePreviewCard: {
+    width: 118,
+    height: 92,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "rgba(148,163,184,0.18)",
+    position: "relative",
+  },
+
+  imagePreview: {
+    width: "100%",
+    height: "100%",
+  },
+
+  imagePreviewBadge: {
+    position: "absolute",
+    left: 8,
+    top: 8,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 7,
+    backgroundColor: "rgba(2,6,23,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  imagePreviewBadgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+
+  removeImageButton: {
+    position: "absolute",
+    right: 8,
+    top: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(220,38,38,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  removeImageButtonText: {
+    color: colors.white,
+    fontSize: 20,
+    lineHeight: 22,
+    fontWeight: "900",
+  },
+
   noticeBox: {
     borderWidth: 1,
     borderRadius: 16,
@@ -1138,6 +1616,10 @@ const localStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 18,
+  },
+
+  buttonDisabled: {
+    backgroundColor: "rgba(100,116,139,0.45)",
   },
 
   buttonText: {

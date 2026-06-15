@@ -1,4 +1,5 @@
 import {
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -49,7 +50,13 @@ export default function FreelancerProfileScreen() {
     jobLocation?: string;
     jobTime?: string;
     candidateName?: string;
+    candidateEmail?: string;
     candidateRating?: string;
+    candidatePhotoUrl?: string;
+    freelancerPhotoUrl?: string;
+    photoUrl?: string;
+    fotoUrl?: string;
+    avatarUrl?: string;
     candidatePrice?: string;
   }>();
 
@@ -64,7 +71,15 @@ export default function FreelancerProfileScreen() {
   const jobTime = params.jobTime ?? "Horário não informado";
 
   const candidateName = params.candidateName ?? "Freelancer não informado";
+  const candidateEmail = params.candidateEmail ?? "";
   const candidateRating = params.candidateRating ?? "Sem avaliações";
+  const candidatePhotoUrl =
+    params.candidatePhotoUrl ??
+    params.freelancerPhotoUrl ??
+    params.photoUrl ??
+    params.fotoUrl ??
+    params.avatarUrl ??
+    "";
   const candidatePrice = params.candidatePrice ?? jobPrice;
 
   function handleAcceptCandidate() {
@@ -77,7 +92,9 @@ export default function FreelancerProfileScreen() {
         jobLocation,
         jobTime,
         candidateName,
+        candidateEmail,
         candidateRating,
+        candidatePhotoUrl,
         candidatePrice,
       },
     });
@@ -134,9 +151,17 @@ export default function FreelancerProfileScreen() {
             },
           ]}
         >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getAvatarInitial()}</Text>
-          </View>
+          {candidatePhotoUrl ? (
+            <Image
+              source={{ uri: candidatePhotoUrl }}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getAvatarInitial()}</Text>
+            </View>
+          )}
 
           <Text style={[styles.name, { color: theme.text }]}>
             {candidateName}

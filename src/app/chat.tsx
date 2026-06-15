@@ -25,7 +25,6 @@ import {
   getLoggedUser,
 } from "@/services/storage";
 import { colors } from "@/styles/colors";
-import { apiPost } from "@/services/api";
 
 type MessageSender = "company" | "freelancer" | "system";
 
@@ -84,6 +83,23 @@ function getParamValue(value?: string | string[], fallback = "") {
   return value ?? fallback;
 }
 
+function getProfilePhotoUrl(profileData: any, fallback = "") {
+  return String(
+    profileData?.photoUrl ??
+      profileData?.photo_url ??
+      profileData?.fotoUrl ??
+      profileData?.foto_url ??
+      profileData?.logoUrl ??
+      profileData?.logo_url ??
+      profileData?.imageUrl ??
+      profileData?.image_url ??
+      profileData?.avatarUrl ??
+      profileData?.avatar_url ??
+      fallback ??
+      ""
+  ).trim();
+}
+
 export default function ChatScreen() {
   const params = useLocalSearchParams<{
     contratoId?: string | string[];
@@ -102,8 +118,14 @@ export default function ChatScreen() {
     candidateName?: string | string[];
     candidateEmail?: string | string[];
     candidateRating?: string | string[];
+    candidatePhotoUrl?: string | string[];
+    freelancerPhotoUrl?: string | string[];
+    freelancerFotoUrl?: string | string[];
 
     companyName?: string | string[];
+    companyPhotoUrl?: string | string[];
+    empresaFotoUrl?: string | string[];
+    companyLogoUrl?: string | string[];
 
     serviceValue?: string | string[];
     candidatePrice?: string | string[];
@@ -123,6 +145,8 @@ export default function ChatScreen() {
   const [currentUserId, setCurrentUserId] = useState("");
   const [currentUserName, setCurrentUserName] = useState("Usuário");
   const [currentUserPhotoUrl, setCurrentUserPhotoUrl] = useState<string>();
+  const [companyProfilePhotoUrl, setCompanyProfilePhotoUrl] = useState("");
+  const [freelancerProfilePhotoUrl, setFreelancerProfilePhotoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isFinishingJob, setIsFinishingJob] = useState(false);
 
@@ -155,8 +179,16 @@ export default function ChatScreen() {
   );
   const candidateEmail = getParamValue(params.candidateEmail);
   const candidateRating = getParamValue(params.candidateRating);
+  const candidatePhotoUrl =
+    getParamValue(params.candidatePhotoUrl) ||
+    getParamValue(params.freelancerPhotoUrl) ||
+    getParamValue(params.freelancerFotoUrl);
 
   const companyName = getParamValue(params.companyName, "Empresa");
+  const companyPhotoUrl =
+    getParamValue(params.companyPhotoUrl) ||
+    getParamValue(params.empresaFotoUrl) ||
+    getParamValue(params.companyLogoUrl);
 
   const serviceValue = getParamValue(params.serviceValue);
   const candidatePrice = getParamValue(params.candidatePrice);
@@ -215,13 +247,23 @@ export default function ChatScreen() {
         setCurrentUserType("freelancer");
 
         const freelancerData = await getFreelancerData(userId);
-        setCurrentUserPhotoUrl(freelancerData?.photoUrl);
+        const freelancerPhoto =
+          getProfilePhotoUrl(freelancerData, candidatePhotoUrl) || candidatePhotoUrl;
+
+        setFreelancerProfilePhotoUrl(freelancerPhoto);
+        setCompanyProfilePhotoUrl(companyPhotoUrl);
+        setCurrentUserPhotoUrl(freelancerPhoto || undefined);
       } else {
         setCurrentSender("company");
         setCurrentUserType("empresa");
 
         const companyData = await getCompanyData(userId);
-        setCurrentUserPhotoUrl(companyData?.logoUrl);
+        const companyPhoto =
+          getProfilePhotoUrl(companyData, companyPhotoUrl) || companyPhotoUrl;
+
+        setCompanyProfilePhotoUrl(companyPhoto);
+        setFreelancerProfilePhotoUrl(candidatePhotoUrl);
+        setCurrentUserPhotoUrl(companyPhoto || undefined);
       }
 
       const storedMessages = await AsyncStorage.getItem(chatKey);
@@ -342,16 +384,6 @@ export default function ChatScreen() {
     try {
       setIsFinishingJob(true);
 
-      try {
-        const response = await apiPost(`/api/Chamados/${jobId}/finalizar`, {});
-        console.log("Chamado finalizado na API:", response);
-      } catch (error) {
-        console.log(
-          "Não foi possível finalizar o chamado na API, seguindo para a conclusão:",
-          error
-        );
-      }
-
       router.push({
         pathname: "/service-completion",
         params: {
@@ -371,8 +403,10 @@ export default function ChatScreen() {
           candidateName,
           candidateEmail,
           candidateRating,
+          candidatePhotoUrl,
 
           companyName,
+          companyPhotoUrl,
 
           serviceValue,
           candidatePrice,
@@ -382,14 +416,14 @@ export default function ChatScreen() {
         },
       });
     } catch (error) {
-      console.log("Erro ao finalizar serviço:", error);
+      console.log("Erro ao abrir tela de conclusão:", error);
 
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "Não foi possível finalizar o serviço agora.";
+          : "Não foi possível abrir a tela de conclusão agora.";
 
-      Alert.alert("Erro ao finalizar", errorMessage);
+      Alert.alert("Erro", errorMessage);
     } finally {
       setIsFinishingJob(false);
     }
@@ -404,11 +438,29 @@ export default function ChatScreen() {
     router.replace("/company-dashboard");
   }
 
-  function renderAvatar(message: Message, isCurrentUser: boolean) {
+  function getMessageSenderPhoto(message: Message) {
     if (message.senderPhotoUrl) {
+      return message.senderPhotoUrl;
+    }
+
+    if (message.senderType === "company") {
+      return companyProfilePhotoUrl || companyPhotoUrl;
+    }
+
+    if (message.senderType === "freelancer") {
+      return freelancerProfilePhotoUrl || candidatePhotoUrl;
+    }
+
+    return "";
+  }
+
+  function renderAvatar(message: Message, isCurrentUser: boolean) {
+    const photoUrl = getMessageSenderPhoto(message);
+
+    if (photoUrl) {
       return (
         <Image
-          source={{ uri: message.senderPhotoUrl }}
+          source={{ uri: photoUrl }}
           style={styles.senderAvatar}
           resizeMode="cover"
         />

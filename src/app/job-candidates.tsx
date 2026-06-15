@@ -49,7 +49,15 @@ type FreelancerNestedApi = {
   email?: string | null;
   telefone?: string | null;
   fotoUrl?: string | null;
+  foto_url?: string | null;
   photoUrl?: string | null;
+  photo_url?: string | null;
+  imageUrl?: string | null;
+  image_url?: string | null;
+  avatarUrl?: string | null;
+  avatar_url?: string | null;
+  logoUrl?: string | null;
+  logo_url?: string | null;
   habilidades?: string[] | string | null;
   skills?: string[] | string | null;
   rating?: number | null;
@@ -82,7 +90,21 @@ type CandidaturaApi = {
   emailFreelancer?: string | null;
 
   fotoUrl?: string | null;
+  foto_url?: string | null;
   photoUrl?: string | null;
+  photo_url?: string | null;
+  imageUrl?: string | null;
+  image_url?: string | null;
+  avatarUrl?: string | null;
+  avatar_url?: string | null;
+  logoUrl?: string | null;
+  logo_url?: string | null;
+  freelancerFotoUrl?: string | null;
+  freelancer_foto_url?: string | null;
+  freelancerPhotoUrl?: string | null;
+  freelancer_photo_url?: string | null;
+  freelancerAvatarUrl?: string | null;
+  freelancer_avatar_url?: string | null;
 
   mensagem?: string | null;
   descricao?: string | null;
@@ -165,6 +187,16 @@ function formatCurrency(value?: number | null) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+function getBestPaymentValue(candidate: Candidate, jobPrice: string) {
+  const normalizedJobPrice = jobPrice.trim();
+
+  if (normalizedJobPrice && normalizedJobPrice !== "Valor a combinar") {
+    return normalizedJobPrice;
+  }
+
+  return candidate.price || "Valor a combinar";
 }
 
 function normalizeStatus(value?: string | null) {
@@ -278,15 +310,53 @@ function getFreelancerEmail(apiCandidate: CandidaturaApi) {
   );
 }
 
+
+function pickImageUrl(...values: Array<unknown>) {
+  const foundValue = values.find((value) => {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    return String(value).trim().length > 0;
+  });
+
+  if (!foundValue) {
+    return undefined;
+  }
+
+  return String(foundValue).trim();
+}
+
 function getFreelancerPhoto(apiCandidate: CandidaturaApi) {
   const nestedFreelancer = getNestedFreelancer(apiCandidate);
 
-  return (
-    apiCandidate.photoUrl ||
-    apiCandidate.fotoUrl ||
-    nestedFreelancer?.photoUrl ||
-    nestedFreelancer?.fotoUrl ||
-    undefined
+  return pickImageUrl(
+    apiCandidate.freelancerPhotoUrl,
+    apiCandidate.freelancer_photo_url,
+    apiCandidate.freelancerFotoUrl,
+    apiCandidate.freelancer_foto_url,
+    apiCandidate.freelancerAvatarUrl,
+    apiCandidate.freelancer_avatar_url,
+    apiCandidate.photoUrl,
+    apiCandidate.photo_url,
+    apiCandidate.fotoUrl,
+    apiCandidate.foto_url,
+    apiCandidate.imageUrl,
+    apiCandidate.image_url,
+    apiCandidate.avatarUrl,
+    apiCandidate.avatar_url,
+    apiCandidate.logoUrl,
+    apiCandidate.logo_url,
+    nestedFreelancer?.photoUrl,
+    nestedFreelancer?.photo_url,
+    nestedFreelancer?.fotoUrl,
+    nestedFreelancer?.foto_url,
+    nestedFreelancer?.imageUrl,
+    nestedFreelancer?.image_url,
+    nestedFreelancer?.avatarUrl,
+    nestedFreelancer?.avatar_url,
+    nestedFreelancer?.logoUrl,
+    nestedFreelancer?.logo_url
   );
 }
 
@@ -366,9 +436,15 @@ function getFreelancerSkills(
 function formatCandidate(
   apiCandidate: CandidaturaApi,
   jobCategory: string,
+  jobPrice: string,
 ): Candidate {
   const valorProposto =
     apiCandidate.valorProposto ?? apiCandidate.valor_proposto ?? null;
+
+  const candidatePrice = formatCurrency(valorProposto);
+
+  const displayPrice =
+    candidatePrice === "Valor a combinar" ? jobPrice : candidatePrice;
 
   const freelancerId = getFreelancerId(apiCandidate);
   const contratoId = getContratoId(apiCandidate);
@@ -392,7 +468,7 @@ function formatCandidate(
     reviews,
     distance: "Não informado",
     completedJobs,
-    price: formatCurrency(valorProposto),
+    price: displayPrice,
     description:
       apiCandidate.mensagem ||
       apiCandidate.descricao ||
@@ -414,6 +490,9 @@ export default function JobCandidatesScreen() {
     candidates?: string | string[];
     status?: string | string[];
     jobStatus?: string | string[];
+    companyName?: string | string[];
+    companyPhotoUrl?: string | string[];
+    empresaFotoUrl?: string | string[];
   }>();
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -441,6 +520,9 @@ export default function JobCandidatesScreen() {
   const jobTime = getParamValue(params.time, "Data não informada");
   const jobStatus =
     getParamValue(params.status) || getParamValue(params.jobStatus);
+  const companyName = getParamValue(params.companyName, "Empresa");
+  const companyPhotoUrl =
+    getParamValue(params.companyPhotoUrl) || getParamValue(params.empresaFotoUrl);
 
   const isJobFinished = isFinishedStatus(jobStatus);
 
@@ -486,7 +568,7 @@ export default function JobCandidatesScreen() {
       console.log("Candidaturas retornadas pela API:", candidaturas);
 
       const formattedCandidates = candidaturas.map((candidatura) =>
-        formatCandidate(candidatura, jobCategory),
+        formatCandidate(candidatura, jobCategory, jobPrice),
       );
 
       const formattedCandidatesWithPayment = await Promise.all(
@@ -548,7 +630,7 @@ export default function JobCandidatesScreen() {
       return;
     }
 
-    const paymentValue = jobPrice || candidate.price || "Valor a combinar";
+    const paymentValue = getBestPaymentValue(candidate, jobPrice);
 
     router.push({
       pathname: "/chat",
@@ -569,6 +651,10 @@ export default function JobCandidatesScreen() {
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
         candidateRating: candidate.rating ? String(candidate.rating) : "",
+        candidatePhotoUrl: candidate.photoUrl ?? "",
+
+        companyName,
+        companyPhotoUrl,
 
         serviceValue: paymentValue,
         candidatePrice: paymentValue,
@@ -585,6 +671,7 @@ export default function JobCandidatesScreen() {
     }
 
     const finalContratoId = contratoId || candidate.contratoId || "";
+    const paymentValue = getBestPaymentValue(candidate, jobPrice);
 
     router.push({
       pathname: "/payment",
@@ -597,7 +684,7 @@ export default function JobCandidatesScreen() {
 
         jobTitle,
         jobCategory,
-        jobPrice,
+        jobPrice: paymentValue,
         jobLocation,
         jobTime,
         status: jobStatus,
@@ -605,9 +692,13 @@ export default function JobCandidatesScreen() {
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
         candidateRating: candidate.rating ? String(candidate.rating) : "",
+        candidatePhotoUrl: candidate.photoUrl ?? "",
 
-        serviceValue: candidate.price,
-        candidatePrice: candidate.price,
+        companyName,
+        companyPhotoUrl,
+
+        serviceValue: paymentValue,
+        candidatePrice: paymentValue,
 
         userRole: "empresa",
       },
@@ -650,6 +741,7 @@ export default function JobCandidatesScreen() {
 
       const responseContratoId =
         response.contratoId ?? response.contrato_id ?? null;
+
       const contratoId = responseContratoId
         ? String(responseContratoId)
         : (candidate.contratoId ?? "");
@@ -719,6 +811,7 @@ export default function JobCandidatesScreen() {
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
         candidateRating: candidate.rating ? String(candidate.rating) : "",
+        candidatePhotoUrl: candidate.photoUrl ?? "",
         candidatePrice: candidate.price,
       },
     });

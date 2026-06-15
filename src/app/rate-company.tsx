@@ -15,10 +15,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
+
 import { styles } from "@/app/styles/rateCompany";
 import { useTheme } from "@/app/context/ThemeContext";
-
-const API_URL = "http://192.168.86.12:5275";
+import { apiPost } from "@/services/api";
+import { getLoggedUser } from "@/services/storage";
 
 const ratingTags = [
   "Boa comunicação",
@@ -29,7 +30,7 @@ const ratingTags = [
   "Recomendo",
 ];
 
-const COMMENT_MIN_LENGTH = 50;
+const COMMENT_MIN_LENGTH = 20;
 const COMMENT_MAX_LENGTH = 500;
 const REVIEWS_STORAGE_KEY = "@taskflow:reviews";
 const REQUESTS_ROUTE = "/requests";
@@ -38,6 +39,7 @@ type ReviewPayload = {
   id: string;
   jobId: string;
   requestId: string;
+  contratoId: string;
   jobTitle: string;
   ratedUserName: string;
   ratedUserType: string;
@@ -45,6 +47,12 @@ type ReviewPayload = {
   tags: string[];
   comment: string;
   createdAt: string;
+};
+
+type AvaliacaoApiResponse = {
+  mensagem?: string;
+  id?: number;
+  avaliacaoId?: number;
 };
 
 function normalizeComment(value: string) {
@@ -68,6 +76,22 @@ function getParamNumber(value?: string | string[], fallback = 0) {
     : fallback;
 }
 
+function resolveLoggedUserId(loggedUserData: any) {
+  const value = Number(
+    loggedUserData?.id ??
+      loggedUserData?.usuarioId ??
+      loggedUserData?.usuario_id ??
+      loggedUserData?.userId ??
+      loggedUserData?.user_id
+  );
+
+  if (Number.isNaN(value) || value <= 0) {
+    return null;
+  }
+
+  return value;
+}
+
 export default function RateCompanyScreen() {
   const params = useLocalSearchParams<{
     requestId?: string | string[];
@@ -75,9 +99,24 @@ export default function RateCompanyScreen() {
     jobId?: string | string[];
     jobTitle?: string | string[];
     companyName?: string | string[];
+
     contratoId?: string | string[];
+    contrato_id?: string | string[];
+
     avaliadorId?: string | string[];
+    avaliador_id?: string | string[];
+
     avaliadoId?: string | string[];
+    avaliado_id?: string | string[];
+
+    companyUserId?: string | string[];
+    empresaUsuarioId?: string | string[];
+    empresa_usuario_id?: string | string[];
+    usuarioEmpresaId?: string | string[];
+    usuario_empresa_id?: string | string[];
+
+    empresaId?: string | string[];
+    empresa_id?: string | string[];
   }>();
 
   const requestId = getParamValue(
@@ -89,11 +128,28 @@ export default function RateCompanyScreen() {
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
   const companyName = getParamValue(params.companyName, "Empresa TaskFlow");
 
-  // IDs temporários para teste prático direto no app.
-  // Nesta tela, o freelancer avalia a empresa.
-  const contratoId = getParamNumber(params.contratoId, 1);
-  const avaliadorId = getParamNumber(params.avaliadorId, 3);
-  const avaliadoId = getParamNumber(params.avaliadoId, 1);
+  const contratoIdFromParams = getParamNumber(
+    params.contratoId ?? params.contrato_id,
+    0
+  );
+
+  const avaliadorIdFromParams = getParamNumber(
+    params.avaliadorId ?? params.avaliador_id,
+    0
+  );
+
+  const avaliadoIdFromParams = getParamNumber(
+    params.avaliadoId ??
+      params.avaliado_id ??
+      params.companyUserId ??
+      params.empresaUsuarioId ??
+      params.empresa_usuario_id ??
+      params.usuarioEmpresaId ??
+      params.usuario_empresa_id ??
+      params.empresaId ??
+      params.empresa_id,
+    0
+  );
 
   const [rating, setRating] = useState(5);
   const [selectedTags, setSelectedTags] = useState<string[]>([
@@ -151,14 +207,63 @@ export default function RateCompanyScreen() {
 
   async function saveReview(review: ReviewPayload) {
     const storedReviews = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
-    const currentReviews = storedReviews ? JSON.parse(storedReviews) : [];
+    const currentReviews: ReviewPayload[] = storedReviews
+      ? JSON.parse(storedReviews)
+      : [];
 
-    const updatedReviews = [...currentReviews, review];
+    const alreadySaved = currentReviews.some((item) => {
+      if (review.contratoId && item.contratoId === review.contratoId) {
+        return true;
+      }
+
+      if (review.jobId && item.jobId === review.jobId) {
+        return true;
+      }
+
+      if (review.requestId && item.requestId === review.requestId) {
+        return true;
+      }
+
+      return false;
+    });
+
+    const updatedReviews = alreadySaved
+      ? currentReviews.map((item) => {
+          const sameContrato =
+            review.contratoId && item.contratoId === review.contratoId;
+
+          const sameJob = review.jobId && item.jobId === review.jobId;
+          const sameRequest =
+            review.requestId && item.requestId === review.requestId;
+
+          if (sameContrato || sameJob || sameRequest) {
+            return review;
+          }
+
+          return item;
+        })
+      : [...currentReviews, review];
 
     await AsyncStorage.setItem(
       REVIEWS_STORAGE_KEY,
       JSON.stringify(updatedReviews)
     );
+  }
+
+  async function resolveAvaliadorId() {
+    if (avaliadorIdFromParams > 0) {
+      return avaliadorIdFromParams;
+    }
+
+    const loggedUser = await getLoggedUser();
+
+    if (!loggedUser) {
+      return null;
+    }
+
+    const loggedUserId = resolveLoggedUserId(loggedUser as any);
+
+    return loggedUserId;
   }
 
   async function handleSubmitReview() {
@@ -174,34 +279,54 @@ export default function RateCompanyScreen() {
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(`${API_URL}/api/Avaliacoes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contratoId,
-          avaliadorId,
-          avaliadoId,
-          nota: rating,
-          comentario: normalizedComment,
-        }),
-      });
+      const contratoId = contratoIdFromParams;
+      const avaliadorId = await resolveAvaliadorId();
+      const avaliadoId = avaliadoIdFromParams;
 
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok) {
+      if (!contratoId) {
         Alert.alert(
-          "Erro",
-          data?.mensagem || "Não foi possível enviar a avaliação para a API."
+          "Contrato não encontrado",
+          "Não foi possível identificar o contrato dessa solicitação. Volte para a tela de solicitações e tente abrir a avaliação novamente."
         );
         return;
       }
+
+      if (!avaliadorId) {
+        Alert.alert(
+          "Usuário não encontrado",
+          "Não foi possível identificar seu usuário logado. Faça login novamente."
+        );
+        return;
+      }
+
+      if (!avaliadoId) {
+        Alert.alert(
+          "Empresa não encontrada",
+          "Não foi possível identificar a empresa que será avaliada. A tela anterior precisa enviar o avaliadoId ou empresaUsuarioId."
+        );
+        return;
+      }
+
+      const payload = {
+        contratoId,
+        avaliadorId,
+        avaliadoId,
+        nota: rating,
+        comentario: normalizedComment,
+      };
+
+      console.log("Enviando avaliação da empresa:", payload);
+
+      const data = await apiPost<AvaliacaoApiResponse>(
+        "/api/Avaliacoes",
+        payload
+      );
 
       const review: ReviewPayload = {
         id: `${Date.now()}-${jobId || "company-review"}`,
         jobId,
         requestId,
+        contratoId: String(contratoId),
         jobTitle,
         ratedUserName: companyName,
         ratedUserType: "company",
@@ -225,10 +350,12 @@ export default function RateCompanyScreen() {
     } catch (error) {
       console.log("Erro ao enviar avaliação da empresa:", error);
 
-      Alert.alert(
-        "Erro",
-        "Não foi possível conectar com a API. Verifique se a API está ligada e se o IP está correto."
-      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar a avaliação agora.";
+
+      Alert.alert("Erro ao enviar avaliação", errorMessage);
     } finally {
       setIsSubmitting(false);
     }

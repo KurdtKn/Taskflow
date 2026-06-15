@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -151,6 +152,34 @@ function formatCurrency(value?: number | null) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+
+function getProfilePhotoUrl(profileData: any, fallback = "") {
+  return String(
+    profileData?.photoUrl ??
+      profileData?.photo_url ??
+      profileData?.fotoUrl ??
+      profileData?.foto_url ??
+      profileData?.logoUrl ??
+      profileData?.logo_url ??
+      profileData?.imageUrl ??
+      profileData?.image_url ??
+      profileData?.avatarUrl ??
+      profileData?.avatar_url ??
+      fallback ??
+      ""
+  ).trim();
+}
+
+function getInitial(value: string) {
+  const text = value.trim();
+
+  if (!text) {
+    return "E";
+  }
+
+  return text.charAt(0).toUpperCase();
 }
 
 function formatJobDate(date?: string | null, hour?: string | null) {
@@ -336,6 +365,7 @@ export default function CompanyDashboardScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [cancelJobId, setCancelJobId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("Empresa");
+  const [companyPhotoUrl, setCompanyPhotoUrl] = useState("");
 
   const infoIconColor = isDark ? colors.white : colors.black;
   const emptyIconColor = isDark ? colors.white : colors.black;
@@ -360,6 +390,7 @@ export default function CompanyDashboardScreen() {
       const savedCompanyData = await getCompanyData(loggedUser.id);
 
       setCompanyName(savedCompanyData?.name || loggedUser.nome || "Empresa");
+      setCompanyPhotoUrl(getProfilePhotoUrl(savedCompanyData, getProfilePhotoUrl(loggedUser)));
 
       const response = await apiGet<ChamadosResponse>("/api/Chamados");
       const chamados = getChamadosFromResponse(response);
@@ -448,6 +479,9 @@ export default function CompanyDashboardScreen() {
         price: job.price,
         location: job.location,
         time: job.time,
+        companyName,
+        companyPhotoUrl,
+        empresaFotoUrl: companyPhotoUrl,
         candidates: String(job.candidates),
         totalProfessionals: String(job.totalProfessionals),
         acceptedProfessionals: String(job.acceptedProfessionals),
@@ -503,7 +537,7 @@ export default function CompanyDashboardScreen() {
         keyboardShouldPersistTaps="always"
       >
         <View style={styles.header}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={[styles.greeting, { color: theme.textSecondary }]}>
               Olá, {companyName}
             </Text>
@@ -512,6 +546,44 @@ export default function CompanyDashboardScreen() {
               Gerencie seus chamados
             </Text>
           </View>
+
+          {companyPhotoUrl ? (
+            <Image
+              source={{ uri: companyPhotoUrl }}
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: 27,
+                backgroundColor: theme.card,
+                borderWidth: 2,
+                borderColor: theme.border,
+              }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: 27,
+                backgroundColor: colors.primary,
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 2,
+                borderColor: theme.border,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.white,
+                  fontSize: 18,
+                  fontWeight: "900",
+                }}
+              >
+                {getInitial(companyName)}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.summaryArea}>
