@@ -39,6 +39,17 @@ type Message = {
   text: string;
   time: string;
   createdAt: string;
+  chatAliases?: string[];
+  contratoId?: string;
+  jobId?: string;
+  chamadoId?: string;
+  candidaturaId?: string;
+  freelancerId?: string;
+  candidateUserId?: string;
+  companyUserId?: string;
+  jobTitle?: string;
+  candidateName?: string;
+  companyName?: string;
 };
 
 type LegacyMessage = {
@@ -50,6 +61,8 @@ type LegacyMessage = {
 };
 
 const CHAT_STORAGE_KEY = "@taskflow:chat";
+const CHAT_GLOBAL_STORAGE_KEY = "@taskflow:chat-messages-global:v1";
+const CHAT_BACKUP_STORAGE_KEY = "@taskflow:chat-all-mobile-backup:v6";
 
 function getCurrentTime() {
   return new Date().toLocaleTimeString("pt-BR", {
@@ -95,7 +108,7 @@ function normalizeChatKeyPart(value: unknown) {
     .trim();
 }
 
-function makeChatId(values: {
+function makeLegacyChatId(values: {
   contratoId?: string;
   jobId?: string;
   candidaturaId?: string;
@@ -127,6 +140,145 @@ function makeChatId(values: {
     fallbackJob ? `job-${fallbackJob}` : "sem-job",
     fallbackCandidate ? `candidato-${fallbackCandidate}` : "sem-candidato",
   ].join("__");
+}
+
+function makeStableChatId(values: {
+  contratoId?: string;
+  jobId?: string;
+  candidaturaId?: string;
+  freelancerId?: string;
+  jobTitle?: string;
+  candidateName?: string;
+}) {
+  const contratoPart = normalizeChatKeyPart(values.contratoId);
+  const candidaturaPart = normalizeChatKeyPart(values.candidaturaId);
+  const jobPart = normalizeChatKeyPart(values.jobId);
+  const freelancerPart = normalizeChatKeyPart(values.freelancerId);
+  const titlePart = normalizeChatKeyPart(values.jobTitle);
+  const candidatePart = normalizeChatKeyPart(values.candidateName);
+
+  if (contratoPart) {
+    return `contrato-${contratoPart}`;
+  }
+
+  if (candidaturaPart) {
+    return `candidatura-${candidaturaPart}`;
+  }
+
+  if (jobPart && freelancerPart) {
+    return `job-${jobPart}__freelancer-${freelancerPart}`;
+  }
+
+  if (jobPart && candidatePart) {
+    return `job-${jobPart}__candidato-${candidatePart}`;
+  }
+
+  if (titlePart && candidatePart) {
+    return `titulo-${titlePart}__candidato-${candidatePart}`;
+  }
+
+  return makeLegacyChatId(values);
+}
+
+function getChatAliases(values: {
+  contratoId?: string;
+  jobId?: string;
+  candidaturaId?: string;
+  freelancerId?: string;
+  jobTitle?: string;
+  candidateName?: string;
+}) {
+  const aliases = new Set<string>();
+  const contratoPart = normalizeChatKeyPart(values.contratoId);
+  const candidaturaPart = normalizeChatKeyPart(values.candidaturaId);
+  const jobPart = normalizeChatKeyPart(values.jobId);
+  const freelancerPart = normalizeChatKeyPart(values.freelancerId);
+  const titlePart = normalizeChatKeyPart(values.jobTitle);
+  const candidatePart = normalizeChatKeyPart(values.candidateName);
+
+  aliases.add(makeStableChatId(values));
+  aliases.add(makeLegacyChatId(values));
+
+  if (contratoPart) {
+    aliases.add(`contrato-${contratoPart}`);
+  }
+
+  if (candidaturaPart) {
+    aliases.add(`candidatura-${candidaturaPart}`);
+  }
+
+  if (jobPart && freelancerPart) {
+    aliases.add(`job-${jobPart}__freelancer-${freelancerPart}`);
+  }
+
+  if (jobPart && candidaturaPart) {
+    aliases.add(`job-${jobPart}__candidatura-${candidaturaPart}`);
+  }
+
+  if (jobPart && candidatePart) {
+    aliases.add(`job-${jobPart}__candidato-${candidatePart}`);
+  }
+
+  if (titlePart && candidatePart) {
+    aliases.add(`titulo-${titlePart}__candidato-${candidatePart}`);
+  }
+
+  return [...aliases].filter(Boolean);
+}
+
+function normalizeId(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function resolveLoggedUserType(
+  loggedUser: any,
+  userId: string,
+  values: {
+    candidateUserId?: string;
+    freelancerId?: string;
+    companyUserId?: string;
+  }
+): "empresa" | "freelancer" {
+  const normalizedUserId = normalizeId(userId);
+  const possibleFreelancerIds = [values.candidateUserId, values.freelancerId]
+    .map(normalizeId)
+    .filter(Boolean);
+  const possibleCompanyIds = [values.companyUserId].map(normalizeId).filter(Boolean);
+
+  if (normalizedUserId && possibleFreelancerIds.includes(normalizedUserId)) {
+    return "freelancer";
+  }
+
+  if (normalizedUserId && possibleCompanyIds.includes(normalizedUserId)) {
+    return "empresa";
+  }
+
+  const rawType = String(
+    loggedUser?.tipoUsuario ??
+      loggedUser?.tipo_usuario ??
+      loggedUser?.tipo ??
+      loggedUser?.userType ??
+      loggedUser?.user_type ??
+      loggedUser?.perfil ??
+      loggedUser?.role ??
+      ""
+  )
+    .toLowerCase()
+    .trim();
+
+  if (rawType.includes("freelancer")) {
+    return "freelancer";
+  }
+
+  if (
+    rawType.includes("empresa") ||
+    rawType.includes("company") ||
+    rawType.includes("contratante")
+  ) {
+    return "empresa";
+  }
+
+  return "empresa";
 }
 
 function getProfilePhotoUrl(profileData: any, fallback = "") {
@@ -186,6 +338,7 @@ export default function ChatScreen() {
   }>();
 
   const scrollRef = useRef<ScrollView>(null);
+  const messagesRef = useRef<Message[]>([]);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState("");
@@ -254,15 +407,24 @@ export default function ChatScreen() {
   const totalValue = getParamValue(params.totalValue);
   const paymentMethod = getParamValue(params.paymentMethod);
 
-  const chatId = makeChatId({
+  const chatId = makeStableChatId({
     contratoId,
     jobId,
     candidaturaId,
-    freelancerId,
+    freelancerId: candidateUserId || freelancerId,
     jobTitle,
     candidateName,
   });
-  const chatKey = `${CHAT_STORAGE_KEY}:${chatId}`;
+  const chatAliases = getChatAliases({
+    contratoId,
+    jobId,
+    candidaturaId,
+    freelancerId: candidateUserId || freelancerId,
+    jobTitle,
+    candidateName,
+  });
+  const chatKeys = chatAliases.map((alias) => `${CHAT_STORAGE_KEY}:${alias}`);
+  const chatKey = chatKeys[0];
 
   const chatHeaderTitle =
     currentUserType === "freelancer" ? companyName : "Grupo do chamado";
@@ -286,8 +448,279 @@ export default function ChatScreen() {
   const canSendMessage = normalizeMessage(messageText).length > 0 && !isLoading;
 
   useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
     loadChat();
-  }, [chatKey]);
+
+    const interval = setInterval(() => {
+      syncChatMessages();
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [chatId]);
+
+
+  function areMessagesEqual(firstList: Message[], secondList: Message[]) {
+    if (firstList.length !== secondList.length) {
+      return false;
+    }
+
+    return firstList.every((message, index) => {
+      const otherMessage = secondList[index];
+      return (
+        otherMessage &&
+        message.id === otherMessage.id &&
+        message.text === otherMessage.text &&
+        message.createdAt === otherMessage.createdAt
+      );
+    });
+  }
+
+  function enrichMessageWithCurrentChat(message: Message): Message {
+    return {
+      ...message,
+      chatId,
+      chatAliases,
+      contratoId,
+      jobId,
+      chamadoId: jobId,
+      candidaturaId,
+      freelancerId,
+      candidateUserId,
+      companyUserId,
+      jobTitle,
+      candidateName,
+      companyName,
+    };
+  }
+
+  function messageBelongsToCurrentChat(message: Message) {
+    const aliasSet = new Set(chatAliases);
+    const messageAliases = Array.isArray(message.chatAliases)
+      ? message.chatAliases
+      : [];
+
+    if (message.chatId && (message.chatId === chatId || aliasSet.has(message.chatId))) {
+      return true;
+    }
+
+    if (messageAliases.some((alias) => aliasSet.has(alias))) {
+      return true;
+    }
+
+    const sameContrato = Boolean(
+      contratoId && normalizeId(message.contratoId) === normalizeId(contratoId)
+    );
+
+    if (sameContrato) {
+      return true;
+    }
+
+    const sameCandidatura = Boolean(
+      candidaturaId &&
+        normalizeId(message.candidaturaId) === normalizeId(candidaturaId)
+    );
+
+    if (sameCandidatura) {
+      return true;
+    }
+
+    const sameJob = Boolean(
+      jobId &&
+        (normalizeId(message.jobId) === normalizeId(jobId) ||
+          normalizeId(message.chamadoId) === normalizeId(jobId))
+    );
+
+    const currentFreelancerKeys = [
+      candidateUserId,
+      freelancerId,
+      candidateName,
+    ]
+      .map(normalizeChatKeyPart)
+      .filter(Boolean);
+
+    const messageFreelancerKeys = [
+      message.candidateUserId,
+      message.freelancerId,
+      message.candidateName,
+    ]
+      .map(normalizeChatKeyPart)
+      .filter(Boolean);
+
+    const sameFreelancer =
+      currentFreelancerKeys.length === 0 ||
+      messageFreelancerKeys.length === 0 ||
+      currentFreelancerKeys.some((key) => messageFreelancerKeys.includes(key));
+
+    if (sameJob && sameFreelancer) {
+      return true;
+    }
+
+    const currentTitleKey = normalizeChatKeyPart(jobTitle);
+    const messageTitleKey = normalizeChatKeyPart(message.jobTitle);
+    const currentCandidateKey = normalizeChatKeyPart(candidateName);
+    const messageCandidateKey = normalizeChatKeyPart(message.candidateName);
+
+    const sameTitle = Boolean(
+      currentTitleKey && messageTitleKey && currentTitleKey === messageTitleKey
+    );
+
+    const sameCandidateName = Boolean(
+      currentCandidateKey &&
+        messageCandidateKey &&
+        currentCandidateKey === messageCandidateKey
+    );
+
+    if (sameTitle && sameCandidateName) {
+      return true;
+    }
+
+    // Último fallback para mobile/MVP: se os dois lados chegaram com o mesmo
+    // título do chamado, considera a conversa compatível. Isso evita o chat
+    // ficar vazio quando uma rota manda contratoId e a outra manda só jobTitle.
+    if (sameTitle && !contratoId && !candidaturaId) {
+      return true;
+    }
+
+    return false;
+  }
+
+  async function readGlobalStoredMessages() {
+    try {
+      const rawGlobalMessages = await AsyncStorage.getItem(CHAT_GLOBAL_STORAGE_KEY);
+      const parsedGlobalMessages = rawGlobalMessages
+        ? JSON.parse(rawGlobalMessages)
+        : [];
+
+      if (!Array.isArray(parsedGlobalMessages)) {
+        return [] as Message[];
+      }
+
+      return parsedGlobalMessages
+        .map((message) => normalizeStoredMessage(message as Message | LegacyMessage))
+        .filter((message) => messageBelongsToCurrentChat(message));
+    } catch (error) {
+      console.log("Erro ao ler registro global do chat:", error);
+      return [] as Message[];
+    }
+  }
+
+  async function saveGlobalStoredMessages(currentChatMessages: Message[]) {
+    try {
+      const rawGlobalMessages = await AsyncStorage.getItem(CHAT_GLOBAL_STORAGE_KEY);
+      const parsedGlobalMessages = rawGlobalMessages
+        ? JSON.parse(rawGlobalMessages)
+        : [];
+
+      const globalMessages = Array.isArray(parsedGlobalMessages)
+        ? (parsedGlobalMessages
+            .map((message) => normalizeStoredMessage(message as Message | LegacyMessage))
+            .filter((message) => !messageBelongsToCurrentChat(message)) as Message[])
+        : [];
+
+      const enrichedCurrentMessages = currentChatMessages.map(enrichMessageWithCurrentChat);
+
+      const mergedMessagesMap = new Map<string, Message>();
+
+      [...globalMessages, ...enrichedCurrentMessages].forEach((message) => {
+        mergedMessagesMap.set(message.id, message);
+      });
+
+      const mergedGlobalMessages = Array.from(mergedMessagesMap.values()).sort(
+        (a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateA - dateB;
+        }
+      );
+
+      await AsyncStorage.setItem(
+        CHAT_GLOBAL_STORAGE_KEY,
+        JSON.stringify(mergedGlobalMessages)
+      );
+    } catch (error) {
+      console.log("Erro ao salvar registro global do chat:", error);
+    }
+  }
+
+  async function readStoredMessages() {
+    const allMessages: Message[] = [];
+    const aliasSet = new Set(chatAliases);
+
+    for (const currentChatKey of chatKeys) {
+      try {
+        const storedMessages = await AsyncStorage.getItem(currentChatKey);
+
+        if (!storedMessages) {
+          continue;
+        }
+
+        const parsedMessages = JSON.parse(storedMessages) as Array<
+          Message | LegacyMessage
+        >;
+
+        parsedMessages.forEach((message) => {
+          const normalizedMessage = normalizeStoredMessage(message);
+
+          if (!normalizedMessage.chatId || aliasSet.has(normalizedMessage.chatId)) {
+            allMessages.push(normalizedMessage);
+          }
+        });
+      } catch (error) {
+        console.log("Erro ao ler chave de chat:", currentChatKey, error);
+      }
+    }
+
+    const globalMessages = await readGlobalStoredMessages();
+    allMessages.push(...globalMessages);
+
+    try {
+      const rawBackupMessages = await AsyncStorage.getItem(CHAT_BACKUP_STORAGE_KEY);
+      const parsedBackupMessages = rawBackupMessages ? JSON.parse(rawBackupMessages) : [];
+
+      if (Array.isArray(parsedBackupMessages)) {
+        parsedBackupMessages.forEach((message) => {
+          const normalizedMessage = normalizeStoredMessage(message as Message | LegacyMessage);
+
+          if (messageBelongsToCurrentChat(normalizedMessage)) {
+            allMessages.push(normalizedMessage);
+          }
+        });
+      }
+    } catch (error) {
+      console.log("Erro ao ler backup global do chat:", error);
+    }
+
+    const messagesMap = new Map<string, Message>();
+
+    allMessages.forEach((message) => {
+      messagesMap.set(message.id, enrichMessageWithCurrentChat(message));
+    });
+
+    return Array.from(messagesMap.values()).sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateA - dateB;
+    });
+  }
+
+  async function syncChatMessages() {
+    try {
+      const storedMessages = await readStoredMessages();
+
+      if (!areMessagesEqual(messagesRef.current, storedMessages)) {
+        setMessages(storedMessages);
+
+        setTimeout(() => {
+          scrollRef.current?.scrollToEnd({ animated: true });
+        }, 80);
+      }
+    } catch (error) {
+      console.log("Erro ao sincronizar mensagens do chat:", error);
+    }
+  }
 
   async function loadChat() {
     try {
@@ -300,14 +733,23 @@ export default function ChatScreen() {
         return;
       }
 
-      const tipoUsuario = loggedUser.tipoUsuario?.toLowerCase().trim();
-      const userId = loggedUser.id;
-      const userName = loggedUser.nome || "Usuário";
+      const userId = normalizeId(
+        loggedUser.id ??
+          loggedUser.userId ??
+          loggedUser.usuarioId ??
+          loggedUser.idUsuario
+      );
+      const userName = loggedUser.nome || loggedUser.name || "Usuário";
+      const resolvedUserType = resolveLoggedUserType(loggedUser, userId, {
+        candidateUserId,
+        freelancerId,
+        companyUserId,
+      });
 
       setCurrentUserId(userId);
       setCurrentUserName(userName);
 
-      if (tipoUsuario === "freelancer") {
+      if (resolvedUserType === "freelancer") {
         setCurrentSender("freelancer");
         setCurrentUserType("freelancer");
 
@@ -331,22 +773,8 @@ export default function ChatScreen() {
         setCurrentUserPhotoUrl(companyPhoto || undefined);
       }
 
-      const storedMessages = await AsyncStorage.getItem(chatKey);
-
-      if (!storedMessages) {
-        setMessages([]);
-        return;
-      }
-
-      const parsedMessages = JSON.parse(storedMessages) as Array<
-        Message | LegacyMessage
-      >;
-
-      const normalizedMessages = parsedMessages
-        .map((message) => normalizeStoredMessage(message))
-        .filter((message) => message.chatId === chatId);
-
-      setMessages(normalizedMessages);
+      const storedMessages = await readStoredMessages();
+      setMessages(storedMessages);
     } catch (error) {
       console.log("Erro ao carregar mensagens do chat:", error);
       setMessages([]);
@@ -385,9 +813,57 @@ export default function ChatScreen() {
 
   async function saveMessages(updatedMessages: Message[]) {
     try {
-      await AsyncStorage.setItem(chatKey, JSON.stringify(updatedMessages));
+      const storedMessages = await readStoredMessages();
+      const mergedMessagesMap = new Map<string, Message>();
+
+      [...storedMessages, ...updatedMessages].forEach((message) => {
+        mergedMessagesMap.set(message.id, enrichMessageWithCurrentChat(message));
+      });
+
+      const mergedMessages = Array.from(mergedMessagesMap.values()).sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateA - dateB;
+      });
+
+      await Promise.all(
+        chatKeys.map((currentChatKey) =>
+          AsyncStorage.setItem(currentChatKey, JSON.stringify(mergedMessages))
+        )
+      );
+
+      await saveGlobalStoredMessages(mergedMessages);
+
+      try {
+        const rawBackupMessages = await AsyncStorage.getItem(CHAT_BACKUP_STORAGE_KEY);
+        const parsedBackupMessages = rawBackupMessages ? JSON.parse(rawBackupMessages) : [];
+        const backupMessages = Array.isArray(parsedBackupMessages)
+          ? (parsedBackupMessages
+              .map((message) => normalizeStoredMessage(message as Message | LegacyMessage))
+              .filter((message) => !messageBelongsToCurrentChat(message)) as Message[])
+          : [];
+
+        const backupMap = new Map<string, Message>();
+
+        [...backupMessages, ...mergedMessages.map(enrichMessageWithCurrentChat)].forEach(
+          (message) => {
+            backupMap.set(message.id, message);
+          }
+        );
+
+        await AsyncStorage.setItem(
+          CHAT_BACKUP_STORAGE_KEY,
+          JSON.stringify(Array.from(backupMap.values()))
+        );
+      } catch (error) {
+        console.log("Erro ao salvar backup global do chat:", error);
+      }
+
+      messagesRef.current = mergedMessages;
+      setMessages(mergedMessages);
     } catch (error) {
       console.log("Erro ao salvar mensagens do chat:", error);
+      Alert.alert("Erro", "Não foi possível salvar a mensagem agora.");
     }
   }
 
@@ -412,9 +888,20 @@ export default function ChatScreen() {
       text: normalizedMessage,
       time: getCurrentTime(),
       createdAt: new Date().toISOString(),
+      chatAliases,
+      contratoId,
+      jobId,
+      chamadoId: jobId,
+      candidaturaId,
+      freelancerId,
+      candidateUserId,
+      companyUserId,
+      jobTitle,
+      candidateName,
+      companyName,
     };
 
-    const updatedMessages = [...messages, newMessage];
+    const updatedMessages = [...messagesRef.current, newMessage];
 
     setMessages(updatedMessages);
     setMessageText("");
@@ -423,7 +910,6 @@ export default function ChatScreen() {
 
     await addTaskFlowNotification({
       audience: currentSender === "company" ? "freelancer" : "company",
-      targetUserId: currentSender === "company" ? candidateUserId : companyUserId,
       type: "message",
       title: `Nova mensagem de ${currentUserName}`,
       description:
@@ -451,6 +937,7 @@ export default function ChatScreen() {
         jobTitle,
         companyName,
         candidateName,
+        chatKey: chatId,
       },
       eventKey: `message:${chatId}:${newMessage.id}`,
     });

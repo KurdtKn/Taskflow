@@ -470,10 +470,27 @@ export default function CompanyDashboardScreen() {
   }
 
   function handleViewCandidates(job: CompanyJob) {
+    const chamadoId = String(job.id ?? "").trim();
+
+    if (!chamadoId) {
+      Alert.alert(
+        "Chamado não encontrado",
+        "Não foi possível identificar o chamado selecionado."
+      );
+      return;
+    }
+
     router.push({
       pathname: "/job-candidates",
       params: {
-        id: job.id,
+        // Enviando todos os nomes possíveis porque a tela de candidatos
+        // e as notificações podem ler o id com chaves diferentes no mobile.
+        id: chamadoId,
+        chamadoId,
+        jobId: chamadoId,
+        idChamado: chamadoId,
+        chamado_id: chamadoId,
+
         title: job.title,
         category: job.category,
         price: job.price,
@@ -487,6 +504,7 @@ export default function CompanyDashboardScreen() {
         acceptedProfessionals: String(job.acceptedProfessionals),
         availableSpots: String(job.availableSpots),
         status: job.status,
+        jobStatus: job.status,
       },
     });
   }
