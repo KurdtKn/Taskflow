@@ -26,7 +26,6 @@ type RequestStatus =
   | "pending"
   | "accepted"
   | "in_progress"
-  | "other_accepted"
   | "refused"
   | "completed";
 
@@ -123,11 +122,6 @@ const statusConfig = {
     backgroundColor: "rgba(245,158,11,0.12)",
     textColor: colors.warning,
   },
-  other_accepted: {
-    label: "Outro freelancer foi aceito",
-    backgroundColor: "rgba(148,163,184,0.14)",
-    textColor: "#94A3B8",
-  },
   accepted: {
     label: "Aceita",
     backgroundColor: "rgba(0,176,80,0.12)",
@@ -215,53 +209,6 @@ function normalizeStatus(value?: string | null) {
   return value?.toLowerCase().trim() ?? "";
 }
 
-function isAcceptedStatus(value: string) {
-  return (
-    value === "aceita" ||
-    value === "aceito" ||
-    value === "accepted" ||
-    value === "aprovada" ||
-    value === "aprovado"
-  );
-}
-
-function isRefusedStatus(value: string) {
-  return (
-    value === "recusada" ||
-    value === "recusado" ||
-    value === "rejected" ||
-    value === "rejeitada" ||
-    value === "rejeitado"
-  );
-}
-
-function isCompletedJobStatus(value: string) {
-  return (
-    value === "finalizado" ||
-    value === "finished" ||
-    value === "concluido" ||
-    value === "concluído" ||
-    value === "completed"
-  );
-}
-
-function isTakenJobStatus(value: string) {
-  return (
-    value === "aceito" ||
-    value === "aceita" ||
-    value === "accepted" ||
-    value === "em_andamento" ||
-    value === "em andamento" ||
-    value === "andamento" ||
-    value === "in_progress" ||
-    value === "em-progresso" ||
-    value === "em progresso" ||
-    value === "pago" ||
-    value === "paid" ||
-    isCompletedJobStatus(value)
-  );
-}
-
 function getRequestStatus(
   candidaturaStatus?: string | null,
   chamadoStatus?: string | null
@@ -269,36 +216,38 @@ function getRequestStatus(
   const normalizedCandidaturaStatus = normalizeStatus(candidaturaStatus);
   const normalizedChamadoStatus = normalizeStatus(chamadoStatus);
 
-  const candidatureAccepted = isAcceptedStatus(normalizedCandidaturaStatus);
-  const candidatureRefused = isRefusedStatus(normalizedCandidaturaStatus);
-  const jobCompleted = isCompletedJobStatus(normalizedChamadoStatus);
-  const jobAlreadyHasAcceptedFreelancer = isTakenJobStatus(normalizedChamadoStatus);
+  if (
+    normalizedChamadoStatus === "finalizado" ||
+    normalizedChamadoStatus === "finished" ||
+    normalizedChamadoStatus === "concluido" ||
+    normalizedChamadoStatus === "concluído"
+  ) {
+    return "completed";
+  }
 
-  if (candidatureRefused) {
+  if (
+    normalizedCandidaturaStatus === "recusada" ||
+    normalizedCandidaturaStatus === "recusado" ||
+    normalizedCandidaturaStatus === "rejected"
+  ) {
     return "refused";
   }
 
-  if (candidatureAccepted) {
-    if (jobCompleted) {
-      return "completed";
-    }
-
+  if (
+    normalizedCandidaturaStatus === "aceita" ||
+    normalizedCandidaturaStatus === "aceito" ||
+    normalizedCandidaturaStatus === "accepted"
+  ) {
     if (
       normalizedChamadoStatus === "em_andamento" ||
       normalizedChamadoStatus === "em andamento" ||
       normalizedChamadoStatus === "andamento" ||
-      normalizedChamadoStatus === "in_progress" ||
-      normalizedChamadoStatus === "pago" ||
-      normalizedChamadoStatus === "paid"
+      normalizedChamadoStatus === "in_progress"
     ) {
       return "in_progress";
     }
 
     return "accepted";
-  }
-
-  if (jobAlreadyHasAcceptedFreelancer) {
-    return "other_accepted";
   }
 
   return "pending";
@@ -478,6 +427,8 @@ export default function RequestsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>("all");
   const [requests, setRequests] = useState<RequestItem[]>([]);
   const [reviewedCompanyKeys, setReviewedCompanyKeys] = useState<string[]>([]);
+  const [loggedUserId, setLoggedUserId] = useState("");
+  const [loggedFreelancerId, setLoggedFreelancerId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const { isDark, theme } = useTheme();
@@ -533,7 +484,13 @@ export default function RequestsScreen() {
         return;
       }
 
-      const freelancerId = Number(loggedUser.perfilId || loggedUser.id);
+      const loggedUserIdValue = resolveLoggedUserId(loggedUser);
+      const freelancerProfileId = String(loggedUser.perfilId || loggedUserIdValue || "");
+
+      setLoggedUserId(loggedUserIdValue);
+      setLoggedFreelancerId(freelancerProfileId);
+
+      const freelancerId = Number(freelancerProfileId || loggedUser.id);
 
       if (!freelancerId) {
         setRequests([]);
@@ -582,15 +539,34 @@ export default function RequestsScreen() {
 
   function handleOpenChat(request: RequestItem) {
     router.push({
-      pathname: "/freelancer-chat",
+      pathname: "/chat",
       params: {
         requestId: request.id,
+        candidaturaId: request.id,
+
         jobId: request.jobId,
-        chatId: request.chatId ?? request.jobId,
+        chamadoId: request.jobId,
+
+        chatId: request.contratoId || request.chatId || request.jobId,
         contratoId: request.contratoId ?? "",
+        contractId: request.contratoId ?? "",
+
+        freelancerId: loggedFreelancerId || loggedUserId,
+        candidateUserId: loggedUserId,
+        freelancerUserId: loggedUserId,
+        companyUserId: request.companyUserId ?? "",
+
         jobTitle: request.title,
+        jobCategory: request.category,
+        jobPrice: request.price,
+        jobLocation: request.location,
+        jobTime: request.time,
+        status: request.status,
+
         companyName: request.company,
+        candidateName: "Freelancer selecionado",
         userType: "freelancer",
+        userRole: "freelancer",
       },
     });
   }
@@ -611,10 +587,6 @@ export default function RequestsScreen() {
   }
 
   function handleOpenRequest(request: RequestItem) {
-    if (request.status === "other_accepted") {
-      return;
-    }
-
     if (canOpenChat(request.status)) {
       handleOpenChat(request);
       return;
@@ -656,10 +628,6 @@ export default function RequestsScreen() {
   function getActionText(status: RequestStatus) {
     if (status === "accepted" || status === "in_progress") {
       return "Abrir chat ›";
-    }
-
-    if (status === "other_accepted") {
-      return "Chamado preenchido";
     }
 
     return "Ver detalhes ›";
@@ -994,42 +962,6 @@ export default function RequestsScreen() {
                     </Text>
                   </View>
                 </View>
-
-                {request.status === "other_accepted" && (
-                  <View
-                    style={{
-                      marginTop: 12,
-                      padding: 12,
-                      borderRadius: 12,
-                      backgroundColor: isDark
-                        ? "rgba(148,163,184,0.10)"
-                        : "rgba(15,23,42,0.05)",
-                      borderWidth: 1,
-                      borderColor: theme.border,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: theme.text,
-                        fontSize: 13,
-                        fontWeight: "800",
-                        marginBottom: 4,
-                      }}
-                    >
-                      Outro freelancer foi aceito
-                    </Text>
-
-                    <Text
-                      style={{
-                        color: theme.textSecondary,
-                        fontSize: 12,
-                        lineHeight: 17,
-                      }}
-                    >
-                      A empresa escolheu outro profissional para esse chamado. Você pode acompanhar outras oportunidades disponíveis.
-                    </Text>
-                  </View>
-                )}
 
                 <View style={styles.cardFooter}>
                   <Text

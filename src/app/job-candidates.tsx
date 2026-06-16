@@ -20,15 +20,13 @@ import TimeIcon from "../../assets/icons/access_time.svg";
 import { styles } from "@/app/styles/jobCandidates";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
-import { API_BASE_URL, apiGet, apiPost } from "@/services/api";
+import { apiGet, apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
-import { addTaskFlowNotification } from "@/services/local-notifications";
 
 type Candidate = {
   id: string;
   contratoId?: string;
   freelancerId?: string;
-  freelancerUserId?: string;
   name: string;
   email?: string;
   photoUrl?: string;
@@ -46,11 +44,6 @@ type Candidate = {
 
 type FreelancerNestedApi = {
   id?: number | null;
-  usuarioId?: number | null;
-  usuario_id?: number | null;
-  userId?: number | null;
-  user_id?: number | null;
-  idUsuario?: number | null;
   nome?: string | null;
   name?: string | null;
   email?: string | null;
@@ -78,38 +71,8 @@ type FreelancerNestedApi = {
 type CandidaturaApi = {
   id: number;
 
-  chamadoId?: number | string | null;
-  chamado_id?: number | string | null;
-  idChamado?: number | string | null;
-  id_chamado?: number | string | null;
-  jobId?: number | string | null;
-  job_id?: number | string | null;
-  servicoId?: number | string | null;
-  servico_id?: number | string | null;
-  chamado?:
-    | {
-        id?: number | string | null;
-        chamadoId?: number | string | null;
-        chamado_id?: number | string | null;
-        idChamado?: number | string | null;
-        id_chamado?: number | string | null;
-        jobId?: number | string | null;
-        job_id?: number | string | null;
-      }
-    | null;
-
   freelancerId?: number | null;
   freelancer_id?: number | null;
-  idFreelancer?: number | null;
-  id_freelancer?: number | null;
-  freelancerUsuarioId?: number | null;
-  freelancer_usuario_id?: number | null;
-  freelancerUserId?: number | null;
-  freelancer_user_id?: number | null;
-  usuarioId?: number | null;
-  usuario_id?: number | null;
-  userId?: number | null;
-  user_id?: number | null;
 
   contratoId?: number | null;
   contrato_id?: number | null;
@@ -184,47 +147,6 @@ type CandidaturaActionResponse = {
   chamadoStatus?: string;
 };
 
-type AnyRecord = Record<string, any>;
-
-type AvaliacaoApi = {
-  id?: number | string | null;
-  nota?: number | string | null;
-  rating?: number | string | null;
-};
-
-type AvaliacoesResponse =
-  | AvaliacaoApi[]
-  | {
-      data?: AvaliacaoApi[];
-      dados?: AvaliacaoApi[];
-      avaliacoes?: AvaliacaoApi[];
-      reviews?: AvaliacaoApi[];
-      media?: number | string | null;
-      average?: number | string | null;
-      total?: number | string | null;
-      quantidade?: number | string | null;
-      totalAvaliacoes?: number | string | null;
-    };
-
-type ContratoApi = {
-  id?: number | string | null;
-  status?: string | null;
-};
-
-type ContratosResponse =
-  | ContratoApi[]
-  | {
-      data?: ContratoApi[];
-      dados?: ContratoApi[];
-      contratos?: ContratoApi[];
-    };
-
-type CandidateIdentity = {
-  name?: string;
-  email?: string;
-  photoUrl?: string;
-};
-
 const PAYMENT_CONFIRMED_PREFIX = "payment_confirmed_";
 
 function getPaymentConfirmedKey(contratoId?: string | null) {
@@ -248,224 +170,12 @@ async function checkPaymentConfirmed(contratoId?: string | null) {
   }
 }
 
-function isRecord(value: unknown): value is AnyRecord {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function parseNumberValue(value: unknown, fallback = 0) {
-  if (value === null || value === undefined || value === "") {
-    return fallback;
-  }
-
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : fallback;
-  }
-
-  const normalized = String(value)
-    .replace("R$", "")
-    .replace(/\s/g, "")
-    .replace(/[^0-9,.-]/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".")
-    .trim();
-
-  const parsed = Number(normalized);
-
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function normalizePhotoUrl(value?: string | null) {
-  const trimmedValue = value?.trim();
-
-  if (!trimmedValue) {
-    return undefined;
-  }
-
-  if (
-    trimmedValue.startsWith("http://") ||
-    trimmedValue.startsWith("https://") ||
-    trimmedValue.startsWith("file://") ||
-    trimmedValue.startsWith("data:image") ||
-    trimmedValue.startsWith("blob:")
-  ) {
-    return trimmedValue;
-  }
-
-  if (trimmedValue.startsWith("/")) {
-    return `${API_BASE_URL}${trimmedValue}`;
-  }
-
-  return `${API_BASE_URL}/${trimmedValue}`;
-}
-
-function normalizeText(value?: string | null) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-function collectRecords(value: unknown, result: AnyRecord[] = []) {
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectRecords(item, result));
-    return result;
-  }
-
-  if (!isRecord(value)) {
-    return result;
-  }
-
-  result.push(value);
-
-  Object.values(value).forEach((child) => {
-    if (Array.isArray(child) || isRecord(child)) {
-      collectRecords(child, result);
-    }
-  });
-
-  return result;
-}
-
-const PHOTO_FIELDS = [
-  "candidatePhotoUrl",
-  "freelancerPhotoUrl",
-  "freelancer_photo_url",
-  "freelancerFotoUrl",
-  "freelancer_foto_url",
-  "photoUrl",
-  "photoURL",
-  "photo_url",
-  "fotoUrl",
-  "fotoURL",
-  "foto_url",
-  "foto",
-  "profilePhoto",
-  "profile_photo",
-  "profilePhotoUrl",
-  "profile_photo_url",
-  "profileImageUri",
-  "profileImage",
-  "imageUri",
-  "imageURI",
-  "imageUrl",
-  "imageURL",
-  "image_url",
-  "avatarUrl",
-  "avatarURL",
-  "avatar_url",
-  "avatarUri",
-  "picture",
-  "pictureUrl",
-  "picture_url",
-  "logoUrl",
-  "logo_url",
-  "logo",
-  "uri",
-];
-
-const NAME_FIELDS = [
-  "name",
-  "nome",
-  "nomeCompleto",
-  "nome_completo",
-  "fullName",
-  "full_name",
-  "candidateName",
-  "freelancerName",
-  "nomeFreelancer",
-  "freelancerNome",
-];
-
-const EMAIL_FIELDS = [
-  "email",
-  "freelancerEmail",
-  "emailFreelancer",
-];
-
-const ID_FIELDS = [
-  "id",
-  "usuarioId",
-  "usuario_id",
-  "idUsuario",
-  "id_usuario",
-  "userId",
-  "user_id",
-  "freelancerId",
-  "freelancer_id",
-  "idFreelancer",
-  "id_freelancer",
-  "perfilId",
-  "perfil_id",
-];
-
-function getStringField(source: unknown, fields: string[]) {
-  if (!isRecord(source)) {
-    return "";
-  }
-
-  for (const field of fields) {
-    const value = source[field];
-
-    if (typeof value === "string" && value.trim()) {
-      return value.trim();
-    }
-
-    if (isRecord(value) && typeof value.uri === "string" && value.uri.trim()) {
-      return value.uri.trim();
-    }
-  }
-
-  return "";
-}
-
-function getRecordIds(source: unknown) {
-  if (!isRecord(source)) {
-    return [];
-  }
-
-  return ID_FIELDS.map((field) => source[field])
-    .filter((value) => value !== null && value !== undefined && value !== "")
-    .map((value) => String(value));
-}
-
-function getRecordPhoto(source: unknown) {
-  return normalizePhotoUrl(getStringField(source, PHOTO_FIELDS));
-}
-
-function getRecordName(source: unknown) {
-  return getStringField(source, NAME_FIELDS);
-}
-
-function getRecordEmail(source: unknown) {
-  return getStringField(source, EMAIL_FIELDS);
-}
-
-function formatCandidateRating(value?: number | null) {
-  if (!value || value <= 0) {
-    return "-";
-  }
-
-  return value.toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-}
-
 function getCandidaturasFromResponse(response: CandidaturasResponse) {
   if (Array.isArray(response)) {
     return response;
   }
 
   return response.data ?? response.dados ?? response.candidaturas ?? [];
-}
-
-function normalizeId(value?: number | string | null) {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value).trim();
 }
 
 function formatCurrency(value?: number | null) {
@@ -556,51 +266,7 @@ function getFreelancerId(apiCandidate: CandidaturaApi) {
   return (
     apiCandidate.freelancerId ??
     apiCandidate.freelancer_id ??
-    apiCandidate.idFreelancer ??
-    apiCandidate.id_freelancer ??
     nestedFreelancer?.id ??
-    null
-  );
-}
-
-function getFreelancerUserId(apiCandidate: CandidaturaApi) {
-  const nestedFreelancer = getNestedFreelancer(apiCandidate);
-
-  return (
-    apiCandidate.freelancerUsuarioId ??
-    apiCandidate.freelancer_usuario_id ??
-    apiCandidate.freelancerUserId ??
-    apiCandidate.freelancer_user_id ??
-    apiCandidate.usuarioId ??
-    apiCandidate.usuario_id ??
-    apiCandidate.userId ??
-    apiCandidate.user_id ??
-    nestedFreelancer?.usuarioId ??
-    nestedFreelancer?.usuario_id ??
-    nestedFreelancer?.userId ??
-    nestedFreelancer?.user_id ??
-    nestedFreelancer?.idUsuario ??
-    null
-  );
-}
-
-function getCandidateJobId(apiCandidate: CandidaturaApi) {
-  return (
-    apiCandidate.chamadoId ??
-    apiCandidate.chamado_id ??
-    apiCandidate.idChamado ??
-    apiCandidate.id_chamado ??
-    apiCandidate.jobId ??
-    apiCandidate.job_id ??
-    apiCandidate.servicoId ??
-    apiCandidate.servico_id ??
-    apiCandidate.chamado?.id ??
-    apiCandidate.chamado?.chamadoId ??
-    apiCandidate.chamado?.chamado_id ??
-    apiCandidate.chamado?.idChamado ??
-    apiCandidate.chamado?.id_chamado ??
-    apiCandidate.chamado?.jobId ??
-    apiCandidate.chamado?.job_id ??
     null
   );
 }
@@ -664,7 +330,7 @@ function pickImageUrl(...values: Array<unknown>) {
 function getFreelancerPhoto(apiCandidate: CandidaturaApi) {
   const nestedFreelancer = getNestedFreelancer(apiCandidate);
 
-  return normalizePhotoUrl(pickImageUrl(
+  return pickImageUrl(
     apiCandidate.freelancerPhotoUrl,
     apiCandidate.freelancer_photo_url,
     apiCandidate.freelancerFotoUrl,
@@ -691,7 +357,7 @@ function getFreelancerPhoto(apiCandidate: CandidaturaApi) {
     nestedFreelancer?.avatar_url,
     nestedFreelancer?.logoUrl,
     nestedFreelancer?.logo_url
-  ));
+  );
 }
 
 function getFreelancerRating(apiCandidate: CandidaturaApi) {
@@ -781,7 +447,6 @@ function formatCandidate(
     candidatePrice === "Valor a combinar" ? jobPrice : candidatePrice;
 
   const freelancerId = getFreelancerId(apiCandidate);
-  const freelancerUserId = getFreelancerUserId(apiCandidate);
   const contratoId = getContratoId(apiCandidate);
   const candidateName = getFreelancerName(apiCandidate);
   const candidateEmail = getFreelancerEmail(apiCandidate);
@@ -795,7 +460,6 @@ function formatCandidate(
     id: String(apiCandidate.id),
     contratoId: contratoId ? String(contratoId) : undefined,
     freelancerId: freelancerId ? String(freelancerId) : undefined,
-    freelancerUserId: freelancerUserId ? String(freelancerUserId) : undefined,
     name: candidateName,
     email: candidateEmail,
     photoUrl: candidatePhoto,
@@ -814,345 +478,13 @@ function formatCandidate(
   };
 }
 
-function getAvaliacoesFromResponse(response: AvaliacoesResponse) {
-  if (Array.isArray(response)) {
-    return response;
-  }
-
-  return response.data ?? response.dados ?? response.avaliacoes ?? response.reviews ?? [];
-}
-
-function getContratosFromResponse(response: ContratosResponse) {
-  if (Array.isArray(response)) {
-    return response;
-  }
-
-  return response.data ?? response.dados ?? response.contratos ?? [];
-}
-
-function calculateRatingStats(response: AvaliacoesResponse) {
-  const avaliacoes = getAvaliacoesFromResponse(response);
-  const totalFromResponse = !Array.isArray(response)
-    ? parseNumberValue(response.total ?? response.quantidade ?? response.totalAvaliacoes, 0)
-    : 0;
-
-  const notas = avaliacoes
-    .map((avaliacao) => parseNumberValue(avaliacao.nota ?? avaliacao.rating, 0))
-    .filter((nota) => nota > 0);
-
-  const mediaFromResponse = !Array.isArray(response)
-    ? parseNumberValue(response.media ?? response.average, 0)
-    : 0;
-
-  const media = mediaFromResponse > 0
-    ? mediaFromResponse
-    : notas.length > 0
-      ? notas.reduce((sum, nota) => sum + nota, 0) / notas.length
-      : 0;
-
-  return {
-    rating: media > 0 ? Number(media.toFixed(1)) : null,
-    reviews: Math.max(totalFromResponse, notas.length, avaliacoes.length),
-  };
-}
-
-function isContratoFinished(status?: string | null) {
-  return isFinishedStatus(status);
-}
-
-function getCandidateIdValues(candidate: Candidate) {
-  return [candidate.freelancerUserId, candidate.freelancerId, candidate.id]
-    .filter(Boolean)
-    .map((id) => String(id));
-}
-
-function recordMatchesCandidate(record: AnyRecord, candidate: Candidate) {
-  const candidateIds = new Set(getCandidateIdValues(candidate));
-  const recordIds = getRecordIds(record);
-  const matchesId = recordIds.some((id) => candidateIds.has(id));
-
-  const recordEmail = normalizeText(getRecordEmail(record));
-  const matchesEmail = candidate.email
-    ? recordEmail === normalizeText(candidate.email)
-    : false;
-
-  const recordName = normalizeText(getRecordName(record));
-  const matchesName = recordName
-    ? recordName === normalizeText(candidate.name)
-    : false;
-
-  return matchesId || matchesEmail || matchesName;
-}
-
-async function findCandidateInLocalStorage(candidate: Candidate): Promise<CandidateIdentity | null> {
-  try {
-    const keys = await AsyncStorage.getAllKeys();
-    const interestingKeys = keys.filter((key) => {
-      const normalizedKey = key.toLowerCase();
-
-      return (
-        normalizedKey.includes("user") ||
-        normalizedKey.includes("usuario") ||
-        normalizedKey.includes("freelancer") ||
-        normalizedKey.includes("profile") ||
-        normalizedKey.includes("perfil")
-      );
-    });
-
-    const entries = await AsyncStorage.multiGet(interestingKeys);
-
-    for (const [, value] of entries) {
-      if (!value) {
-        continue;
-      }
-
-      try {
-        const parsedValue = JSON.parse(value);
-        const records = collectRecords(parsedValue);
-
-        for (const record of records) {
-          if (!recordMatchesCandidate(record, candidate)) {
-            continue;
-          }
-
-          const photoUrl = getRecordPhoto(record);
-          const name = getRecordName(record);
-          const email = getRecordEmail(record);
-
-          if (photoUrl || name || email) {
-            return {
-              photoUrl,
-              name: name || undefined,
-              email: email || undefined,
-            };
-          }
-        }
-      } catch {
-        // ignora chaves que não são JSON
-      }
-    }
-  } catch (error) {
-    console.log("Erro ao procurar foto local do freelancer:", error);
-  }
-
-  return null;
-}
-
-async function fetchCandidateIdentity(candidate: Candidate): Promise<CandidateIdentity | null> {
-  const userIds = [candidate.freelancerUserId].filter(Boolean).map(String);
-  const freelancerIds = [candidate.freelancerId].filter(Boolean).map(String);
-
-  const endpoints = [
-    ...userIds.map((id) => `/api/Usuarios/${id}`),
-    ...userIds.map((id) => `/api/Freelancers/usuario/${id}`),
-    ...freelancerIds.map((id) => `/api/Freelancers/${id}`),
-    ...freelancerIds.map((id) => `/api/Freelancers/perfil/${id}`),
-    ...freelancerIds.map((id) => `/api/Usuarios/${id}`),
-  ];
-
-  for (const endpoint of [...new Set(endpoints)]) {
-    try {
-      const response = await apiGet<unknown>(endpoint);
-      const records = collectRecords(response);
-
-      for (const record of records) {
-        const photoUrl = getRecordPhoto(record);
-        const name = getRecordName(record);
-        const email = getRecordEmail(record);
-
-        if (photoUrl || name || email) {
-          return {
-            photoUrl,
-            name: name || undefined,
-            email: email || undefined,
-          };
-        }
-      }
-    } catch (error) {
-      console.log(`Não foi possível carregar identidade do candidato em ${endpoint}:`, error);
-    }
-  }
-
-  return null;
-}
-
-async function loadCandidateRatingStats(candidate: Candidate) {
-  const userIds = [candidate.freelancerUserId].filter(Boolean).map(String);
-  const freelancerIds = [candidate.freelancerId].filter(Boolean).map(String);
-
-  const endpoints = [
-    ...userIds.map((id) => `/api/Avaliacoes/usuario/${id}`),
-    ...freelancerIds.map((id) => `/api/Avaliacoes/freelancer/${id}`),
-    ...freelancerIds.map((id) => `/api/Avaliacoes/usuario/${id}`),
-  ];
-
-  for (const endpoint of [...new Set(endpoints)]) {
-    try {
-      const response = await apiGet<AvaliacoesResponse>(endpoint);
-      const stats = calculateRatingStats(response);
-
-      if ((stats.rating && stats.rating > 0) || stats.reviews > 0) {
-        return stats;
-      }
-    } catch (error) {
-      console.log(`Não foi possível carregar avaliações em ${endpoint}:`, error);
-    }
-  }
-
-  return {
-    rating: candidate.rating,
-    reviews: candidate.reviews,
-  };
-}
-
-async function loadCandidateCompletedJobs(candidate: Candidate, reviewsCount: number) {
-  const ids = [candidate.freelancerId, candidate.freelancerUserId]
-    .filter(Boolean)
-    .map(String);
-
-  const endpoints = ids.flatMap((id) => [
-    `/api/Contratos/freelancer/${id}`,
-    `/api/Contratos/usuario/${id}`,
-  ]);
-
-  for (const endpoint of [...new Set(endpoints)]) {
-    try {
-      const response = await apiGet<ContratosResponse>(endpoint);
-      const contratos = getContratosFromResponse(response);
-      const finishedJobs = contratos.filter((contrato) =>
-        isContratoFinished(contrato.status),
-      ).length;
-
-      if (finishedJobs > 0) {
-        return finishedJobs;
-      }
-    } catch (error) {
-      console.log(`Não foi possível carregar contratos em ${endpoint}:`, error);
-    }
-  }
-
-  return Math.max(candidate.completedJobs, reviewsCount);
-}
-
-async function enrichCandidate(candidate: Candidate): Promise<Candidate> {
-  const apiIdentity = await fetchCandidateIdentity(candidate);
-  const localIdentity = await findCandidateInLocalStorage(candidate);
-  const ratingStats = await loadCandidateRatingStats(candidate);
-  const completedJobs = await loadCandidateCompletedJobs(
-    candidate,
-    ratingStats.reviews,
-  );
-
-  const photoUrl =
-    normalizePhotoUrl(candidate.photoUrl) ||
-    apiIdentity?.photoUrl ||
-    localIdentity?.photoUrl;
-
-  return {
-    ...candidate,
-    name: apiIdentity?.name || localIdentity?.name || candidate.name,
-    email: candidate.email || apiIdentity?.email || localIdentity?.email,
-    role: candidate.email || apiIdentity?.email || localIdentity?.email || candidate.role,
-    photoUrl,
-    rating: ratingStats.rating,
-    reviews: ratingStats.reviews,
-    completedJobs,
-  };
-}
-
-function shouldKeepCandidateForJob(candidate: CandidaturaApi, jobId: string) {
-  const candidateJobId = normalizeId(getCandidateJobId(candidate));
-  const currentJobId = normalizeId(jobId);
-
-  if (!candidateJobId || !currentJobId) {
-    return false;
-  }
-
-  return candidateJobId === currentJobId;
-}
-
-function filterCandidaturasByJobId(
-  candidaturas: CandidaturaApi[],
-  jobId: string,
-) {
-  const currentJobId = normalizeId(jobId);
-
-  if (!currentJobId) {
-    return candidaturas;
-  }
-
-  const hasAnyJobId = candidaturas.some(
-    (candidate) => normalizeId(getCandidateJobId(candidate)).length > 0,
-  );
-
-  if (!hasAnyJobId) {
-    console.log(
-      "A API retornou candidaturas sem chamadoId. Mantendo retorno original para não esconder candidatos válidos.",
-    );
-
-    return candidaturas;
-  }
-
-  return candidaturas.filter((candidate) =>
-    shouldKeepCandidateForJob(candidate, currentJobId),
-  );
-}
-
-function getCandidateMergeKey(candidate: CandidaturaApi) {
-  const candidateId = candidate.id;
-
-  if (candidateId !== null && candidateId !== undefined) {
-    return `candidatura:${candidateId}`;
-  }
-
-  const freelancerId = getFreelancerId(candidate);
-  const freelancerUserId = getFreelancerUserId(candidate);
-
-  return `freelancer:${freelancerUserId ?? freelancerId ?? getFreelancerName(candidate)}`;
-}
-
-function mergeCandidaturas(current: CandidaturaApi[], next: CandidaturaApi[]) {
-  const merged = new Map<string, CandidaturaApi>();
-
-  [...current, ...next].forEach((candidate) => {
-    merged.set(getCandidateMergeKey(candidate), candidate);
-  });
-
-  return Array.from(merged.values());
-}
-
-async function loadCandidaturasForJob(jobId: string) {
-  const endpoints = [
-    { endpoint: `/api/Candidaturas/chamado/${jobId}`, filterByJob: false },
-    { endpoint: `/api/Candidaturas?chamadoId=${jobId}`, filterByJob: false },
-    { endpoint: `/api/Candidaturas?jobId=${jobId}`, filterByJob: false },
-    { endpoint: `/api/Chamados/${jobId}/candidaturas`, filterByJob: false },
-    { endpoint: "/api/Candidaturas", filterByJob: true },
-  ];
-
-  let candidaturas: CandidaturaApi[] = [];
-
-  for (const { endpoint, filterByJob } of endpoints) {
-    try {
-      const response = await apiGet<CandidaturasResponse>(endpoint);
-      const nextCandidates = getCandidaturasFromResponse(response);
-      const filteredCandidates = filterByJob
-        ? filterCandidaturasByJobId(nextCandidates, jobId)
-        : nextCandidates;
-
-      candidaturas = mergeCandidaturas(candidaturas, filteredCandidates);
-    } catch (error) {
-      console.log(`Não foi possível carregar candidaturas em ${endpoint}:`, error);
-    }
-  }
-
-  return filterCandidaturasByJobId(candidaturas, jobId);
-}
-
 export default function JobCandidatesScreen() {
   const params = useLocalSearchParams<{
     id?: string | string[];
     chamadoId?: string | string[];
+    jobId?: string | string[];
+    idChamado?: string | string[];
+    chamado_id?: string | string[];
     title?: string | string[];
     category?: string | string[];
     price?: string | string[];
@@ -1183,7 +515,12 @@ export default function JobCandidatesScreen() {
     return value ?? fallback;
   }
 
-  const jobId = getParamValue(params.id) || getParamValue(params.chamadoId);
+  const jobId =
+    getParamValue(params.id) ||
+    getParamValue(params.chamadoId) ||
+    getParamValue(params.jobId) ||
+    getParamValue(params.idChamado) ||
+    getParamValue(params.chamado_id);
   const jobTitle = getParamValue(params.title, "Chamado");
   const jobCategory = getParamValue(params.category, "Categoria");
   const jobPrice = getParamValue(params.price, "Valor a combinar");
@@ -1200,12 +537,6 @@ export default function JobCandidatesScreen() {
   const selectedCandidate = candidates.find(
     (candidate) => candidate.id === selectedCandidateId,
   );
-
-  function getCandidateNotificationTarget(candidate: Candidate) {
-    return String(
-      candidate.freelancerUserId || candidate.freelancerId || ""
-    ).trim();
-  }
 
   useFocusEffect(
     useCallback(() => {
@@ -1236,7 +567,11 @@ export default function JobCandidatesScreen() {
         return;
       }
 
-      const candidaturas = await loadCandidaturasForJob(jobId);
+      const response = await apiGet<CandidaturasResponse>(
+        `/api/Candidaturas/chamado/${jobId}`,
+      );
+
+      const candidaturas = getCandidaturasFromResponse(response);
 
       console.log("Candidaturas retornadas pela API:", candidaturas);
 
@@ -1244,12 +579,8 @@ export default function JobCandidatesScreen() {
         formatCandidate(candidatura, jobCategory, jobPrice),
       );
 
-      const enrichedCandidates = await Promise.all(
-        formattedCandidates.map((candidate) => enrichCandidate(candidate)),
-      );
-
       const formattedCandidatesWithPayment = await Promise.all(
-        enrichedCandidates.map(async (candidate) => ({
+        formattedCandidates.map(async (candidate) => ({
           ...candidate,
           paymentConfirmed: await checkPaymentConfirmed(candidate.contratoId),
         })),
@@ -1317,9 +648,6 @@ export default function JobCandidatesScreen() {
         jobId,
         candidaturaId: candidate.id,
         freelancerId: candidate.freelancerId ?? "",
-        candidateUserId: candidate.freelancerUserId ?? "",
-        freelancerUserId: candidate.freelancerUserId ?? "",
-        usuarioId: candidate.freelancerUserId ?? "",
 
         jobTitle,
         jobCategory,
@@ -1361,9 +689,6 @@ export default function JobCandidatesScreen() {
         jobId,
         candidaturaId: candidate.id,
         freelancerId: candidate.freelancerId ?? "",
-        candidateUserId: candidate.freelancerUserId ?? "",
-        freelancerUserId: candidate.freelancerUserId ?? "",
-        usuarioId: candidate.freelancerUserId ?? "",
 
         jobTitle,
         jobCategory,
@@ -1451,64 +776,6 @@ export default function JobCandidatesScreen() {
         ),
       );
 
-      await addTaskFlowNotification({
-        audience: "freelancer",
-        targetUserId: getCandidateNotificationTarget(candidate),
-        type: "request_accepted",
-        title: "Candidatura aceita",
-        description: `A empresa aceitou você no chamado ${jobTitle}.`,
-        jobId,
-        chamadoId: jobId,
-        candidaturaId: candidate.id,
-        candidateId: candidate.id,
-        freelancerId: candidate.freelancerId ?? "",
-        contratoId,
-        contractId: contratoId,
-        chatId: contratoId,
-        jobTitle,
-        companyName,
-        params: {
-          jobId,
-          contratoId,
-          candidaturaId: candidate.id,
-          jobTitle,
-          companyName,
-        },
-        eventKey: `accepted:${jobId}:${candidate.id}:${contratoId || "sem-contrato"}`,
-      });
-
-      await Promise.all(
-        candidates
-          .filter((item) =>
-            item.id !== candidate.id &&
-            !isCandidateAccepted(item) &&
-            !isCandidateRejected(item)
-          )
-          .map((item) =>
-            addTaskFlowNotification({
-              audience: "freelancer",
-              targetUserId: getCandidateNotificationTarget(item),
-              type: "request_rejected",
-              title: "Outro freelancer foi aceito",
-              description: `O chamado ${jobTitle} já foi preenchido por outro freelancer.`,
-              jobId,
-              chamadoId: jobId,
-              candidaturaId: item.id,
-              candidateId: item.id,
-              freelancerId: item.freelancerId ?? "",
-              jobTitle,
-              companyName,
-              params: {
-                jobId,
-                candidaturaId: item.id,
-                jobTitle,
-                companyName,
-              },
-              eventKey: `other-accepted:${jobId}:${item.id}`,
-            })
-          )
-      );
-
       goToPayment(
         {
           ...candidate,
@@ -1541,9 +808,6 @@ export default function JobCandidatesScreen() {
         jobId,
         candidaturaId: candidate.id,
         freelancerId: candidate.freelancerId ?? "",
-        candidateUserId: candidate.freelancerUserId ?? "",
-        freelancerUserId: candidate.freelancerUserId ?? "",
-        usuarioId: candidate.freelancerUserId ?? "",
 
         jobTitle,
         jobCategory,
@@ -1554,20 +818,8 @@ export default function JobCandidatesScreen() {
 
         candidateName: candidate.name,
         candidateEmail: candidate.email ?? "",
-        candidateRating:
-          candidate.rating !== null && candidate.rating !== undefined
-            ? String(candidate.rating)
-            : "",
-        candidateReviews: String(candidate.reviews ?? 0),
-        candidateAvaliacoes: String(candidate.reviews ?? 0),
-        totalReviews: String(candidate.reviews ?? 0),
-        candidateCompletedJobs: String(candidate.completedJobs ?? 0),
-        candidateServices: String(candidate.completedJobs ?? 0),
-        completedJobs: String(candidate.completedJobs ?? 0),
-        servicosConcluidos: String(candidate.completedJobs ?? 0),
+        candidateRating: candidate.rating ? String(candidate.rating) : "",
         candidatePhotoUrl: candidate.photoUrl ?? "",
-        freelancerPhotoUrl: candidate.photoUrl ?? "",
-        photoUrl: candidate.photoUrl ?? "",
         candidatePrice: candidate.price,
       },
     });
@@ -1597,28 +849,6 @@ export default function JobCandidatesScreen() {
             : item,
         ),
       );
-
-      await addTaskFlowNotification({
-        audience: "freelancer",
-        targetUserId: getCandidateNotificationTarget(candidate),
-        type: "request_rejected",
-        title: "Candidatura recusada",
-        description: `A empresa recusou sua candidatura no chamado ${jobTitle}.`,
-        jobId,
-        chamadoId: jobId,
-        candidaturaId: candidate.id,
-        candidateId: candidate.id,
-        freelancerId: candidate.freelancerId ?? "",
-        jobTitle,
-        companyName,
-        params: {
-          jobId,
-          candidaturaId: candidate.id,
-          jobTitle,
-          companyName,
-        },
-        eventKey: `rejected:${jobId}:${candidate.id}`,
-      });
 
       Alert.alert(
         "Candidatura recusada",
@@ -1903,7 +1133,7 @@ export default function JobCandidatesScreen() {
                           ]}
                         >
                           {candidate.rating
-                            ? `${formatCandidateRating(candidate.rating)} • ${candidate.reviews} avaliações`
+                            ? `${candidate.rating} • ${candidate.reviews} avaliações`
                             : "Sem avaliações"}
                         </Text>
                       </View>
@@ -1974,7 +1204,7 @@ export default function JobCandidatesScreen() {
 
                     <View style={styles.statItem}>
                       <Text style={[styles.statNumber, { color: theme.text }]}>
-                        {candidate.reviews}
+                        {candidate.distance}
                       </Text>
 
                       <Text
@@ -1983,7 +1213,7 @@ export default function JobCandidatesScreen() {
                           { color: theme.textSecondary },
                         ]}
                       >
-                        avaliações
+                        distância
                       </Text>
                     </View>
 
@@ -1996,7 +1226,7 @@ export default function JobCandidatesScreen() {
 
                     <View style={styles.statItem}>
                       <Text style={[styles.statNumber, { color: theme.text }]}>
-                        {formatCandidateRating(candidate.rating)}
+                        {candidate.rating ?? "-"}
                       </Text>
 
                       <Text
