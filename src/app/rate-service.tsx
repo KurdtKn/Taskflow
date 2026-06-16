@@ -19,6 +19,7 @@ import { styles } from "@/app/styles/rateService";
 import { useTheme } from "@/app/context/ThemeContext";
 import { apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
+import { addTaskFlowNotification } from "@/services/local-notifications";
 
 const ratingTags = [
   "Pontual",
@@ -118,6 +119,10 @@ export default function RateServiceScreen() {
     freelancerId?: string | string[];
     freelancerUsuarioId?: string | string[];
     freelancer_usuario_id?: string | string[];
+    freelancerUserId?: string | string[];
+    candidateUserId?: string | string[];
+    usuarioId?: string | string[];
+    usuario_id?: string | string[];
     empresaUsuarioId?: string | string[];
     empresa_usuario_id?: string | string[];
     jobTitle?: string | string[];
@@ -137,7 +142,12 @@ export default function RateServiceScreen() {
   const candidaturaId = getParamValue(params.candidaturaId);
   const freelancerId = getParamValue(params.freelancerId);
   const freelancerUsuarioId = getParamValue(
-    params.freelancerUsuarioId ?? params.freelancer_usuario_id
+    params.freelancerUsuarioId ??
+      params.freelancer_usuario_id ??
+      params.freelancerUserId ??
+      params.candidateUserId ??
+      params.usuarioId ??
+      params.usuario_id
   );
   const empresaUsuarioId = getParamValue(
     params.empresaUsuarioId ?? params.empresa_usuario_id
@@ -371,6 +381,48 @@ export default function RateServiceScreen() {
       };
 
       await saveReview(review);
+
+      try {
+        // Para o MVP/TCC, não travamos essa notificação por targetUserId.
+        // Em alguns fluxos a tela recebe freelancerId (perfil) em vez de usuarioId,
+        // e a tela de notificações filtra pelo usuarioId logado. Quando o ID vem diferente,
+        // a avaliação é salva, mas a notificação não aparece. Sem targetUserId ela aparece
+        // para o lado freelancer e evita esse sumiço.
+        const notificationTargetUserId = undefined;
+
+        await addTaskFlowNotification({
+          audience: "freelancer",
+          targetUserId: notificationTargetUserId,
+          type: "review_received",
+          title: "Avaliação recebida",
+          description: `${companyName} avaliou seu serviço no chamado ${jobTitle}.`,
+          jobId,
+          chamadoId: jobId,
+          jobTitle,
+          companyName,
+          freelancerId: freelancerUsuarioId || freelancerId || undefined,
+          candidateId: freelancerId || freelancerUsuarioId || undefined,
+          candidaturaId,
+          contratoId: String(contratoId),
+          contractId: String(contratoId),
+          params: {
+            jobId,
+            chamadoId: jobId,
+            jobTitle,
+            companyName,
+            candidaturaId,
+            freelancerId,
+            freelancerUsuarioId,
+            contratoId: String(contratoId),
+          },
+          eventKey: `review-to-freelancer:${contratoId}:${freelancerUsuarioId || freelancerId || avaliadoId || "sem-freelancer"}`,
+        });
+      } catch (notificationError) {
+        console.log(
+          "Avaliação salva, mas não foi possível gerar notificação para o freelancer:",
+          notificationError
+        );
+      }
 
       console.log("Avaliação salva localmente:", review);
 

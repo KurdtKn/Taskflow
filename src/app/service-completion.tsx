@@ -18,6 +18,7 @@ import { styles } from "@/app/styles/serviceCompletion";
 import { useTheme } from "@/app/context/ThemeContext";
 import { apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
+import { addTaskFlowNotification } from "@/services/local-notifications";
 
 type ChecklistItem = {
   id: string;
@@ -152,6 +153,9 @@ export default function ServiceCompletionScreen() {
     jobId?: string | string[];
     candidaturaId?: string | string[];
     freelancerId?: string | string[];
+    candidateUserId?: string | string[];
+    freelancerUserId?: string | string[];
+    usuarioId?: string | string[];
 
     jobTitle?: string | string[];
     jobCategory?: string | string[];
@@ -178,6 +182,11 @@ export default function ServiceCompletionScreen() {
   const jobId = getParamValue(params.jobId);
   const candidaturaId = getParamValue(params.candidaturaId);
   const freelancerId = getParamValue(params.freelancerId);
+  const candidateUserId =
+    getParamValue(params.candidateUserId) ||
+    getParamValue(params.freelancerUserId) ||
+    getParamValue(params.usuarioId) ||
+    freelancerId;
 
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
   const jobCategory = getParamValue(params.jobCategory);
@@ -281,6 +290,32 @@ export default function ServiceCompletionScreen() {
         );
       }
 
+      await addTaskFlowNotification({
+        audience: "freelancer",
+        targetUserId: candidateUserId,
+        type: "service",
+        title: "Serviço concluído",
+        description: `A empresa marcou ${jobTitle} como concluído. Faça sua avaliação.`,
+        jobId,
+        chamadoId: jobId,
+        candidaturaId,
+        freelancerId,
+        contratoId,
+        contractId: contratoId,
+        jobTitle,
+        companyName,
+        params: {
+          contratoId,
+          jobId,
+          candidaturaId,
+          freelancerId,
+          candidateUserId,
+          jobTitle,
+          companyName,
+        },
+        eventKey: `service-completed:${contratoId}`,
+      });
+
       router.push({
         pathname: "/rate-service",
         params: {
@@ -292,6 +327,9 @@ export default function ServiceCompletionScreen() {
           jobId,
           candidaturaId,
           freelancerId,
+          candidateUserId,
+          freelancerUserId: candidateUserId,
+          usuarioId: candidateUserId,
 
           jobTitle,
           jobCategory,

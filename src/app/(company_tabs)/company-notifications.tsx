@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import NotificationIcon from "../../../assets/icons/notifications.svg";
 import SupportIcon from "../../../assets/icons/support_agent.svg";
@@ -19,8 +19,16 @@ import CheckIcon from "../../../assets/icons/check.svg";
 import { styles } from "@/app/styles/companyNotifications";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
+import { getLoggedUser } from "@/services/storage";
+import {
+  formatTaskFlowNotificationTime,
+  getTaskFlowNotifications,
+  markAllTaskFlowNotificationsAsRead,
+  markTaskFlowNotificationAsRead,
+  type TaskFlowNotification,
+} from "@/services/local-notifications";
 
-type NotificationType = "candidate" | "payment" | "message" | "service";
+type NotificationType = "candidate" | "payment" | "message" | "service" | "review";
 type NotificationFilter = "all" | "unread" | NotificationType;
 
 type CompanyNotification = {
@@ -33,6 +41,13 @@ type CompanyNotification = {
   jobId?: string;
   chatId?: string;
   candidateId?: string;
+  candidaturaId?: string;
+  contractId?: string;
+  contratoId?: string;
+  freelancerId?: string;
+  jobTitle?: string;
+  companyName?: string;
+  params?: Record<string, string>;
 };
 
 type NotificationTypeConfig = {
@@ -67,7 +82,75 @@ const typeConfig: Record<NotificationType, NotificationTypeConfig> = {
     color: colors.primaryDark,
     backgroundColor: "rgba(22,62,159,0.1)",
   },
+  review: {
+    label: "Avaliação",
+    Icon: CheckIcon,
+    color: colors.warning,
+    backgroundColor: "rgba(245,158,11,0.14)",
+  },
 };
+
+function getLoggedUserId(loggedUser: any) {
+  const possibleId =
+    loggedUser?.id ??
+    loggedUser?.usuarioId ??
+    loggedUser?.idUsuario ??
+    loggedUser?.userId ??
+    loggedUser?.usuario_id ??
+    loggedUser?.empresaId ??
+    loggedUser?.idEmpresa;
+
+  if (possibleId === null || possibleId === undefined || possibleId === "") {
+    return "";
+  }
+
+  return String(possibleId);
+}
+
+function normalizeCompanyNotificationType(
+  notification: TaskFlowNotification
+): NotificationType {
+  if (notification.type === "candidate" || notification.type === "new_job") {
+    return "candidate";
+  }
+
+  if (notification.type === "payment") {
+    return "payment";
+  }
+
+  if (notification.type === "message" || notification.type === "chat_released") {
+    return "message";
+  }
+
+  if (notification.type === "review_received") {
+    return "review";
+  }
+
+  return "service";
+}
+
+function mapToCompanyNotification(
+  notification: TaskFlowNotification
+): CompanyNotification {
+  return {
+    id: notification.id,
+    type: normalizeCompanyNotificationType(notification),
+    title: notification.title,
+    description: notification.description,
+    time: formatTaskFlowNotificationTime(notification.createdAt),
+    isRead: notification.read,
+    jobId: notification.jobId ?? notification.chamadoId,
+    chatId: notification.chatId,
+    candidateId: notification.candidateId,
+    candidaturaId: notification.candidaturaId,
+    contractId: notification.contractId ?? notification.contratoId,
+    contratoId: notification.contratoId ?? notification.contractId,
+    freelancerId: notification.freelancerId,
+    jobTitle: notification.jobTitle,
+    companyName: notification.companyName,
+    params: notification.params,
+  };
+}
 
 export default function CompanyNotificationsScreen() {
   const [selectedFilter, setSelectedFilter] =
@@ -75,54 +158,45 @@ export default function CompanyNotificationsScreen() {
 
   const [notifications, setNotifications] = useState<CompanyNotification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loggedUserId, setLoggedUserId] = useState("");
 
   const { isDark, theme } = useTheme();
 
-  useEffect(() => {
-    loadNotifications();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadNotifications();
 
-  async function loadNotifications() {
+      const interval = setInterval(() => {
+        loadNotifications(false);
+      }, 1500);
+
+      return () => clearInterval(interval);
+    }, [])
+  );
+
+  async function loadNotifications(showLoading = true) {
     try {
-      setIsLoading(true);
+      if (showLoading) {
+        setIsLoading(true);
+      }
 
-      /*
-        Futuramente entra aqui a API.
+      const loggedUser = await getLoggedUser();
+      const userId = getLoggedUserId(loggedUser);
 
-        Exemplo:
-        const response = await companyNotificationsService.getMyNotifications();
-        setNotifications(response);
+      setLoggedUserId(userId);
 
-        A API deve retornar somente as notificações da empresa logada,
-        usando o token salvo depois do login.
+      const response = await getTaskFlowNotifications({
+        audience: "company",
+      });
 
-        Formato esperado:
-        [
-          {
-            id: "1",
-            type: "candidate",
-            title: "Novo candidato no chamado",
-            description: "Um freelancer se candidatou ao chamado.",
-            time: "Agora",
-            isRead: false,
-            jobId: "10",
-            candidateId: "5"
-          }
-        ]
-
-        Tipos aceitos:
-        candidate -> leva para candidatos do chamado
-        payment   -> leva para pagamentos
-        message   -> leva para chat
-        service   -> leva para conclusão/andamento do serviço
-      */
-
-      setNotifications([]);
+      setNotifications(response.map(mapToCompanyNotification));
     } catch (error) {
       console.log("Erro ao carregar notificações da empresa:", error);
       setNotifications([]);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   }
 
@@ -144,49 +218,77 @@ export default function CompanyNotificationsScreen() {
     );
   }, [selectedFilter, notifications]);
 
-  function markAsRead(notificationId: string) {
-    /*
-      Futuramente:
-      await companyNotificationsService.markAsRead(notificationId);
-    */
+  async function markAsRead(notificationId: string) {
+    try {
+      await markTaskFlowNotificationAsRead(notificationId);
 
-    setNotifications((currentNotifications) =>
-      currentNotifications.map((notification) => {
-        if (notification.id === notificationId) {
-          return {
-            ...notification,
-            isRead: true,
-          };
-        }
+      setNotifications((currentNotifications) =>
+        currentNotifications.map((notification) => {
+          if (notification.id === notificationId) {
+            return {
+              ...notification,
+              isRead: true,
+            };
+          }
 
-        return notification;
-      })
-    );
+          return notification;
+        })
+      );
+    } catch (error) {
+      console.log("Erro ao marcar notificação como lida:", error);
+    }
   }
 
-  function markAllAsRead() {
-    /*
-      Futuramente:
-      await companyNotificationsService.markAllAsRead();
-    */
+  async function markAllAsRead() {
+    try {
+      await markAllTaskFlowNotificationsAsRead({
+        audience: "company",
+      });
 
-    setNotifications((currentNotifications) =>
-      currentNotifications.map((notification) => ({
-        ...notification,
-        isRead: true,
-      }))
-    );
+      setNotifications((currentNotifications) =>
+        currentNotifications.map((notification) => ({
+          ...notification,
+          isRead: true,
+        }))
+      );
+    } catch (error) {
+      console.log("Erro ao marcar todas como lidas:", error);
+    }
   }
 
-  function handleOpenNotification(notification: CompanyNotification) {
-    markAsRead(notification.id);
+  async function handleOpenNotification(notification: CompanyNotification) {
+    await markAsRead(notification.id);
+
+    const notificationParams = notification.params ?? {};
+    const jobId =
+      notification.jobId ||
+      notificationParams.id ||
+      notificationParams.chamadoId ||
+      notificationParams.jobId ||
+      "";
+    const contractId = notification.contractId ?? notification.contratoId ?? "";
 
     if (notification.type === "candidate") {
       router.push({
         pathname: "/job-candidates",
         params: {
-          jobId: notification.jobId ?? "",
-          candidateId: notification.candidateId ?? "",
+          ...notificationParams,
+          id: jobId,
+          chamadoId: jobId,
+          jobId,
+          title:
+            notificationParams.title ||
+            notification.jobTitle ||
+            "Chamado",
+          companyName:
+            notificationParams.companyName ||
+            notification.companyName ||
+            notificationParams.company ||
+            "Empresa",
+          candidateId: notification.candidateId ?? notificationParams.candidateId ?? "",
+          candidaturaId:
+            notification.candidaturaId ?? notificationParams.candidaturaId ?? "",
+          freelancerId: notification.freelancerId ?? notificationParams.freelancerId ?? "",
         },
       });
 
@@ -203,8 +305,25 @@ export default function CompanyNotificationsScreen() {
         pathname: "/chat",
         params: {
           chatId: notification.chatId ?? "",
-          jobId: notification.jobId ?? "",
+          jobId,
+          contratoId: contractId,
+          contractId,
           userType: "company",
+          ...(notification.params ?? {}),
+        },
+      });
+
+      return;
+    }
+
+    if (notification.type === "review") {
+      router.push({
+        pathname: "/company-reviews",
+        params: {
+          jobId,
+          contratoId: contractId,
+          contractId,
+          ...(notification.params ?? {}),
         },
       });
 
@@ -215,7 +334,10 @@ export default function CompanyNotificationsScreen() {
       router.push({
         pathname: "/service-completion",
         params: {
-          jobId: notification.jobId ?? "",
+          jobId,
+          contratoId: contractId,
+          contractId,
+          ...(notification.params ?? {}),
         },
       });
     }
@@ -231,7 +353,7 @@ export default function CompanyNotificationsScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.text }]}> 
           Notificações
         </Text>
 
@@ -254,17 +376,17 @@ export default function CompanyNotificationsScreen() {
           ]}
         >
           <View>
-            <Text style={[styles.summaryLabel, { color: colors.primary }]}>
+            <Text style={[styles.summaryLabel, { color: colors.primary }]}> 
               Central da empresa
             </Text>
 
-            <Text style={[styles.summaryTitle, { color: theme.text }]}>
+            <Text style={[styles.summaryTitle, { color: theme.text }]}> 
               {unreadCount > 0
                 ? `${unreadCount} novas notificações`
                 : "Tudo em dia"}
             </Text>
 
-            <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
+            <Text style={[styles.summaryText, { color: theme.textSecondary }]}> 
               Acompanhe candidaturas, pagamentos, mensagens e andamento dos
               serviços.
             </Text>
@@ -363,14 +485,36 @@ export default function CompanyNotificationsScreen() {
               Pagamentos
             </Text>
           </Pressable>
+
+          <Pressable
+            style={[
+              styles.filterChip,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+              },
+              selectedFilter === "review" && styles.filterChipActive,
+            ]}
+            onPress={() => setSelectedFilter("review")}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                { color: theme.textSecondary },
+                selectedFilter === "review" && styles.filterTextActive,
+              ]}
+            >
+              Avaliações
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}> 
             Atividades recentes
           </Text>
 
-          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}> 
             Toque em uma notificação para acompanhar a atividade.
           </Text>
         </View>
@@ -386,11 +530,11 @@ export default function CompanyNotificationsScreen() {
                 },
               ]}
             >
-              <Text style={[styles.infoTitle, { color: theme.text }]}>
+              <Text style={[styles.infoTitle, { color: theme.text }]}> 
                 Carregando notificações...
               </Text>
 
-              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}> 
                 Buscando as atividades recentes da empresa.
               </Text>
             </View>
@@ -404,11 +548,11 @@ export default function CompanyNotificationsScreen() {
                 },
               ]}
             >
-              <Text style={[styles.infoTitle, { color: theme.text }]}>
+              <Text style={[styles.infoTitle, { color: theme.text }]}> 
                 Nenhuma notificação encontrada
               </Text>
 
-              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}> 
                 Quando houver candidaturas, pagamentos ou mensagens, elas
                 aparecerão aqui.
               </Text>
@@ -428,6 +572,14 @@ export default function CompanyNotificationsScreen() {
                       borderColor: theme.border,
                     },
                     !notification.isRead && styles.notificationCardUnread,
+                    !notification.isRead && {
+                      backgroundColor: isDark
+                        ? "rgba(11,87,208,0.18)"
+                        : "rgba(239,246,255,1)",
+                      borderColor: isDark
+                        ? colors.primary
+                        : "rgba(11,87,208,0.35)",
+                    },
                     pressed && styles.notificationCardPressed,
                   ]}
                   onPress={() => handleOpenNotification(notification)}
@@ -438,7 +590,7 @@ export default function CompanyNotificationsScreen() {
                       { backgroundColor: currentType.backgroundColor },
                     ]}
                   >
-                    <Icon width={24} height={24} />
+                    <Icon width={24} height={24} color={currentType.color} />
                   </View>
 
                   <View style={styles.notificationContent}>
@@ -508,11 +660,11 @@ export default function CompanyNotificationsScreen() {
             },
           ]}
         >
-          <Text style={[styles.infoTitle, { color: theme.text }]}>
+          <Text style={[styles.infoTitle, { color: theme.text }]}> 
             Push notifications
           </Text>
 
-          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}> 
             As notificações ajudam a empresa a acompanhar novas candidaturas,
             pagamentos confirmados e mensagens importantes.
           </Text>
