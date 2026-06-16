@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 
@@ -23,6 +25,9 @@ import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
 
 type CriarChamadoResponse = {
+  id?: number | string;
+  chamadoId?: number | string;
+  chamado_id?: number | string;
   mensagem?: string;
   chamado?: {
     id?: number;
@@ -63,8 +68,116 @@ const MAX_VALOR_ESTIMADO = 1000000;
 const DESCRIPTION_MIN_LENGTH = 20;
 const DESCRIPTION_MAX_LENGTH = 500;
 
-const IMAGE_URL_MAX_LENGTH = 500;
 const MAX_IMAGE_ATTACHMENTS = 5;
+
+const JOB_IMAGE_STORAGE_KEY = "@taskflow:job-images-by-key";
+
+type LocalJobImageRecord = {
+  imageUrls: string[];
+  savedAt: string;
+  jobId?: string;
+  title?: string;
+  localServico?: string;
+  cidade?: string;
+  estado?: string;
+};
+
+function normalizeStorageKeyPart(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function makeJobFingerprintKey(values: {
+  title?: unknown;
+  localServico?: unknown;
+  cidade?: unknown;
+  estado?: unknown;
+}) {
+  return [
+    normalizeStorageKeyPart(values.title),
+    normalizeStorageKeyPart(values.localServico),
+    normalizeStorageKeyPart(values.cidade),
+    normalizeStorageKeyPart(values.estado),
+  ].join("|");
+}
+
+function uniqueImageUrls(urls: string[]) {
+  return Array.from(
+    new Set(urls.map((url) => normalizeImageUrl(url)).filter(Boolean))
+  );
+}
+
+async function saveLocalJobImages(values: {
+  jobId?: unknown;
+  title: string;
+  localServico: string;
+  cidade: string;
+  estado: string;
+  imageUrls: string[];
+}) {
+  const uniqueUrls = uniqueImageUrls(values.imageUrls);
+
+  if (uniqueUrls.length === 0) {
+    return;
+  }
+
+  try {
+    const rawStorage = await AsyncStorage.getItem(JOB_IMAGE_STORAGE_KEY);
+    const currentStorage: Record<string, LocalJobImageRecord> = rawStorage
+      ? JSON.parse(rawStorage)
+      : {};
+
+    const record: LocalJobImageRecord = {
+      imageUrls: uniqueUrls,
+      savedAt: new Date().toISOString(),
+      jobId: values.jobId ? String(values.jobId) : undefined,
+      title: values.title,
+      localServico: values.localServico,
+      cidade: values.cidade,
+      estado: values.estado,
+    };
+
+    const keys = new Set<string>();
+    const jobId = String(values.jobId ?? "").trim();
+
+    if (jobId) {
+      keys.add(`id:${jobId}`);
+    }
+
+    const fingerprintKey = makeJobFingerprintKey(values);
+
+    if (fingerprintKey.replace(/\|/g, "")) {
+      keys.add(`fingerprint:${fingerprintKey}`);
+    }
+
+    keys.forEach((key) => {
+      currentStorage[key] = record;
+    });
+
+    await AsyncStorage.setItem(
+      JOB_IMAGE_STORAGE_KEY,
+      JSON.stringify(currentStorage)
+    );
+  } catch (error) {
+    console.log("Erro ao salvar imagens locais do chamado:", error);
+  }
+}
+
+function getCreatedJobId(response: CriarChamadoResponse) {
+  const possibleId =
+    response?.chamado?.id ?? response?.id ?? response?.chamadoId ?? response?.chamado_id;
+
+  if (possibleId === null || possibleId === undefined || possibleId === "") {
+    return "";
+  }
+
+  return String(possibleId);
+}
+
 
 function normalizeUserType(value?: string | null) {
   return value?.toLowerCase().trim();
@@ -333,7 +446,6 @@ export default function CreateJobScreen() {
   const [horaServico, setHoraServico] = useState("");
   const [valorEstimado, setValorEstimado] = useState("");
   const [quantidadeProfissionais, setQuantidadeProfissionais] = useState("1");
-  const [imageUrlInput, setImageUrlInput] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const [sugestoesEndereco, setSugestoesEndereco] = useState<EnderecoSugestao[]>([]);
@@ -349,12 +461,6 @@ export default function CreateJobScreen() {
 
   const hasSelectedAddress =
     latitudeSelecionada !== null && longitudeSelecionada !== null;
-
-  const normalizedImageUrlInput = normalizeImageUrl(imageUrlInput);
-  const canAddImageUrl =
-    imageUrls.length < MAX_IMAGE_ATTACHMENTS &&
-    isValidImageUrl(normalizedImageUrlInput) &&
-    !imageUrls.includes(normalizedImageUrlInput);
 
   const normalizedDescription = normalizeTextValue(descricao);
   const descriptionLength = descricao.length;
@@ -432,31 +538,7 @@ export default function CreateJobScreen() {
     setDescricao(value.slice(0, DESCRIPTION_MAX_LENGTH));
   }
 
-  function handleImageUrlChange(value: string) {
-    setImageUrlInput(value.slice(0, IMAGE_URL_MAX_LENGTH));
-  }
-
-  function handleAddImageUrl() {
-    const normalizedUrl = normalizeImageUrl(imageUrlInput);
-
-    if (!normalizedUrl) {
-      Alert.alert("Imagem obrigatória", "Cole a URL da imagem antes de adicionar.");
-      return;
-    }
-
-    if (!isValidImageUrl(normalizedUrl)) {
-      Alert.alert(
-        "URL inválida",
-        "Informe uma URL de imagem começando com http:// ou https://."
-      );
-      return;
-    }
-
-    if (imageUrls.includes(normalizedUrl)) {
-      Alert.alert("Imagem repetida", "Essa imagem já foi adicionada.");
-      return;
-    }
-
+  async function handlePickImage() {
     if (imageUrls.length >= MAX_IMAGE_ATTACHMENTS) {
       Alert.alert(
         "Limite de imagens",
@@ -465,8 +547,46 @@ export default function CreateJobScreen() {
       return;
     }
 
-    setImageUrls((currentImages) => [...currentImages, normalizedUrl]);
-    setImageUrlInput("");
+    try {
+      if (Platform.OS !== "web") {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permission.granted) {
+          Alert.alert(
+            "Permissão necessária",
+            "Permita o acesso à galeria para selecionar imagens do chamado."
+          );
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.9,
+      });
+
+      if (result.canceled || !result.assets?.length) {
+        return;
+      }
+
+      const selectedUri = normalizeImageUrl(result.assets[0]?.uri ?? "");
+
+      if (!selectedUri) {
+        Alert.alert("Imagem inválida", "Não foi possível selecionar essa imagem.");
+        return;
+      }
+
+      if (imageUrls.includes(selectedUri)) {
+        Alert.alert("Imagem repetida", "Essa imagem já foi adicionada.");
+        return;
+      }
+
+      setImageUrls((currentImages) => [...currentImages, selectedUri]);
+    } catch (error) {
+      console.log("Erro ao selecionar imagem do chamado:", error);
+      Alert.alert("Erro", "Não foi possível selecionar a imagem agora.");
+    }
   }
 
   function removeImageUrl(imageUrl: string) {
@@ -775,9 +895,20 @@ export default function CreateJobScreen() {
 
       console.log("Chamado criado:", response);
 
+      await saveLocalJobImages({
+        jobId: getCreatedJobId(response),
+        title: titulo.trim(),
+        localServico: localServico.trim(),
+        cidade: cidade.trim(),
+        estado: estado.trim().toUpperCase(),
+        imageUrls,
+      });
+
       Alert.alert(
         "Chamado criado",
-        "Seu chamado foi publicado com sucesso."
+        imageUrls.length > 0
+          ? "Seu chamado foi publicado com sucesso e as imagens foram salvas."
+          : "Seu chamado foi publicado com sucesso."
       );
 
       router.replace("/company-dashboard");
@@ -924,67 +1055,49 @@ export default function CreateJobScreen() {
                 { color: theme.textSecondary },
               ]}
             >
-              Campo opcional. Cole URLs de imagens para deixar o chamado pronto quando a API salvar anexos.
+              Campo opcional. Toque no botão + para selecionar imagens da galeria.
             </Text>
 
-            <View style={localStyles.imageInputRow}>
-              <TextInput
-                style={[
-                  inputStyle,
-                  localStyles.imageInput,
-                ]}
-                placeholder="https://exemplo.com/imagem.jpg"
-                placeholderTextColor={theme.textSecondary}
-                value={imageUrlInput}
-                onChangeText={handleImageUrlChange}
-                autoCapitalize="none"
-                autoCorrect={false}
-                maxLength={IMAGE_URL_MAX_LENGTH}
-              />
-
-              <Pressable
-                disabled={!canAddImageUrl}
-                style={({ pressed }) => [
-                  localStyles.addImageButton,
-                  !canAddImageUrl && localStyles.addImageButtonDisabled,
-                  pressed && canAddImageUrl && { opacity: 0.82 },
-                ]}
-                onPress={handleAddImageUrl}
-              >
-                <Text style={localStyles.addImageButtonText}>+</Text>
-              </Pressable>
-            </View>
-
-            <View style={localStyles.imageInfoRow}>
+            <View style={localStyles.imagePickerRow}>
               <Text
                 style={[
                   localStyles.helperText,
-                  {
-                    color:
-                      imageUrlInput.trim().length > 0 && !isValidImageUrl(imageUrlInput)
-                        ? "#DC2626"
-                        : theme.textSecondary,
-                  },
+                  { color: theme.textSecondary },
                 ]}
               >
-                {imageUrlInput.trim().length > 0 && !isValidImageUrl(imageUrlInput)
-                  ? "A URL precisa começar com http:// ou https://."
-                  : `Até ${MAX_IMAGE_ATTACHMENTS} imagens.`}
+                Até {MAX_IMAGE_ATTACHMENTS} imagens.
               </Text>
 
-              <Text
-                style={[
-                  localStyles.imageCounter,
-                  {
-                    color:
-                      imageUrls.length >= MAX_IMAGE_ATTACHMENTS
-                        ? "#DC2626"
-                        : theme.textSecondary,
-                  },
-                ]}
-              >
-                {imageUrls.length}/{MAX_IMAGE_ATTACHMENTS}
-              </Text>
+              <View style={localStyles.imagePickerActions}>
+                <Text
+                  style={[
+                    localStyles.imageCounter,
+                    {
+                      color:
+                        imageUrls.length >= MAX_IMAGE_ATTACHMENTS
+                          ? "#DC2626"
+                          : theme.textSecondary,
+                    },
+                  ]}
+                >
+                  {imageUrls.length}/{MAX_IMAGE_ATTACHMENTS}
+                </Text>
+
+                <Pressable
+                  disabled={imageUrls.length >= MAX_IMAGE_ATTACHMENTS}
+                  style={({ pressed }) => [
+                    localStyles.addImageButton,
+                    imageUrls.length >= MAX_IMAGE_ATTACHMENTS &&
+                      localStyles.addImageButtonDisabled,
+                    pressed && imageUrls.length < MAX_IMAGE_ATTACHMENTS && {
+                      opacity: 0.82,
+                    },
+                  ]}
+                  onPress={handlePickImage}
+                >
+                  <Text style={localStyles.addImageButtonText}>+</Text>
+                </Pressable>
+              </View>
             </View>
 
             {imageUrls.length > 0 && (
@@ -1489,14 +1602,17 @@ const localStyles = StyleSheet.create({
     fontWeight: "900",
   },
 
-  imageInputRow: {
+  imagePickerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "space-between",
+    gap: 12,
   },
 
-  imageInput: {
-    flex: 1,
+  imagePickerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
 
   addImageButton: {

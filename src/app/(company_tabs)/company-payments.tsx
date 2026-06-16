@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
   Pressable,
   RefreshControl,
   SafeAreaView,
@@ -9,6 +10,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useFocusEffect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import CreditCardIcon from "../../../assets/icons/credit_card.svg";
 
@@ -23,6 +25,9 @@ type PaymentFilter = "all" | PaymentStatus;
 
 type PaymentItem = {
   id: string;
+  jobId: string;
+  contratoId: string;
+  candidaturaId: string;
   service: string;
   freelancer: string;
   date: string;
@@ -31,6 +36,9 @@ type PaymentItem = {
   platformFee: string;
   total: string;
   status: PaymentStatus;
+  category: string;
+  location: string;
+  rawDate: string;
 };
 
 const statusConfig = {
@@ -106,6 +114,271 @@ function formatPaymentDate(value?: string) {
     month: "2-digit",
     year: "numeric",
   });
+}
+
+function getTextValue(...values: any[]) {
+  for (const value of values) {
+    if (value === null || value === undefined) {
+      continue;
+    }
+
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+
+    if (typeof value === "number") {
+      return String(value);
+    }
+  }
+
+  return "";
+}
+
+
+function normalizePaymentMethodLabel(value?: string) {
+  const rawValue = String(value ?? "").trim();
+
+  if (!rawValue) {
+    return "";
+  }
+
+  const normalized = rawValue
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+  // Esse texto era o erro: ele é a descrição da cobrança, não a forma de pagamento.
+  if (
+    normalized === "taxa taskflow" ||
+    normalized === "taskflow" ||
+    normalized === "taxa da plataforma" ||
+    normalized === "plataforma"
+  ) {
+    return "";
+  }
+
+  if (
+    normalized.includes("pix") ||
+    normalized === "instant payment" ||
+    normalized === "instantaneo"
+  ) {
+    return "PIX";
+  }
+
+  if (
+    normalized.includes("credito") ||
+    normalized.includes("cartao") ||
+    normalized === "card" ||
+    normalized === "credit_card" ||
+    normalized === "creditcard" ||
+    normalized === "cartao_credito"
+  ) {
+    return "Cartão de crédito";
+  }
+
+  if (
+    normalized.includes("debito") ||
+    normalized === "debit_card" ||
+    normalized === "debitcard" ||
+    normalized === "cartao_debito"
+  ) {
+    return "Cartão de débito";
+  }
+
+  if (
+    normalized.includes("saldo") ||
+    normalized.includes("carteira") ||
+    normalized === "wallet" ||
+    normalized === "balance"
+  ) {
+    return "Saldo na conta";
+  }
+
+  if (normalized.includes("dinheiro") || normalized === "cash") {
+    return "Dinheiro";
+  }
+
+  return rawValue;
+}
+
+
+const PAYMENT_METHOD_STORAGE_PREFIXES = [
+  "taskflow_payment_method_",
+  "payment_method_",
+  "paymentMethod_",
+  "selected_payment_method_",
+];
+
+function getPaymentMethodFromApi(chamado: any) {
+  const possibleMethods = [
+    chamado?.formaPagamento,
+    chamado?.forma_pagamento,
+    chamado?.metodoPagamento,
+    chamado?.metodo_pagamento,
+    chamado?.meioPagamento,
+    chamado?.meio_pagamento,
+    chamado?.paymentMethod,
+    chamado?.payment_method,
+    chamado?.method,
+    chamado?.forma,
+    chamado?.pagamento?.formaPagamento,
+    chamado?.pagamento?.forma_pagamento,
+    chamado?.pagamento?.metodoPagamento,
+    chamado?.pagamento?.metodo_pagamento,
+    chamado?.pagamento?.meioPagamento,
+    chamado?.pagamento?.meio_pagamento,
+    chamado?.pagamento?.paymentMethod,
+    chamado?.pagamento?.payment_method,
+    chamado?.pagamento?.method,
+    chamado?.pagamento?.forma,
+    chamado?.pagamentoTaxa?.formaPagamento,
+    chamado?.pagamentoTaxa?.forma_pagamento,
+    chamado?.pagamentoTaxa?.metodoPagamento,
+    chamado?.pagamentoTaxa?.metodo_pagamento,
+    chamado?.pagamentoTaxa?.paymentMethod,
+    chamado?.pagamentoTaxa?.payment_method,
+    chamado?.pagamento_taxa?.formaPagamento,
+    chamado?.pagamento_taxa?.forma_pagamento,
+    chamado?.pagamento_taxa?.metodoPagamento,
+    chamado?.pagamento_taxa?.metodo_pagamento,
+    chamado?.contrato?.formaPagamento,
+    chamado?.contrato?.forma_pagamento,
+    chamado?.contrato?.metodoPagamento,
+    chamado?.contrato?.metodo_pagamento,
+    chamado?.contrato?.paymentMethod,
+    chamado?.contrato?.payment_method,
+  ];
+
+  if (Array.isArray(chamado?.pagamentos)) {
+    for (const pagamento of chamado.pagamentos) {
+      possibleMethods.push(
+        pagamento?.formaPagamento,
+        pagamento?.forma_pagamento,
+        pagamento?.metodoPagamento,
+        pagamento?.metodo_pagamento,
+        pagamento?.paymentMethod,
+        pagamento?.payment_method,
+        pagamento?.method,
+        pagamento?.forma
+      );
+    }
+  }
+
+  if (Array.isArray(chamado?.pagamentosTaxa)) {
+    for (const pagamento of chamado.pagamentosTaxa) {
+      possibleMethods.push(
+        pagamento?.formaPagamento,
+        pagamento?.forma_pagamento,
+        pagamento?.metodoPagamento,
+        pagamento?.metodo_pagamento,
+        pagamento?.paymentMethod,
+        pagamento?.payment_method,
+        pagamento?.method,
+        pagamento?.forma
+      );
+    }
+  }
+
+  if (Array.isArray(chamado?.pagamentos_taxa)) {
+    for (const pagamento of chamado.pagamentos_taxa) {
+      possibleMethods.push(
+        pagamento?.formaPagamento,
+        pagamento?.forma_pagamento,
+        pagamento?.metodoPagamento,
+        pagamento?.metodo_pagamento,
+        pagamento?.paymentMethod,
+        pagamento?.payment_method,
+        pagamento?.method,
+        pagamento?.forma
+      );
+    }
+  }
+
+  for (const possibleMethod of possibleMethods) {
+    const methodLabel = normalizePaymentMethodLabel(getTextValue(possibleMethod));
+
+    if (methodLabel) {
+      return methodLabel;
+    }
+  }
+
+  return "";
+}
+
+function getChamadoContratoId(chamado: any) {
+  return getTextValue(
+    chamado?.contratoId,
+    chamado?.idContrato,
+    chamado?.id_contrato,
+    chamado?.contrato_id,
+    chamado?.contrato?.id,
+    chamado?.contrato?.idContrato,
+    chamado?.contrato?.contratoId
+  );
+}
+
+function getChamadoCandidaturaId(chamado: any) {
+  return getTextValue(
+    chamado?.candidaturaId,
+    chamado?.idCandidatura,
+    chamado?.id_candidatura,
+    chamado?.candidatura_id,
+    chamado?.solicitacaoId,
+    chamado?.idSolicitacao,
+    chamado?.contrato?.candidaturaId,
+    chamado?.contrato?.idCandidatura
+  );
+}
+
+async function getStoredPaymentMethod(ids: {
+  jobId?: string;
+  contratoId?: string;
+  candidaturaId?: string;
+}) {
+  const rawIds = [ids.contratoId, ids.jobId, ids.candidaturaId].filter(
+    (value): value is string => Boolean(value && String(value).trim())
+  );
+
+  const keys = rawIds.flatMap((id) =>
+    PAYMENT_METHOD_STORAGE_PREFIXES.map((prefix) => `${prefix}${id}`)
+  );
+
+  for (const key of keys) {
+    try {
+      const storedValue = await AsyncStorage.getItem(key);
+      const methodLabel = normalizePaymentMethodLabel(storedValue ?? "");
+
+      if (methodLabel) {
+        return methodLabel;
+      }
+    } catch (error) {
+      console.log("Erro ao ler forma de pagamento local:", key, error);
+    }
+  }
+
+  return "";
+}
+
+async function getPaymentMethod(chamado: any, status: PaymentStatus, ids: {
+  jobId?: string;
+  contratoId?: string;
+  candidaturaId?: string;
+}) {
+  const methodFromApi = getPaymentMethodFromApi(chamado);
+
+  if (methodFromApi) {
+    return methodFromApi;
+  }
+
+  const methodFromStorage = await getStoredPaymentMethod(ids);
+
+  if (methodFromStorage) {
+    return methodFromStorage;
+  }
+
+  // Fallback rápido para registros antigos que foram pagos antes dessa correção.
+  return status === "paid" ? "Cartão de crédito" : "Aguardando pagamento";
 }
 
 function normalizeStatus(status?: string) {
@@ -214,7 +487,7 @@ function getChamadoEmpresaId(chamado: any) {
   );
 }
 
-function normalizeChamadoToPayment(chamado: any): PaymentItem | null {
+async function normalizeChamadoToPayment(chamado: any): Promise<PaymentItem | null> {
   const status = getPaymentStatus(chamado?.status);
 
   if (!status) {
@@ -227,6 +500,9 @@ function normalizeChamadoToPayment(chamado: any): PaymentItem | null {
     chamado?.chamadoId ??
     chamado?.id_chamado ??
     `${Date.now()}-${Math.random()}`;
+
+  const contratoId = getChamadoContratoId(chamado);
+  const candidaturaId = getChamadoCandidaturaId(chamado);
 
   const service =
     chamado?.titulo ??
@@ -260,16 +536,46 @@ function normalizeChamadoToPayment(chamado: any): PaymentItem | null {
   const taxaPlataforma = valorServico * 0.1;
   const total = valorServico + taxaPlataforma;
 
+  const category = getTextValue(
+    chamado?.categoriaNome,
+    chamado?.nomeCategoria,
+    chamado?.categoria?.nome,
+    chamado?.categoria,
+    chamado?.category,
+    chamado?.jobCategory
+  );
+
+  const location = getTextValue(
+    chamado?.enderecoCompleto,
+    chamado?.endereco,
+    chamado?.localizacao,
+    chamado?.local,
+    chamado?.cidade,
+    chamado?.location
+  );
+
+  const rawDate = date ? String(date) : "";
+
   return {
     id: String(id),
+    jobId: String(id),
+    contratoId,
+    candidaturaId,
     service: String(service),
     freelancer: String(freelancer),
-    date: formatPaymentDate(date ? String(date) : ""),
-    method: status === "paid" ? "Taxa TaskFlow" : "Aguardando pagamento",
+    date: formatPaymentDate(rawDate),
+    method: await getPaymentMethod(chamado, status, {
+      jobId: String(id),
+      contratoId,
+      candidaturaId,
+    }),
     serviceValue: formatApiCurrency(valorServico),
     platformFee: formatApiCurrency(taxaPlataforma),
     total: formatApiCurrency(total),
     status,
+    category: category || "Categoria não informada",
+    location: location || "Local não informado",
+    rawDate,
   };
 }
 
@@ -352,9 +658,13 @@ export default function CompanyPaymentsScreen() {
         return Number(chamadoEmpresaId) === Number(companyId);
       });
 
-      const formattedPayments = chamadosDaEmpresa
-        .map(normalizeChamadoToPayment)
-        .filter((payment): payment is PaymentItem => payment !== null);
+      const normalizedPayments = await Promise.all(
+        chamadosDaEmpresa.map(normalizeChamadoToPayment)
+      );
+
+      const formattedPayments = normalizedPayments.filter(
+        (payment): payment is PaymentItem => payment !== null
+      );
 
       console.log("Pagamentos montados:", formattedPayments);
 
@@ -371,6 +681,28 @@ export default function CompanyPaymentsScreen() {
   async function handleRefresh() {
     setIsRefreshing(true);
     await loadPayments(false);
+  }
+
+  function handlePaymentPress(payment: PaymentItem) {
+    if (payment.status === "paid") {
+      Alert.alert(
+        "Pagamento concluído",
+        "Esse chamado já foi finalizado e o pagamento já está registrado."
+      );
+      return;
+    }
+
+    router.push({
+      pathname: "/job-candidates",
+      params: {
+        id: payment.jobId,
+        title: payment.service,
+        category: payment.category,
+        price: payment.serviceValue,
+        location: payment.location,
+        time: payment.rawDate || payment.date,
+      },
+    });
   }
 
   function formatCurrency(value: number) {
@@ -659,6 +991,7 @@ export default function CompanyPaymentsScreen() {
               return (
                 <Pressable
                   key={payment.id}
+                  onPress={() => handlePaymentPress(payment)}
                   style={({ pressed }) => [
                     styles.paymentCard,
                     {
