@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { router, Tabs } from "expo-router";
+import { StyleSheet, View } from "react-native";
 
 import AssignmentIcon from "../../../assets/icons/assignment.svg";
 import CreditCardIcon from "../../../assets/icons/credit_card.svg";
@@ -9,14 +10,57 @@ import ProfileIcon from "../../../assets/icons/Perfil.svg";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
 import { getLoggedUser } from "@/services/storage";
+import { getTaskFlowNotifications } from "@/services/local-notifications";
+
+function NotificationTabIcon({
+  focused,
+  color,
+  hasUnread,
+}: {
+  focused: boolean;
+  color: string;
+  hasUnread: boolean;
+}) {
+  return (
+    <View style={localStyles.notificationIconWrapper}>
+      <NotificationsIcon
+        width={24}
+        height={24}
+        color={color}
+        fill={color}
+        opacity={focused ? 1 : 0.75}
+      />
+
+      {hasUnread ? <View style={localStyles.notificationBadge} /> : null}
+    </View>
+  );
+}
 
 export default function CompanyTabsLayout() {
   const { isDark, theme } = useTheme();
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   const tabIconColor = isDark ? colors.white : colors.black;
   const tabLabelColor = isDark ? colors.white : colors.black;
+
+  async function refreshUnreadNotifications() {
+    try {
+      // A tela de notificações da empresa já lista todas as notificações company.
+      // O badge segue a mesma regra para não perder eventos salvos sem targetUserId.
+      const notifications = await getTaskFlowNotifications({
+        audience: "company",
+      });
+
+      setHasUnreadNotifications(
+        notifications.some((notification) => !notification.read)
+      );
+    } catch (error) {
+      console.log("Erro ao buscar badge de notificações da empresa:", error);
+      setHasUnreadNotifications(false);
+    }
+  }
 
   useEffect(() => {
     async function checkAuth() {
@@ -28,6 +72,7 @@ export default function CompanyTabsLayout() {
           return;
         }
 
+        await refreshUnreadNotifications();
         setIsCheckingAuth(false);
       } catch (error) {
         console.log("Erro ao verificar login da empresa:", error);
@@ -37,6 +82,18 @@ export default function CompanyTabsLayout() {
 
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (isCheckingAuth) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      refreshUnreadNotifications();
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [isCheckingAuth]);
 
   if (isCheckingAuth) {
     return null;
@@ -104,12 +161,10 @@ export default function CompanyTabsLayout() {
         options={{
           title: "Notificações",
           tabBarIcon: ({ focused }) => (
-            <NotificationsIcon
-              width={24}
-              height={24}
+            <NotificationTabIcon
+              focused={focused}
               color={tabIconColor}
-              fill={tabIconColor}
-              opacity={focused ? 1 : 0.75}
+              hasUnread={hasUnreadNotifications}
             />
           ),
         }}
@@ -133,3 +188,25 @@ export default function CompanyTabsLayout() {
     </Tabs>
   );
 }
+
+const localStyles = StyleSheet.create({
+  notificationIconWrapper: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+
+  notificationBadge: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: "#EF4444",
+    borderWidth: 1.5,
+    borderColor: colors.white,
+  },
+});

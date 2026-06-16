@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { router, Tabs } from "expo-router";
+import { StyleSheet, View } from "react-native";
 
 import HomeIcon from "../../../assets/icons/Home-solid-full.svg";
 import MapIcon from "../../../assets/icons/Location-check.svg";
@@ -9,14 +10,72 @@ import ProfileIcon from "../../../assets/icons/Perfil.svg";
 import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
 import { getLoggedUser } from "@/services/storage";
+import { getTaskFlowNotifications } from "@/services/local-notifications";
+
+function getLoggedUserId(user: any) {
+  const value =
+    user?.idUsuario ??
+    user?.usuarioId ??
+    user?.userId ??
+    user?.id_usuario ??
+    user?.id;
+
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  return String(value);
+}
+
+function NotificationTabIcon({
+  focused,
+  color,
+  hasUnread,
+}: {
+  focused: boolean;
+  color: string;
+  hasUnread: boolean;
+}) {
+  return (
+    <View style={localStyles.notificationIconWrapper}>
+      <NotificationsIcon
+        width={24}
+        height={24}
+        color={color}
+        fill={color}
+        opacity={focused ? 1 : 0.75}
+      />
+
+      {hasUnread ? <View style={localStyles.notificationBadge} /> : null}
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   const { isDark, theme } = useTheme();
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [loggedUserId, setLoggedUserId] = useState("");
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   const tabIconColor = isDark ? colors.white : colors.black;
   const tabLabelColor = isDark ? colors.white : colors.black;
+
+  async function refreshUnreadNotifications(userId = loggedUserId) {
+    try {
+      const notifications = await getTaskFlowNotifications({
+        audience: "freelancer",
+        userId,
+      });
+
+      setHasUnreadNotifications(
+        notifications.some((notification) => !notification.read)
+      );
+    } catch (error) {
+      console.log("Erro ao buscar badge de notificações:", error);
+      setHasUnreadNotifications(false);
+    }
+  }
 
   useEffect(() => {
     async function checkAuth() {
@@ -28,6 +87,9 @@ export default function TabsLayout() {
           return;
         }
 
+        const userId = getLoggedUserId(user);
+        setLoggedUserId(userId);
+        await refreshUnreadNotifications(userId);
         setIsCheckingAuth(false);
       } catch (error) {
         console.log("Erro ao verificar login do freelancer:", error);
@@ -37,6 +99,18 @@ export default function TabsLayout() {
 
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (isCheckingAuth) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      refreshUnreadNotifications();
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [isCheckingAuth, loggedUserId]);
 
   if (isCheckingAuth) {
     return null;
@@ -104,12 +178,10 @@ export default function TabsLayout() {
         options={{
           title: "Notificações",
           tabBarIcon: ({ focused }) => (
-            <NotificationsIcon
-              width={24}
-              height={24}
+            <NotificationTabIcon
+              focused={focused}
               color={tabIconColor}
-              fill={tabIconColor}
-              opacity={focused ? 1 : 0.75}
+              hasUnread={hasUnreadNotifications}
             />
           ),
         }}
@@ -133,3 +205,25 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const localStyles = StyleSheet.create({
+  notificationIconWrapper: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+
+  notificationBadge: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: "#EF4444",
+    borderWidth: 1.5,
+    borderColor: colors.white,
+  },
+});

@@ -22,6 +22,7 @@ import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
 import { API_BASE_URL, apiGet, apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
+import { addTaskFlowNotification } from "@/services/local-notifications";
 
 type Candidate = {
   id: string;
@@ -1200,6 +1201,12 @@ export default function JobCandidatesScreen() {
     (candidate) => candidate.id === selectedCandidateId,
   );
 
+  function getCandidateNotificationTarget(candidate: Candidate) {
+    return String(
+      candidate.freelancerUserId || candidate.freelancerId || ""
+    ).trim();
+  }
+
   useFocusEffect(
     useCallback(() => {
       loadCandidates();
@@ -1444,6 +1451,64 @@ export default function JobCandidatesScreen() {
         ),
       );
 
+      await addTaskFlowNotification({
+        audience: "freelancer",
+        targetUserId: getCandidateNotificationTarget(candidate),
+        type: "request_accepted",
+        title: "Candidatura aceita",
+        description: `A empresa aceitou você no chamado ${jobTitle}.`,
+        jobId,
+        chamadoId: jobId,
+        candidaturaId: candidate.id,
+        candidateId: candidate.id,
+        freelancerId: candidate.freelancerId ?? "",
+        contratoId,
+        contractId: contratoId,
+        chatId: contratoId,
+        jobTitle,
+        companyName,
+        params: {
+          jobId,
+          contratoId,
+          candidaturaId: candidate.id,
+          jobTitle,
+          companyName,
+        },
+        eventKey: `accepted:${jobId}:${candidate.id}:${contratoId || "sem-contrato"}`,
+      });
+
+      await Promise.all(
+        candidates
+          .filter((item) =>
+            item.id !== candidate.id &&
+            !isCandidateAccepted(item) &&
+            !isCandidateRejected(item)
+          )
+          .map((item) =>
+            addTaskFlowNotification({
+              audience: "freelancer",
+              targetUserId: getCandidateNotificationTarget(item),
+              type: "request_rejected",
+              title: "Outro freelancer foi aceito",
+              description: `O chamado ${jobTitle} já foi preenchido por outro freelancer.`,
+              jobId,
+              chamadoId: jobId,
+              candidaturaId: item.id,
+              candidateId: item.id,
+              freelancerId: item.freelancerId ?? "",
+              jobTitle,
+              companyName,
+              params: {
+                jobId,
+                candidaturaId: item.id,
+                jobTitle,
+                companyName,
+              },
+              eventKey: `other-accepted:${jobId}:${item.id}`,
+            })
+          )
+      );
+
       goToPayment(
         {
           ...candidate,
@@ -1532,6 +1597,28 @@ export default function JobCandidatesScreen() {
             : item,
         ),
       );
+
+      await addTaskFlowNotification({
+        audience: "freelancer",
+        targetUserId: getCandidateNotificationTarget(candidate),
+        type: "request_rejected",
+        title: "Candidatura recusada",
+        description: `A empresa recusou sua candidatura no chamado ${jobTitle}.`,
+        jobId,
+        chamadoId: jobId,
+        candidaturaId: candidate.id,
+        candidateId: candidate.id,
+        freelancerId: candidate.freelancerId ?? "",
+        jobTitle,
+        companyName,
+        params: {
+          jobId,
+          candidaturaId: candidate.id,
+          jobTitle,
+          companyName,
+        },
+        eventKey: `rejected:${jobId}:${candidate.id}`,
+      });
 
       Alert.alert(
         "Candidatura recusada",

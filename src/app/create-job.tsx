@@ -21,6 +21,7 @@ import ArrowBack from "../../assets/icons/arrow_back.svg";
 
 import { apiGet, apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
+import { addTaskFlowNotification } from "@/services/local-notifications";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
 
@@ -895,13 +896,44 @@ export default function CreateJobScreen() {
 
       console.log("Chamado criado:", response);
 
+      const createdJobId = getCreatedJobId(response);
+      const companyDisplayName = String(
+        loggedUserData.nome ??
+          loggedUserData.name ??
+          loggedUserData.razaoSocial ??
+          loggedUserData.razao_social ??
+          "Empresa"
+      ).trim();
+
       await saveLocalJobImages({
-        jobId: getCreatedJobId(response),
+        jobId: createdJobId,
         title: titulo.trim(),
         localServico: localServico.trim(),
         cidade: cidade.trim(),
         estado: estado.trim().toUpperCase(),
         imageUrls,
+      });
+
+      await addTaskFlowNotification({
+        audience: "freelancer",
+        type: "new_job",
+        title: "Novo chamado disponível",
+        description: `${companyDisplayName} publicou: ${titulo.trim()}.`,
+        jobId: createdJobId,
+        chamadoId: createdJobId,
+        jobTitle: titulo.trim(),
+        companyId: String(empresaId),
+        companyName: companyDisplayName,
+        params: {
+          id: createdJobId,
+          jobId: createdJobId,
+          chamadoId: createdJobId,
+          title: titulo.trim(),
+          location: localServico.trim(),
+          city: cidade.trim(),
+          state: estado.trim().toUpperCase(),
+        },
+        eventKey: `new-job:${createdJobId || titulo.trim()}`,
       });
 
       Alert.alert(

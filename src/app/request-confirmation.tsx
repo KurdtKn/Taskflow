@@ -20,6 +20,7 @@ import { colors } from "@/styles/colors";
 import { useTheme } from "@/app/context/ThemeContext";
 import { apiPost } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
+import { addTaskFlowNotification } from "@/services/local-notifications";
 
 export default function RequestConfirmationScreen() {
   const params = useLocalSearchParams<{
@@ -32,6 +33,9 @@ export default function RequestConfirmationScreen() {
     location?: string | string[];
     time?: string | string[];
     imageUrl?: string | string[];
+    companyId?: string | string[];
+    empresaId?: string | string[];
+    companyUserId?: string | string[];
   }>();
 
   const [isSending, setIsSending] = useState(false);
@@ -54,6 +58,82 @@ export default function RequestConfirmationScreen() {
   const price = getParamValue(params.price, "A combinar");
   const location = getParamValue(params.location, "Local não informado");
   const time = getParamValue(params.time, "Data a combinar");
+  const category = getParamValue(params.category, "Categoria");
+  const companyId =
+    getParamValue(params.companyUserId) ||
+    getParamValue(params.companyId) ||
+    getParamValue(params.empresaId);
+  const companyName = getParamValue(params.company, "Empresa");
+
+  function getUserDisplayName(user: any) {
+    return (
+      user?.nome ??
+      user?.name ??
+      user?.nomeCompleto ??
+      user?.fullName ??
+      user?.email ??
+      "Um freelancer"
+    );
+  }
+
+  function getCreatedCandidaturaId(response: any) {
+    const possibleId =
+      response?.id ??
+      response?.candidaturaId ??
+      response?.candidatura_id ??
+      response?.candidatura?.id;
+
+    if (possibleId === null || possibleId === undefined || possibleId === "") {
+      return "";
+    }
+
+    return String(possibleId);
+  }
+
+  async function notifyCompanyAboutCandidate(values: {
+    freelancerId: string | number;
+    freelancerName: string;
+    candidaturaId?: string | number;
+  }) {
+    try {
+      await addTaskFlowNotification({
+        audience: "company",
+        targetUserId: companyId || undefined,
+        type: "candidate",
+        title: "Novo candidato no chamado",
+        description: `${values.freelancerName} se candidatou ao chamado ${title}.`,
+        jobId: String(chamadoId),
+        chamadoId: String(chamadoId),
+        jobTitle: title,
+        companyId: companyId || undefined,
+        companyName,
+        freelancerId: String(values.freelancerId),
+        candidateId: String(values.freelancerId),
+        candidaturaId: values.candidaturaId ? String(values.candidaturaId) : undefined,
+        eventKey: `candidate:${chamadoId}:${values.freelancerId}`,
+        params: {
+          id: String(chamadoId),
+          chamadoId: String(chamadoId),
+          jobId: String(chamadoId),
+          title,
+          category,
+          price,
+          location,
+          time,
+          company: companyName,
+          companyName,
+          candidateId: String(values.freelancerId),
+          candidaturaId: values.candidaturaId ? String(values.candidaturaId) : "",
+          freelancerId: String(values.freelancerId),
+        },
+      });
+    } catch (notificationError) {
+      console.log(
+        "Candidatura enviada, mas não foi possível gerar a notificação:",
+        notificationError
+      );
+    }
+  }
 
   async function handleConfirmRequest() {
     if (!chamadoId) {
@@ -99,6 +179,12 @@ export default function RequestConfirmationScreen() {
       });
 
       console.log("Candidatura enviada:", response);
+
+      await notifyCompanyAboutCandidate({
+        freelancerId,
+        freelancerName: String(getUserDisplayName(loggedUser)),
+        candidaturaId: getCreatedCandidaturaId(response),
+      });
 
       setIsSubmitted(true);
 

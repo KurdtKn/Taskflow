@@ -20,6 +20,7 @@ import { styles } from "@/app/styles/rateCompany";
 import { useTheme } from "@/app/context/ThemeContext";
 import { apiPost } from "@/services/api";
 import { getLoggedUser, getUserId } from "@/services/storage";
+import { addTaskFlowNotification } from "@/services/local-notifications";
 
 
 const ratingTags = [
@@ -95,6 +96,22 @@ function resolveLoggedUserId(loggedUserData: any) {
   return value;
 }
 
+function resolveLoggedUserName(loggedUserData: any) {
+  const value =
+    loggedUserData?.nome ??
+    loggedUserData?.name ??
+    loggedUserData?.usuario?.nome ??
+    loggedUserData?.usuario?.name ??
+    loggedUserData?.user?.nome ??
+    loggedUserData?.user?.name;
+
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  return "Freelancer";
+}
+
 function isSameCompanyReview(item: ReviewPayload, review: ReviewPayload) {
   if (item.ratedUserType !== review.ratedUserType) {
     return false;
@@ -122,6 +139,9 @@ export default function RateCompanyScreen() {
     jobId?: string | string[];
     jobTitle?: string | string[];
     companyName?: string | string[];
+    freelancerName?: string | string[];
+    candidateName?: string | string[];
+    userName?: string | string[];
 
     contratoId?: string | string[];
     contrato_id?: string | string[];
@@ -150,6 +170,10 @@ export default function RateCompanyScreen() {
   const jobId = getParamValue(params.jobId);
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
   const companyName = getParamValue(params.companyName, "Empresa TaskFlow");
+  const freelancerNameFromParams = getParamValue(
+    params.freelancerName ?? params.candidateName ?? params.userName,
+    ""
+  );
 
   const contratoIdFromParams = getParamNumber(
     params.contratoId ?? params.contrato_id,
@@ -346,6 +370,34 @@ export default function RateCompanyScreen() {
       };
 
       await saveReview(review);
+
+      const loggedUserForNotification = await getLoggedUser();
+      const freelancerName =
+        freelancerNameFromParams || resolveLoggedUserName(loggedUserForNotification as any);
+
+      await addTaskFlowNotification({
+        audience: "company",
+        targetUserId: avaliadoId ? String(avaliadoId) : undefined,
+        type: "review_received",
+        title: "Avaliação recebida",
+        description: `${freelancerName} avaliou sua empresa no chamado ${jobTitle}.`,
+        jobId,
+        chamadoId: jobId,
+        jobTitle,
+        companyName,
+        freelancerId: String(avaliadorId),
+        contratoId: String(contratoId),
+        contractId: String(contratoId),
+        candidaturaId: requestId,
+        eventKey: `company-review:${contratoId}:${avaliadorId}`,
+        params: {
+          jobId,
+          jobTitle,
+          companyName,
+          contratoId: String(contratoId),
+          freelancerId: String(avaliadorId),
+        },
+      });
 
       console.log("Avaliação enviada para API:", data);
       console.log("Avaliação da empresa salva localmente:", review);

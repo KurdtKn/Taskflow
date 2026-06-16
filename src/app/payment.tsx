@@ -21,6 +21,7 @@ import { styles } from "@/app/styles/payment";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
 import { apiGet, apiPost } from "@/services/api";
+import { addTaskFlowNotification } from "@/services/local-notifications";
 
 type PaymentMethod = "card" | "pix" | "wallet";
 
@@ -167,6 +168,9 @@ export default function PaymentScreen() {
     jobId?: string | string[];
     candidaturaId?: string | string[];
     freelancerId?: string | string[];
+    candidateUserId?: string | string[];
+    freelancerUserId?: string | string[];
+    usuarioId?: string | string[];
 
     jobTitle?: string | string[];
     jobCategory?: string | string[];
@@ -178,6 +182,8 @@ export default function PaymentScreen() {
     candidateName?: string | string[];
     candidateEmail?: string | string[];
     candidateRating?: string | string[];
+    companyName?: string | string[];
+    companyPhotoUrl?: string | string[];
 
     serviceValue?: string | string[];
     candidatePrice?: string | string[];
@@ -200,6 +206,11 @@ export default function PaymentScreen() {
   const jobId = getParamValue(params.jobId);
   const candidaturaId = getParamValue(params.candidaturaId);
   const freelancerId = getParamValue(params.freelancerId);
+  const candidateUserId =
+    getParamValue(params.candidateUserId) ||
+    getParamValue(params.freelancerUserId) ||
+    getParamValue(params.usuarioId) ||
+    freelancerId;
 
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
   const jobCategory = getParamValue(params.jobCategory);
@@ -214,6 +225,8 @@ export default function PaymentScreen() {
   );
   const candidateEmail = getParamValue(params.candidateEmail);
   const candidateRating = getParamValue(params.candidateRating);
+  const companyName = getParamValue(params.companyName, "Empresa");
+  const companyPhotoUrl = getParamValue(params.companyPhotoUrl);
 
   const receivedServiceValue =
     getParamValue(params.serviceValue) ||
@@ -362,6 +375,60 @@ export default function PaymentScreen() {
         "true",
       );
 
+      await addTaskFlowNotification({
+        audience: "freelancer",
+        targetUserId: candidateUserId,
+        type: "payment",
+        title: "Pagamento confirmado",
+        description: `A taxa do chamado ${jobTitle} foi confirmada. O chat está liberado.`,
+        jobId,
+        chamadoId: jobId,
+        candidaturaId,
+        freelancerId,
+        contratoId: finalContratoId,
+        contractId: finalContratoId,
+        chatId: finalContratoId,
+        jobTitle,
+        companyName,
+        params: {
+          contratoId: finalContratoId,
+          jobId,
+          candidaturaId,
+          freelancerId,
+          candidateUserId,
+          jobTitle,
+          companyName,
+        },
+        eventKey: `payment:${finalContratoId}`,
+      });
+
+      await addTaskFlowNotification({
+        audience: "freelancer",
+        targetUserId: candidateUserId,
+        type: "chat_released",
+        title: "Chat liberado",
+        description: `Você já pode conversar com a empresa sobre ${jobTitle}.`,
+        jobId,
+        chamadoId: jobId,
+        candidaturaId,
+        freelancerId,
+        contratoId: finalContratoId,
+        contractId: finalContratoId,
+        chatId: finalContratoId,
+        jobTitle,
+        companyName,
+        params: {
+          contratoId: finalContratoId,
+          jobId,
+          candidaturaId,
+          freelancerId,
+          candidateUserId,
+          jobTitle,
+          companyName,
+        },
+        eventKey: `chat-released:${finalContratoId}`,
+      });
+
       router.replace({
         pathname: "/payment-success",
         params: {
@@ -370,6 +437,9 @@ export default function PaymentScreen() {
           jobId,
           candidaturaId,
           freelancerId,
+          candidateUserId,
+          freelancerUserId: candidateUserId,
+          usuarioId: candidateUserId,
 
           jobTitle,
           jobCategory,
@@ -381,6 +451,8 @@ export default function PaymentScreen() {
           candidateName,
           candidateEmail,
           candidateRating,
+          companyName,
+          companyPhotoUrl,
 
           serviceValue,
           candidatePrice: serviceValue,
