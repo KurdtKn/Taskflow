@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -528,25 +527,9 @@ export default function MapScreen() {
   const [isPageScrollEnabled, setIsPageScrollEnabled] = useState(true);
   const [jobs, setJobs] = useState<MapJob[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [searchText, setSearchText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const filteredJobs = useMemo(() => {
-    const search = searchText.toLowerCase().trim();
-
-    if (!search) {
-      return jobs;
-    }
-
-    return jobs.filter((job) => {
-      return (
-        job.title.toLowerCase().includes(search) ||
-        job.location.toLowerCase().includes(search) ||
-        job.city.toLowerCase().includes(search) ||
-        job.category.toLowerCase().includes(search)
-      );
-    });
-  }, [jobs, searchText]);
+  const filteredJobs = jobs;
 
   const selectedJob =
     filteredJobs.find((job) => job.id === selectedJobId) ??
@@ -710,8 +693,8 @@ export default function MapScreen() {
               srcDoc: mapHtml,
               style: {
                 width: "100%",
-                height: "430px",
-                minHeight: "430px",
+                height: "510px",
+                minHeight: "510px",
                 border: "0",
                 borderRadius: "20px",
                 display: "block",
@@ -831,36 +814,6 @@ export default function MapScreen() {
               Atualizar
             </Text>
           </Pressable>
-        </View>
-
-        <View
-          style={[
-            styles.searchBox,
-            {
-              backgroundColor: theme.inputBackground,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Text style={[styles.searchIcon, { color: theme.textSecondary }]}>
-            🔎
-          </Text>
-
-          <TextInput
-            style={[
-              styles.searchInput,
-              {
-                color: theme.text,
-                ...(Platform.OS === "web"
-                  ? ({ outlineStyle: "none" } as any)
-                  : {}),
-              },
-            ]}
-            placeholder="Buscar no mapa..."
-            placeholderTextColor={theme.textSecondary}
-            value={searchText}
-            onChangeText={setSearchText}
-          />
         </View>
 
         {isLoading ? (
@@ -1026,31 +979,9 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
 
-  searchBox: {
-    minHeight: 48,
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-
-  searchIcon: {
-    fontSize: 16,
-  },
-
-  searchInput: {
-    flex: 1,
-    minHeight: 46,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
   mapBox: {
-    height: 430,
-    minHeight: 430,
+    height: 510,
+    minHeight: 510,
     borderWidth: 1,
     borderRadius: 22,
     overflow: "hidden",

@@ -11,7 +11,8 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import PlusIcon from "../../assets/icons/Plus-icon.svg";
@@ -36,17 +37,124 @@ const CLIENT_MAX_LENGTH = 100;
 const DATE_MAX_LENGTH = 30;
 const LINK_MAX_LENGTH = 150;
 
+const PORTFOLIO_STORAGE_KEY = "@taskflow:portfolio-items";
+const PORTFOLIO_COMPAT_STORAGE_KEYS = [
+  PORTFOLIO_STORAGE_KEY,
+  "@taskflow:portfolio",
+  "portfolioItems",
+];
+const USER_STORAGE_KEYS = [
+  "@taskflow:user",
+  "@taskflow:logged-user",
+  "taskflow:user",
+  "loggedUser",
+  "user",
+];
+
+type PortfolioItemPayload = {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  clientName: string;
+  date: string;
+  link: string;
+  freelancerId: string;
+  freelancerUserId: string;
+  freelancerName: string;
+  createdAt: string;
+};
+
+function getParamValue(value?: string | string[], fallback = "") {
+  if (Array.isArray(value)) {
+    return value[0] ?? fallback;
+  }
+
+  return value ?? fallback;
+}
+
+function resolveLoggedUserId(loggedUserData: any) {
+  const value =
+    loggedUserData?.id ??
+    loggedUserData?.usuarioId ??
+    loggedUserData?.usuario_id ??
+    loggedUserData?.userId ??
+    loggedUserData?.user_id ??
+    loggedUserData?.id_usuario;
+
+  return value ? String(value) : "";
+}
+
+function resolveLoggedUserName(loggedUserData: any) {
+  return String(
+    loggedUserData?.nome ??
+      loggedUserData?.name ??
+      loggedUserData?.usuarioNome ??
+      loggedUserData?.userName ??
+      ""
+  ).trim();
+}
+
 function removeSpaces(value: string) {
   return value.replace(/\s/g, "");
 }
 
+async function getLoggedUserFromStorage() {
+  for (const key of USER_STORAGE_KEYS) {
+    try {
+      const value = await AsyncStorage.getItem(key);
+
+      if (!value) {
+        continue;
+      }
+
+      return JSON.parse(value);
+    } catch (error) {
+      console.log(`Não foi possível ler usuário em ${key}:`, error);
+    }
+  }
+
+  return null;
+}
+
+function showPopup(title: string, message: string, onOk?: () => void) {
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    window.alert(`${title}\n\n${message}`);
+
+    if (onOk) {
+      onOk();
+    }
+
+    return;
+  }
+
+  Alert.alert(title, message, [
+    {
+      text: "OK",
+      onPress: onOk,
+    },
+  ]);
+}
+
 export default function AddPortfolioItemScreen() {
+  const params = useLocalSearchParams<{
+    freelancerId?: string | string[];
+    freelancerUserId?: string | string[];
+    userId?: string | string[];
+    usuarioId?: string | string[];
+    freelancerName?: string | string[];
+    candidateName?: string | string[];
+  }>();
+
   const [selectedCategory, setSelectedCategory] = useState("Eventos");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [clientName, setClientName] = useState("");
   const [date, setDate] = useState("");
   const [link, setLink] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackType, setFeedbackType] = useState<"success" | "error">("success");
 
   const { isDark, theme } = useTheme();
 
@@ -141,37 +249,117 @@ export default function AddPortfolioItemScreen() {
     return "";
   }
 
-  function handleSavePortfolioItem() {
+  async function getCurrentPortfolioItems() {
+    for (const key of PORTFOLIO_COMPAT_STORAGE_KEYS) {
+      try {
+        const storedItems = await AsyncStorage.getItem(key);
+
+        if (!storedItems) {
+          continue;
+        }
+
+        const parsedItems = JSON.parse(storedItems);
+
+        if (Array.isArray(parsedItems)) {
+          return parsedItems as PortfolioItemPayload[];
+        }
+      } catch (error) {
+        console.log(`Não foi possível ler portfólio em ${key}:`, error);
+      }
+    }
+
+    return [];
+  }
+
+  async function savePortfolioItem(item: PortfolioItemPayload) {
+    const currentItems = await getCurrentPortfolioItems();
+    const updatedItems = [...currentItems, item];
+    const serializedItems = JSON.stringify(updatedItems);
+
+    await Promise.all(
+      PORTFOLIO_COMPAT_STORAGE_KEYS.map((key) =>
+        AsyncStorage.setItem(key, serializedItems)
+      )
+    );
+  }
+
+  async function handleSavePortfolioItem() {
     const validationError = getValidationError();
 
     if (validationError) {
-      Alert.alert("Atenção", validationError);
+      setFeedbackType("error");
+      setFeedbackMessage(validationError);
+      showPopup("Atenção", validationError);
       return;
     }
 
-    const normalizedUrl = normalizeLink(link);
+    try {
+      setIsSaving(true);
 
-    setLink(normalizedUrl);
+      const normalizedUrl = normalizeLink(link);
+      const loggedUser = await getLoggedUserFromStorage();
+      const loggedUserId = resolveLoggedUserId(loggedUser as any);
+      const loggedUserName = resolveLoggedUserName(loggedUser as any);
 
-    console.log("Item do portfólio:", {
-      title: title.trim(),
-      category: selectedCategory,
-      description: description.trim(),
-      clientName: clientName.trim(),
-      date: date.trim(),
-      link: normalizedUrl,
-    });
+      const freelancerId =
+        getParamValue(params.freelancerId) ||
+        getParamValue(params.freelancerUserId) ||
+        getParamValue(params.userId) ||
+        getParamValue(params.usuarioId) ||
+        loggedUserId;
 
-    Alert.alert(
-      "Item adicionado",
-      "O item foi adicionado ao seu portfólio com sucesso.",
-      [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]
-    );
+      const freelancerUserId =
+        getParamValue(params.freelancerUserId) ||
+        getParamValue(params.userId) ||
+        getParamValue(params.usuarioId) ||
+        loggedUserId;
+
+      const freelancerName =
+        getParamValue(params.freelancerName) ||
+        getParamValue(params.candidateName) ||
+        loggedUserName;
+
+      const portfolioItem: PortfolioItemPayload = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title: title.trim(),
+        category: selectedCategory,
+        description: description.trim(),
+        clientName: clientName.trim(),
+        date: date.trim(),
+        link: normalizedUrl,
+        freelancerId: String(freelancerId || ""),
+        freelancerUserId: String(freelancerUserId || ""),
+        freelancerName: String(freelancerName || ""),
+        createdAt: new Date().toISOString(),
+      };
+
+      await savePortfolioItem(portfolioItem);
+      setLink(normalizedUrl);
+
+      console.log("Item do portfólio salvo:", portfolioItem);
+
+      setFeedbackType("success");
+      setFeedbackMessage("Item salvo com sucesso. Ele já pode aparecer no portfólio do freelancer.");
+
+      showPopup(
+        "Item adicionado",
+        "O item foi adicionado ao seu portfólio com sucesso.",
+        () => router.back()
+      );
+    } catch (error) {
+      console.log("Erro ao salvar item do portfólio:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar o item do portfólio.";
+
+      setFeedbackType("error");
+      setFeedbackMessage(errorMessage);
+      showPopup("Erro ao salvar", errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -484,12 +672,45 @@ export default function AddPortfolioItemScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.saveButton,
-              pressed && styles.buttonPressed,
+              isSaving && { opacity: 0.7 },
+              pressed && !isSaving && styles.buttonPressed,
             ]}
-            onPress={handleSavePortfolioItem}
+            onPress={() => void handleSavePortfolioItem()}
+            disabled={isSaving}
           >
-            <Text style={styles.saveButtonText}>Salvar item</Text>
+            <Text style={styles.saveButtonText}>
+              {isSaving ? "Salvando..." : "Salvar item"}
+            </Text>
           </Pressable>
+
+          {feedbackMessage ? (
+            <View
+              style={{
+                marginTop: 12,
+                marginBottom: 12,
+                padding: 12,
+                borderRadius: 12,
+                backgroundColor:
+                  feedbackType === "success"
+                    ? "rgba(34,197,94,0.14)"
+                    : "rgba(220,38,38,0.14)",
+                borderWidth: 1,
+                borderColor:
+                  feedbackType === "success"
+                    ? "rgba(34,197,94,0.35)"
+                    : "rgba(220,38,38,0.35)",
+              }}
+            >
+              <Text
+                style={{
+                  color: feedbackType === "success" ? "#22C55E" : "#EF4444",
+                  fontWeight: "800",
+                }}
+              >
+                {feedbackMessage}
+              </Text>
+            </View>
+          ) : null}
 
           <Pressable
             style={({ pressed }) => [

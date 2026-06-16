@@ -136,6 +136,47 @@ function calculateRating(avaliacoes: AvaliacaoApi[]) {
   };
 }
 
+function parseApiNumber(value: unknown, fallback = 0) {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  const parsed = Number(String(value).replace(",", "."));
+
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function calculateRatingFromResponse(response: AvaliacoesResponse) {
+  const avaliacoes = getAvaliacoesFromResponse(response);
+  const ratingData = calculateRating(avaliacoes);
+
+  if (!Array.isArray(response)) {
+    const mediaFromApi = parseApiNumber(response.media, 0);
+    const totalFromApi = parseApiNumber(
+      response.totalAvaliacoes ?? response.total,
+      ratingData.reviewsCount
+    );
+
+    if (mediaFromApi > 0 || totalFromApi > 0) {
+      return {
+        rating: mediaFromApi > 0 ? mediaFromApi : ratingData.rating,
+        reviewsCount: totalFromApi,
+      };
+    }
+  }
+
+  return ratingData;
+}
+
+function getUniquePositiveIds(values: unknown[]) {
+  const ids = values
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .map((value) => String(value));
+
+  return [...new Set(ids)];
+}
+
 function resolveImageUrl(...sources: any[]) {
   for (const source of sources) {
     if (!source) {
@@ -145,14 +186,30 @@ function resolveImageUrl(...sources: any[]) {
     const value =
       source.photoUrl ??
       source.photo_url ??
+      source.photoURL ??
       source.fotoUrl ??
       source.foto_url ??
-      source.logoUrl ??
-      source.logo_url ??
+      source.foto ??
+      source.urlFoto ??
+      source.imagemPerfil ??
+      source.profileImage ??
+      source.profileImageUri ??
+      source.profilePicture ??
+      source.imageUri ??
       source.imageUrl ??
       source.image_url ??
+      source.image ??
+      source.picture ??
       source.avatarUrl ??
-      source.avatar_url;
+      source.avatar_url ??
+      source.avatarUri ??
+      source.avatar ??
+      source.usuario?.fotoUrl ??
+      source.usuario?.foto_url ??
+      source.usuario?.photoUrl ??
+      source.freelancer?.fotoUrl ??
+      source.freelancer?.foto_url ??
+      source.freelancer?.photoUrl;
 
     if (typeof value === "string" && value.trim()) {
       return value.trim();
@@ -167,6 +224,7 @@ export default function ProfileScreen() {
 
   const [profile, setProfile] = useState<FreelancerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
 
   const profileCardBackground = isDark ? colors.blue[700] : colors.primary;
   const profileCardBorder = isDark ? colors.blue[600] : colors.primary;
@@ -204,6 +262,7 @@ export default function ProfileScreen() {
       }
 
       const savedFreelancerData = await getFreelancerData(loggedUser.id);
+      setProfilePhotoFailed(false);
 
       let rating: number | undefined;
       let reviewsCount: number | undefined;
@@ -212,16 +271,35 @@ export default function ProfileScreen() {
       let punctuality: number | undefined;
 
       try {
-        const avaliacoesResponse = await apiGet<AvaliacoesResponse>(
-          `/api/Avaliacoes/usuario/${loggedUser.id}`
-        );
+        const avaliacaoIds = getUniquePositiveIds([
+          loggedUser.id,
+          loggedUser.perfilId,
+          savedFreelancerData?.id,
+          savedFreelancerData?.idFreelancer,
+          savedFreelancerData?.id_freelancer,
+          savedFreelancerData?.usuarioId,
+          savedFreelancerData?.userId,
+        ]);
 
-        const avaliacoes = getAvaliacoesFromResponse(avaliacoesResponse);
-        const ratingData = calculateRating(avaliacoes);
+        const endpoints = [
+          ...avaliacaoIds.map((id) => `/api/Avaliacoes/usuario/${id}`),
+          ...avaliacaoIds.map((id) => `/api/Avaliacoes/freelancer/${id}`),
+        ];
 
-        rating = ratingData.rating;
-        reviewsCount = ratingData.reviewsCount;
-        punctuality = ratingData.rating;
+        for (const endpoint of endpoints) {
+          try {
+            const avaliacoesResponse = await apiGet<AvaliacoesResponse>(endpoint);
+            const ratingData = calculateRatingFromResponse(avaliacoesResponse);
+
+            if (ratingData.rating || ratingData.reviewsCount > 0) {
+              rating = ratingData.rating;
+              reviewsCount = ratingData.reviewsCount;
+              break;
+            }
+          } catch (endpointError) {
+            console.log(`Erro ao carregar avaliações em ${endpoint}:`, endpointError);
+          }
+        }
       } catch (error) {
         console.log("Erro ao carregar avaliações do freelancer:", error);
       }
@@ -251,7 +329,13 @@ export default function ProfileScreen() {
 
       setProfile({
         id: String(loggedUser.perfilId ?? loggedUser.id),
-        name: savedFreelancerData?.name || loggedUser.nome,
+        name:
+          savedFreelancerData?.name ||
+          savedFreelancerData?.nome ||
+          savedFreelancerData?.nomeCompleto ||
+          loggedUser.nome ||
+          loggedUser.name ||
+          "Freelancer",
         userType: "Freelancer",
         photoUrl: resolveImageUrl(savedFreelancerData, loggedUser),
         rating,
@@ -261,8 +345,15 @@ export default function ProfileScreen() {
         punctuality,
         about:
           savedFreelancerData?.about ||
+          savedFreelancerData?.sobre ||
+          savedFreelancerData?.bio ||
+          savedFreelancerData?.descricao ||
           "Quando você preencher a descrição do perfil, ela aparecerá aqui.",
-        tags: savedFreelancerData?.tags ?? [],
+        tags:
+          savedFreelancerData?.tags ??
+          savedFreelancerData?.skills ??
+          savedFreelancerData?.habilidades ??
+          [],
       });
     } catch (error) {
       console.log("Erro ao carregar perfil:", error);
@@ -487,11 +578,12 @@ export default function ProfileScreen() {
               ]}
             >
               <View style={styles.avatarArea}>
-                {profile.photoUrl ? (
+                {profile.photoUrl && !profilePhotoFailed ? (
                   <Image
                     source={{ uri: profile.photoUrl }}
                     style={styles.avatar}
                     resizeMode="cover"
+                    onError={() => setProfilePhotoFailed(true)}
                   />
                 ) : (
                   <View
@@ -598,11 +690,11 @@ export default function ProfileScreen() {
 
                 <View style={styles.statItem}>
                   <Text style={[styles.statNumber, { color: colors.black }]}>
-                    {formatRating(profile.punctuality)}
+                    {formatRating(profile.rating)}
                   </Text>
 
                   <Text style={[styles.statLabel, { color: colors.gray }]}>
-                    Pontualidade
+                    Avaliação
                   </Text>
                 </View>
               </View>

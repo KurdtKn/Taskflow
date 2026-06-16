@@ -12,13 +12,97 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { apiGet } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
 
-const splashIcon = require("../../assets/images/splash-icon.png");
+
+const JOB_IMAGE_STORAGE_KEY = "@taskflow:job-images-by-key";
+
+type LocalJobImageRecord = {
+  imageUrls?: string[];
+};
+
+function normalizeStorageKeyPart(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function makeJobFingerprintKey(values: {
+  title?: unknown;
+  localServico?: unknown;
+  location?: unknown;
+  cidade?: unknown;
+  city?: unknown;
+  estado?: unknown;
+  state?: unknown;
+}) {
+  return [
+    normalizeStorageKeyPart(values.title),
+    normalizeStorageKeyPart(values.localServico ?? values.location),
+    normalizeStorageKeyPart(values.cidade ?? values.city),
+    normalizeStorageKeyPart(values.estado ?? values.state),
+  ].join("|");
+}
+
+function mergeUniqueImageUrls(...lists: string[][]) {
+  return Array.from(
+    new Set(
+      lists
+        .flat()
+        .map((url) => String(url ?? "").trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+async function loadLocalJobImages(job: Partial<JobDetails>) {
+  try {
+    const rawStorage = await AsyncStorage.getItem(JOB_IMAGE_STORAGE_KEY);
+
+    if (!rawStorage) {
+      return [];
+    }
+
+    const storage: Record<string, LocalJobImageRecord> = JSON.parse(rawStorage);
+    const possibleKeys = new Set<string>();
+
+    if (job.id) {
+      possibleKeys.add(`id:${job.id}`);
+    }
+
+    const fingerprintKey = makeJobFingerprintKey({
+      title: job.title,
+      location: job.location,
+      city: job.city,
+      state: job.state,
+    });
+
+    if (fingerprintKey.replace(/\|/g, "")) {
+      possibleKeys.add(`fingerprint:${fingerprintKey}`);
+    }
+
+    for (const key of possibleKeys) {
+      const record = storage[key];
+
+      if (record?.imageUrls?.length) {
+        return record.imageUrls.map((url) => String(url).trim()).filter(Boolean);
+      }
+    }
+  } catch (error) {
+    console.log("Erro ao carregar imagens locais do chamado:", error);
+  }
+
+  return [];
+}
+
 
 type ChamadoApi = {
   id?: number | string;
@@ -287,21 +371,9 @@ function getImageUrlsFromApi(chamado: ChamadoApi, fallback: string[] = []) {
     return listFromApi;
   }
 
-  const singleImages = [
-    chamado.imagemUrl,
-    chamado.imagem_url,
-    chamado.fotoUrl,
-    chamado.foto_url,
-    chamado.imageUrl,
-    chamado.image_url,
-  ]
-    .map((item) => String(item ?? "").trim())
-    .filter(Boolean);
-
-  if (singleImages.length > 0) {
-    return singleImages;
-  }
-
+  // Não usa campos únicos tipo imageUrl/fotoUrl aqui.
+  // Esses campos costumam vir de imagens automáticas de card/categoria.
+  // O job-details deve mostrar apenas as URLs adicionadas no create-job.
   return fallback;
 }
 
@@ -451,11 +523,11 @@ export default function JobDetailsScreen() {
 
   const { isDark, theme } = useTheme();
 
+  // Não usa imageUrl/imagemUrl individual porque essas imagens podem vir de fallback
+  // aleatório/card automático. Aqui entram somente as imagens adicionadas no create-job.
   const initialImages = [
     ...normalizeImageList(firstParam(params.imageUrls)),
     ...normalizeImageList(firstParam(params.imagens)),
-    ...normalizeImageList(firstParam(params.imageUrl)),
-    ...normalizeImageList(firstParam(params.imagemUrl)),
   ];
 
   const initialJob: JobDetails = {
@@ -523,19 +595,29 @@ export default function JobDetailsScreen() {
       const chamados = getChamadosFromResponse(response);
       const chamado = chamados.find((item) => String(item.id) === String(job.id));
 
-      if (chamado) {
-        setJob((currentJob) => {
-          const updatedJob = normalizeJobFromApi(chamado, currentJob);
+      const jobFromApi = chamado ? normalizeJobFromApi(chamado, job) : job;
+      const localImages = await loadLocalJobImages(jobFromApi);
+      const updatedJob = {
+        ...jobFromApi,
+        imageUrls: mergeUniqueImageUrls(jobFromApi.imageUrls, localImages),
+      };
 
-          if (selectedImageIndex > updatedJob.imageUrls.length - 1) {
-            setSelectedImageIndex(0);
-          }
-
-          return updatedJob;
-        });
+      if (selectedImageIndex > updatedJob.imageUrls.length - 1) {
+        setSelectedImageIndex(0);
       }
+
+      setJob(updatedJob);
     } catch (error) {
       console.log("Erro ao carregar detalhes do chamado:", error);
+
+      const localImages = await loadLocalJobImages(job);
+
+      if (localImages.length > 0) {
+        setJob((currentJob) => ({
+          ...currentJob,
+          imageUrls: mergeUniqueImageUrls(currentJob.imageUrls, localImages),
+        }));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -754,11 +836,6 @@ export default function JobDetailsScreen() {
             </>
           ) : (
             <>
-              <Image
-                source={splashIcon}
-                style={styles.heroPinImage}
-                resizeMode="contain"
-              />
               <Text style={[styles.heroText, { color: theme.textSecondary }]}>
                 Local do chamado
               </Text>
@@ -821,11 +898,7 @@ export default function JobDetailsScreen() {
         >
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <Image
-                source={splashIcon}
-                style={styles.infoPinImage}
-                resizeMode="contain"
-              />
+              <Text style={styles.infoEmoji}>📍</Text>
             </View>
 
             <View style={styles.infoTextArea}>

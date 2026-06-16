@@ -4,7 +4,7 @@ const API_PORT = "5275";
 
 // Para Expo Go no celular, deixe aqui o IP do notebook/PC que está rodando a API.
 // Exemplo: ipconfig -> Adaptador Wi-Fi -> Endereço IPv4.
-const MOBILE_API_HOST = "192.168.86.12";
+const MOBILE_API_HOST = "192.168.1.111";
 const REQUEST_TIMEOUT_MS = 10000;
 
 type RequestMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

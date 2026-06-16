@@ -333,13 +333,6 @@ export default function CompanyProfileScreen() {
     },
     {
       id: "3",
-      title: "Configurações",
-      subtitle: "Notificações, privacidade e segurança",
-      Icon: SettingsIcon,
-      action: () => router.push("/company-settings"),
-    },
-    {
-      id: "4",
       title: "Ajuda e suporte",
       subtitle: "E-mail e telefone de atendimento",
       Icon: HelpIcon,
@@ -678,7 +671,7 @@ export default function CompanyProfileScreen() {
                       { color: actionButtonTextColor },
                     ]}
                   >
-                    Dados
+                    Editar perfil
                   </Text>
                 </Pressable>
 
@@ -705,7 +698,7 @@ export default function CompanyProfileScreen() {
                       { color: actionButtonTextColor },
                     ]}
                   >
-                    Configurar
+                    Configurações
                   </Text>
                 </Pressable>
               </View>

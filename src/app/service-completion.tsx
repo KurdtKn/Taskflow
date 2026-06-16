@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import ArrowBack from "../../assets/icons/arrow_back.svg";
 import CheckIcon from "../../assets/icons/check.svg";
@@ -46,8 +47,6 @@ const checklistItems: ChecklistItem[] = [
 function resolveLoggedUserId(loggedUserData: any) {
   const value = Number(
     loggedUserData?.id ??
-      loggedUserData?.usuario?.id ??
-      loggedUserData?.user?.id ??
       loggedUserData?.usuarioId ??
       loggedUserData?.usuario_id ??
       loggedUserData?.userId ??
@@ -69,6 +68,83 @@ function getParamValue(value?: string | string[], fallback = "") {
   return value ?? fallback;
 }
 
+
+function normalizePaymentMethodLabel(value?: string) {
+  const rawValue = String(value ?? "").trim();
+
+  if (!rawValue) {
+    return "";
+  }
+
+  const normalized = rawValue
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+  if (normalized.includes("pix")) {
+    return "PIX";
+  }
+
+  if (
+    normalized.includes("credito") ||
+    normalized === "card" ||
+    normalized === "credit_card" ||
+    normalized === "creditcard" ||
+    normalized === "cartao_credito"
+  ) {
+    return "Cartão de crédito";
+  }
+
+  if (
+    normalized.includes("debito") ||
+    normalized === "debit_card" ||
+    normalized === "debitcard" ||
+    normalized === "cartao_debito"
+  ) {
+    return "Cartão de débito";
+  }
+
+  if (
+    normalized.includes("saldo") ||
+    normalized.includes("carteira") ||
+    normalized === "wallet" ||
+    normalized === "balance"
+  ) {
+    return "Saldo na conta";
+  }
+
+  return rawValue;
+}
+
+async function saveLocalPaymentMethod(ids: {
+  contratoId?: string;
+  jobId?: string;
+  candidaturaId?: string;
+  paymentMethod?: string;
+}) {
+  const methodLabel = normalizePaymentMethodLabel(ids.paymentMethod);
+
+  if (!methodLabel) {
+    return;
+  }
+
+  const rawIds = [ids.contratoId, ids.jobId, ids.candidaturaId].filter(
+    (value): value is string => Boolean(value && String(value).trim())
+  );
+
+  const entries = rawIds.flatMap((id) => [
+    [`taskflow_payment_method_${id}`, methodLabel] as [string, string],
+    [`payment_method_${id}`, methodLabel] as [string, string],
+  ]);
+
+  if (entries.length === 0) {
+    return;
+  }
+
+  await AsyncStorage.multiSet(entries);
+}
+
 export default function ServiceCompletionScreen() {
   const params = useLocalSearchParams<{
     contratoId?: string | string[];
@@ -76,10 +152,6 @@ export default function ServiceCompletionScreen() {
     jobId?: string | string[];
     candidaturaId?: string | string[];
     freelancerId?: string | string[];
-    freelancerUsuarioId?: string | string[];
-    freelancer_usuario_id?: string | string[];
-    empresaUsuarioId?: string | string[];
-    empresa_usuario_id?: string | string[];
 
     jobTitle?: string | string[];
     jobCategory?: string | string[];
@@ -106,12 +178,6 @@ export default function ServiceCompletionScreen() {
   const jobId = getParamValue(params.jobId);
   const candidaturaId = getParamValue(params.candidaturaId);
   const freelancerId = getParamValue(params.freelancerId);
-  const freelancerUsuarioId = getParamValue(
-    params.freelancerUsuarioId ?? params.freelancer_usuario_id
-  );
-  const empresaUsuarioId = getParamValue(
-    params.empresaUsuarioId ?? params.empresa_usuario_id
-  );
 
   const jobTitle = getParamValue(params.jobTitle, "Chamado");
   const jobCategory = getParamValue(params.jobCategory);
@@ -196,8 +262,14 @@ export default function ServiceCompletionScreen() {
         jobId,
         candidaturaId,
         freelancerId,
-        freelancerUsuarioId,
         avaliadorId,
+      });
+
+      await saveLocalPaymentMethod({
+        contratoId,
+        jobId,
+        candidaturaId,
+        paymentMethod,
       });
 
       try {
@@ -215,10 +287,7 @@ export default function ServiceCompletionScreen() {
           contratoId,
 
           avaliadorId: String(avaliadorId),
-          avaliadoId: freelancerUsuarioId || freelancerId,
-
-          freelancerUsuarioId,
-          empresaUsuarioId,
+          avaliadoId: freelancerId,
 
           jobId,
           candidaturaId,
