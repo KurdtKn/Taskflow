@@ -14,100 +14,22 @@ import { StatusBar } from "expo-status-bar";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { apiGet } from "@/services/api";
+import { API_BASE_URL, apiGet } from "@/services/api";
 import { getLoggedUser } from "@/services/storage";
 import { useTheme } from "@/app/context/ThemeContext";
 import { colors } from "@/styles/colors";
 
-
-const JOB_IMAGE_STORAGE_KEY = "@taskflow:job-images-by-key";
-
-type LocalJobImageRecord = {
-  imageUrls?: string[];
-};
-
-function normalizeStorageKeyPart(value: unknown) {
-  return String(value ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function makeJobFingerprintKey(values: {
-  title?: unknown;
-  localServico?: unknown;
-  location?: unknown;
-  cidade?: unknown;
-  city?: unknown;
-  estado?: unknown;
-  state?: unknown;
-}) {
-  return [
-    normalizeStorageKeyPart(values.title),
-    normalizeStorageKeyPart(values.localServico ?? values.location),
-    normalizeStorageKeyPart(values.cidade ?? values.city),
-    normalizeStorageKeyPart(values.estado ?? values.state),
-  ].join("|");
-}
-
-function mergeUniqueImageUrls(...lists: string[][]) {
-  return Array.from(
-    new Set(
-      lists
-        .flat()
-        .map((url) => String(url ?? "").trim())
-        .filter(Boolean)
-    )
-  );
-}
-
-async function loadLocalJobImages(job: Partial<JobDetails>) {
-  try {
-    const rawStorage = await AsyncStorage.getItem(JOB_IMAGE_STORAGE_KEY);
-
-    if (!rawStorage) {
-      return [];
-    }
-
-    const storage: Record<string, LocalJobImageRecord> = JSON.parse(rawStorage);
-    const possibleKeys = new Set<string>();
-
-    if (job.id) {
-      possibleKeys.add(`id:${job.id}`);
-    }
-
-    const fingerprintKey = makeJobFingerprintKey({
-      title: job.title,
-      location: job.location,
-      city: job.city,
-      state: job.state,
-    });
-
-    if (fingerprintKey.replace(/\|/g, "")) {
-      possibleKeys.add(`fingerprint:${fingerprintKey}`);
-    }
-
-    for (const key of possibleKeys) {
-      const record = storage[key];
-
-      if (record?.imageUrls?.length) {
-        return record.imageUrls.map((url) => String(url).trim()).filter(Boolean);
-      }
-    }
-  } catch (error) {
-    console.log("Erro ao carregar imagens locais do chamado:", error);
-  }
-
-  return [];
-}
-
+const splashIcon = require("../../assets/images/splash-icon.png");
+const COMPANY_DATA_KEY_PREFIX = "@taskflow:company_data:";
 
 type ChamadoApi = {
   id?: number | string;
   empresaId?: number | string;
   empresa_id?: number | string;
+  idEmpresa?: number | string;
+  id_empresa?: number | string;
+  companyId?: number | string;
+  company_id?: number | string;
   categoriaId?: number | string;
   categoria_id?: number | string;
   titulo?: string;
@@ -208,6 +130,7 @@ type JobDetails = {
   time: string;
   date: string;
   status: string;
+  companyId: string;
   companyName: string;
   companyPhotoUrl: string;
   vacancies: number;
@@ -222,6 +145,41 @@ function firstParam(value: string | string[] | undefined) {
   }
 
   return value ?? "";
+}
+
+function safeString(value: unknown) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value).trim();
+}
+
+function normalizeText(value: unknown) {
+  return safeString(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeImageUri(value?: string | null) {
+  const uri = safeString(value);
+
+  if (!uri) {
+    return "";
+  }
+
+  if (/^(https?:|file:|data:|blob:|content:)/i.test(uri)) {
+    return uri;
+  }
+
+  if (uri.startsWith("/")) {
+    return `${API_BASE_URL}${uri}`;
+  }
+
+  return uri;
 }
 
 function getChamadosFromResponse(response: ChamadosResponse) {
@@ -371,9 +329,21 @@ function getImageUrlsFromApi(chamado: ChamadoApi, fallback: string[] = []) {
     return listFromApi;
   }
 
-  // Não usa campos únicos tipo imageUrl/fotoUrl aqui.
-  // Esses campos costumam vir de imagens automáticas de card/categoria.
-  // O job-details deve mostrar apenas as URLs adicionadas no create-job.
+  const singleImages = [
+    chamado.imagemUrl,
+    chamado.imagem_url,
+    chamado.fotoUrl,
+    chamado.foto_url,
+    chamado.imageUrl,
+    chamado.image_url,
+  ]
+    .map((item) => String(item ?? "").trim())
+    .filter(Boolean);
+
+  if (singleImages.length > 0) {
+    return singleImages;
+  }
+
   return fallback;
 }
 
@@ -391,25 +361,286 @@ function pickImageUrl(...values: Array<unknown>) {
     return "";
   }
 
-  return String(foundValue).trim();
+  return normalizeImageUri(String(foundValue).trim());
 }
 
-function getCompanyPhotoFromApi(chamado: ChamadoApi, fallback = "") {
+function getCompanyPhotoFromApi(chamado: any, fallback = "") {
   return pickImageUrl(
-    chamado.companyPhotoUrl,
-    chamado.company_photo_url,
-    chamado.empresaPhotoUrl,
-    chamado.empresa_photo_url,
-    chamado.empresaFotoUrl,
-    chamado.empresa_foto_url,
-    chamado.companyLogoUrl,
-    chamado.company_logo_url,
-    chamado.logoUrl,
-    chamado.logo_url,
-    chamado.avatarUrl,
-    chamado.avatar_url,
+    chamado?.companyPhotoUrl,
+    chamado?.company_photo_url,
+    chamado?.companyPhotoUri,
+    chamado?.company_photo_uri,
+    chamado?.empresaPhotoUrl,
+    chamado?.empresa_photo_url,
+    chamado?.empresaPhotoUri,
+    chamado?.empresa_photo_uri,
+    chamado?.empresaFotoUrl,
+    chamado?.empresa_foto_url,
+    chamado?.empresaFotoUri,
+    chamado?.empresa_foto_uri,
+    chamado?.companyLogoUrl,
+    chamado?.company_logo_url,
+    chamado?.companyLogoUri,
+    chamado?.company_logo_uri,
+    chamado?.logoUrl,
+    chamado?.logo_url,
+    chamado?.logoUri,
+    chamado?.logo_uri,
+    chamado?.logo,
+    chamado?.avatarUrl,
+    chamado?.avatar_url,
+    chamado?.avatarUri,
+    chamado?.avatar,
+    chamado?.usuario?.fotoUrl,
+    chamado?.usuario?.foto_url,
+    chamado?.usuario?.photoUrl,
+    chamado?.usuario?.photoUri,
+    chamado?.usuario?.logoUrl,
+    chamado?.usuario?.logoUri,
+    chamado?.empresa?.fotoUrl,
+    chamado?.empresa?.foto_url,
+    chamado?.empresa?.photoUrl,
+    chamado?.empresa?.photoUri,
+    chamado?.empresa?.logoUrl,
+    chamado?.empresa?.logoUri,
     fallback
   );
+}
+
+function resolveCompanyNameFromAny(...sources: any[]) {
+  for (const source of sources) {
+    const value =
+      source?.name ??
+      source?.nome ??
+      source?.nomeFantasia ??
+      source?.nome_fantasia ??
+      source?.razaoSocial ??
+      source?.razao_social ??
+      source?.companyName ??
+      source?.empresa ??
+      source?.company ??
+      source?.nomeEmpresa ??
+      source?.nome_empresa ??
+      source?.usuario?.nome;
+
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return "";
+}
+
+function resolveLocalCompanyPhoto(source: any) {
+  return pickImageUrl(
+    source?.logoUrl,
+    source?.logo_url,
+    source?.logoUri,
+    source?.logo_uri,
+    source?.logo,
+    source?.companyLogoUrl,
+    source?.company_logo_url,
+    source?.photoUrl,
+    source?.photo_url,
+    source?.photoUri,
+    source?.photo_uri,
+    source?.fotoUrl,
+    source?.foto_url,
+    source?.fotoUri,
+    source?.foto_uri,
+    source?.foto,
+    source?.urlFoto,
+    source?.imagemPerfil,
+    source?.profileImage,
+    source?.profileImageUri,
+    source?.profilePicture,
+    source?.imageUri,
+    source?.imageUrl,
+    source?.image_url,
+    source?.image,
+    source?.picture,
+    source?.avatarUrl,
+    source?.avatar_url,
+    source?.avatarUri,
+    source?.avatar,
+    source?.usuario?.fotoUrl,
+    source?.usuario?.foto_url,
+    source?.usuario?.photoUrl,
+    source?.usuario?.photoUri,
+    source?.usuario?.logoUrl,
+    source?.usuario?.logoUri,
+    source?.empresa?.fotoUrl,
+    source?.empresa?.foto_url,
+    source?.empresa?.photoUrl,
+    source?.empresa?.photoUri,
+    source?.empresa?.logoUrl,
+    source?.empresa?.logoUri
+  );
+}
+
+async function findLocalCompanyData(companyIds: string[], companyName: string) {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const companyKeys = keys.filter((key) =>
+      key.startsWith(COMPANY_DATA_KEY_PREFIX)
+    );
+
+    for (const companyId of companyIds) {
+      const raw = await AsyncStorage.getItem(`${COMPANY_DATA_KEY_PREFIX}${companyId}`);
+
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    }
+
+    const normalizedName = normalizeText(companyName);
+    const localCompanies: any[] = [];
+
+    for (const key of companyKeys) {
+      const raw = await AsyncStorage.getItem(key);
+
+      if (!raw) {
+        continue;
+      }
+
+      const data = JSON.parse(raw);
+      localCompanies.push(data);
+
+      const dataName = normalizeText(resolveCompanyNameFromAny(data));
+
+      if (
+        normalizedName &&
+        (dataName.includes(normalizedName) || normalizedName.includes(dataName))
+      ) {
+        return data;
+      }
+    }
+
+    if (localCompanies.length === 1) {
+      return localCompanies[0];
+    }
+  } catch (error) {
+    console.log("Erro ao buscar dados locais da empresa no chamado:", error);
+  }
+
+  return null;
+}
+
+
+function getMessagesFromAnyChatStorageValue(value: any) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (Array.isArray(value?.messages)) {
+    return value.messages;
+  }
+
+  if (Array.isArray(value?.mensagens)) {
+    return value.mensagens;
+  }
+
+  if (Array.isArray(value?.data)) {
+    return value.data;
+  }
+
+  return [];
+}
+
+async function findCompanyImageFromChatStorage(params: {
+  ids?: unknown[];
+  name?: unknown;
+}) {
+  try {
+    const ids = params.ids
+      ? params.ids.map((value) => safeString(value)).filter(Boolean)
+      : [];
+    const normalizedName = normalizeText(params.name);
+    const keys = await AsyncStorage.getAllKeys();
+    const chatKeys = keys.filter((key) => key.startsWith("@taskflow:chat"));
+    let fallbackImage = "";
+
+    for (const key of chatKeys) {
+      const raw = await AsyncStorage.getItem(key);
+
+      if (!raw) {
+        continue;
+      }
+
+      let parsed: any;
+
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        continue;
+      }
+
+      const messages = getMessagesFromAnyChatStorageValue(parsed).slice().reverse();
+
+      for (const message of messages) {
+        if (!message || typeof message !== "object") {
+          continue;
+        }
+
+        const senderType = normalizeText(
+          message.senderType ?? message.sender ?? message.tipoRemetente
+        );
+
+        if (senderType && senderType !== "company" && senderType !== "empresa") {
+          continue;
+        }
+
+        const image = pickImageUrl(
+          message.senderPhotoUrl,
+          message.sender_photo_url,
+          message.photoUrl,
+          message.fotoUrl,
+          message.avatarUrl,
+          message.logoUrl,
+          message.imageUrl
+        );
+
+        if (!image) {
+          continue;
+        }
+
+        const senderId = safeString(
+          message.senderId ??
+            message.sender_id ??
+            message.remetenteId ??
+            message.remetente_id ??
+            message.userId ??
+            message.usuarioId
+        );
+        const senderName = normalizeText(
+          message.senderName ??
+            message.sender_name ??
+            message.nomeRemetente ??
+            message.nome_remetente ??
+            message.name ??
+            message.nome
+        );
+
+        const sameId = Boolean(senderId && ids.includes(senderId));
+        const sameName =
+          Boolean(normalizedName && senderName) &&
+          (senderName.includes(normalizedName) || normalizedName.includes(senderName));
+
+        if (sameId || sameName) {
+          return image;
+        }
+
+        if (!fallbackImage) {
+          fallbackImage = image;
+        }
+      }
+    }
+
+    return fallbackImage;
+  } catch (error) {
+    console.log("Erro ao buscar foto da empresa no histórico do chat:", error);
+    return "";
+  }
 }
 
 function normalizeJobFromApi(chamado: ChamadoApi, fallback: JobDetails): JobDetails {
@@ -445,6 +676,16 @@ function normalizeJobFromApi(chamado: ChamadoApi, fallback: JobDetails): JobDeta
     time: `${date}, ${hour}`,
     date,
     status,
+    companyId: String(
+      chamado.empresaId ??
+        chamado.empresa_id ??
+        chamado.idEmpresa ??
+        chamado.id_empresa ??
+        chamado.companyId ??
+        chamado.company_id ??
+        fallback.companyId ??
+        ""
+    ),
     companyName:
       chamado.empresa ??
       chamado.company ??
@@ -504,12 +745,24 @@ export default function JobDetailsScreen() {
     distance?: string;
     status?: string;
     company?: string;
+    companyId?: string;
+    empresaId?: string;
+    idEmpresa?: string;
+    id_empresa?: string;
+    company_id?: string;
     companyName?: string;
     companyPhotoUrl?: string;
     empresaFotoUrl?: string;
+    companyPhotoUri?: string;
+    empresaFotoUri?: string;
     companyLogoUrl?: string;
+    companyLogoUri?: string;
     logoUrl?: string;
+    logoUri?: string;
+    photoUrl?: string;
+    photoUri?: string;
     avatarUrl?: string;
+    avatarUri?: string;
     vacancies?: string;
     vagasDisponiveis?: string;
     availableVacancies?: string;
@@ -523,11 +776,11 @@ export default function JobDetailsScreen() {
 
   const { isDark, theme } = useTheme();
 
-  // Não usa imageUrl/imagemUrl individual porque essas imagens podem vir de fallback
-  // aleatório/card automático. Aqui entram somente as imagens adicionadas no create-job.
   const initialImages = [
     ...normalizeImageList(firstParam(params.imageUrls)),
     ...normalizeImageList(firstParam(params.imagens)),
+    ...normalizeImageList(firstParam(params.imageUrl)),
+    ...normalizeImageList(firstParam(params.imagemUrl)),
   ];
 
   const initialJob: JobDetails = {
@@ -545,14 +798,28 @@ export default function JobDetailsScreen() {
     time: firstParam(params.time) || "Data e horário a combinar",
     date: "",
     status: firstParam(params.status) || "aberto",
+    companyId:
+      firstParam(params.companyId) ||
+      firstParam(params.empresaId) ||
+      firstParam(params.idEmpresa) ||
+      firstParam(params.id_empresa) ||
+      firstParam(params.company_id),
     companyName:
       firstParam(params.companyName) || firstParam(params.company) || "Empresa contratante",
-    companyPhotoUrl:
-      firstParam(params.companyPhotoUrl) ||
-      firstParam(params.empresaFotoUrl) ||
-      firstParam(params.companyLogoUrl) ||
-      firstParam(params.logoUrl) ||
+    companyPhotoUrl: pickImageUrl(
+      firstParam(params.companyPhotoUrl),
+      firstParam(params.empresaFotoUrl),
+      firstParam(params.companyPhotoUri),
+      firstParam(params.empresaFotoUri),
+      firstParam(params.companyLogoUrl),
+      firstParam(params.companyLogoUri),
+      firstParam(params.logoUrl),
+      firstParam(params.logoUri),
+      firstParam(params.photoUrl),
+      firstParam(params.photoUri),
       firstParam(params.avatarUrl),
+      firstParam(params.avatarUri)
+    ),
     vacancies: Number(
       firstParam(params.vagasDisponiveis) ||
         firstParam(params.availableVacancies) ||
@@ -570,6 +837,7 @@ export default function JobDetailsScreen() {
   const [loggedUserType, setLoggedUserType] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+  const [companyPhotoFailed, setCompanyPhotoFailed] = useState(false);
 
   const hasVacancies = job.vacancies > 0 && !isUnavailableStatus(job.status);
   const canApply = loggedUserType !== "empresa" && hasVacancies && !hasApplied;
@@ -590,34 +858,77 @@ export default function JobDetailsScreen() {
 
     try {
       setIsLoading(true);
+      setCompanyPhotoFailed(false);
 
       const response = await apiGet<ChamadosResponse>("/api/Chamados");
       const chamados = getChamadosFromResponse(response);
       const chamado = chamados.find((item) => String(item.id) === String(job.id));
 
-      const jobFromApi = chamado ? normalizeJobFromApi(chamado, job) : job;
-      const localImages = await loadLocalJobImages(jobFromApi);
-      const updatedJob = {
-        ...jobFromApi,
-        imageUrls: mergeUniqueImageUrls(jobFromApi.imageUrls, localImages),
-      };
+      if (chamado) {
+        const localCompanyData = await findLocalCompanyData(
+          [
+            safeString(chamado.empresaId),
+            safeString(chamado.empresa_id),
+            safeString(chamado.idEmpresa),
+            safeString(chamado.id_empresa),
+            safeString(chamado.companyId),
+            safeString(chamado.company_id),
+            safeString(job.companyId),
+          ].filter(Boolean),
+          resolveCompanyNameFromAny(chamado, job)
+        );
 
-      if (selectedImageIndex > updatedJob.imageUrls.length - 1) {
-        setSelectedImageIndex(0);
+        const companyIdsForPhoto = [
+          safeString(chamado.empresaId),
+          safeString(chamado.empresa_id),
+          safeString(chamado.idEmpresa),
+          safeString(chamado.id_empresa),
+          safeString(chamado.companyId),
+          safeString(chamado.company_id),
+          safeString(job.companyId),
+        ].filter(Boolean);
+        const chatCompanyPhoto = await findCompanyImageFromChatStorage({
+          ids: companyIdsForPhoto,
+          name: resolveCompanyNameFromAny(localCompanyData, chamado, job),
+        });
+
+        setJob((currentJob) => {
+          const updatedJob = normalizeJobFromApi(chamado, currentJob);
+          const localPhoto = resolveLocalCompanyPhoto(localCompanyData);
+          const localName = resolveCompanyNameFromAny(localCompanyData);
+
+          if (selectedImageIndex > updatedJob.imageUrls.length - 1) {
+            setSelectedImageIndex(0);
+          }
+
+          return {
+            ...updatedJob,
+            companyName: localName || updatedJob.companyName,
+            companyPhotoUrl: localPhoto || chatCompanyPhoto || updatedJob.companyPhotoUrl,
+          };
+        });
+      } else {
+        const localCompanyData = await findLocalCompanyData(
+          [job.companyId].filter(Boolean),
+          job.companyName
+        );
+        const localPhoto = resolveLocalCompanyPhoto(localCompanyData);
+        const localName = resolveCompanyNameFromAny(localCompanyData);
+        const chatCompanyPhoto = await findCompanyImageFromChatStorage({
+          ids: [job.companyId].filter(Boolean),
+          name: localName || job.companyName,
+        });
+
+        if (localPhoto || chatCompanyPhoto || localName) {
+          setJob((currentJob) => ({
+            ...currentJob,
+            companyName: localName || currentJob.companyName,
+            companyPhotoUrl: localPhoto || chatCompanyPhoto || currentJob.companyPhotoUrl,
+          }));
+        }
       }
-
-      setJob(updatedJob);
     } catch (error) {
       console.log("Erro ao carregar detalhes do chamado:", error);
-
-      const localImages = await loadLocalJobImages(job);
-
-      if (localImages.length > 0) {
-        setJob((currentJob) => ({
-          ...currentJob,
-          imageUrls: mergeUniqueImageUrls(currentJob.imageUrls, localImages),
-        }));
-      }
     } finally {
       setIsLoading(false);
     }
@@ -683,6 +994,36 @@ export default function JobDetailsScreen() {
         state: job.state,
         latitude: job.latitude !== null ? String(job.latitude) : "",
         longitude: job.longitude !== null ? String(job.longitude) : "",
+      },
+    });
+  }
+
+  function goToCompanyProfile() {
+    router.push({
+      pathname: "/company-public-profile",
+      params: {
+        id: job.companyId,
+        companyId: job.companyId,
+        empresaId: job.companyId,
+        idEmpresa: job.companyId,
+        name: job.companyName,
+        companyName: job.companyName,
+        empresa: job.companyName,
+        photoUrl: job.companyPhotoUrl,
+        photoUri: job.companyPhotoUrl,
+        companyPhotoUrl: job.companyPhotoUrl,
+        companyPhotoUri: job.companyPhotoUrl,
+        empresaFotoUrl: job.companyPhotoUrl,
+        empresaFotoUri: job.companyPhotoUrl,
+        logoUrl: job.companyPhotoUrl,
+        logoUri: job.companyPhotoUrl,
+        jobId: job.id,
+        chamadoId: job.id,
+        jobTitle: job.title,
+        companyLocation: `${job.city ? `${job.city} - ` : ""}${job.location}${job.state ? `/${job.state}` : ""}`,
+        location: job.location,
+        city: job.city,
+        state: job.state,
       },
     });
   }
@@ -836,6 +1177,11 @@ export default function JobDetailsScreen() {
             </>
           ) : (
             <>
+              <Image
+                source={splashIcon}
+                style={styles.heroPinImage}
+                resizeMode="contain"
+              />
               <Text style={[styles.heroText, { color: theme.textSecondary }]}>
                 Local do chamado
               </Text>
@@ -898,7 +1244,11 @@ export default function JobDetailsScreen() {
         >
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <Text style={styles.infoEmoji}>📍</Text>
+              <Image
+                source={splashIcon}
+                style={styles.infoPinImage}
+                resizeMode="contain"
+              />
             </View>
 
             <View style={styles.infoTextArea}>
@@ -970,11 +1320,12 @@ export default function JobDetailsScreen() {
             { backgroundColor: theme.card, borderColor: theme.border },
           ]}
         >
-          {job.companyPhotoUrl ? (
+          {job.companyPhotoUrl && !companyPhotoFailed ? (
             <Image
               source={{ uri: job.companyPhotoUrl }}
               style={styles.companyAvatar}
               resizeMode="cover"
+              onError={() => setCompanyPhotoFailed(true)}
             />
           ) : (
             <View style={styles.companyAvatar}>
@@ -990,6 +1341,16 @@ export default function JobDetailsScreen() {
               Empresa responsável pelo chamado
             </Text>
           </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.companyProfileButton,
+              pressed && { opacity: 0.78 },
+            ]}
+            onPress={goToCompanyProfile}
+          >
+            <Text style={styles.companyProfileButtonText}>Ver perfil da empresa</Text>
+          </Pressable>
         </View>
 
         {isLoading && (
@@ -1455,6 +1816,21 @@ const styles = StyleSheet.create({
   companySubtitle: {
     fontSize: 12,
     fontWeight: "700",
+  },
+
+  companyProfileButton: {
+    height: 38,
+    borderRadius: 13,
+    paddingHorizontal: 14,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  companyProfileButtonText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "900",
   },
 
   loadingText: {
