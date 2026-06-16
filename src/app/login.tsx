@@ -45,7 +45,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState("");
@@ -62,7 +62,7 @@ export default function LoginScreen() {
         );
 
         setEmail(savedEmail ?? "");
-        setRememberMe(false);
+        setRememberMe(true);
       } catch (error) {
         console.log("Erro ao carregar preferência de login:", error);
       }
@@ -96,17 +96,12 @@ export default function LoginScreen() {
   async function saveRememberPreference(trimmedEmail: string) {
     await AsyncStorage.setItem(
       REMEMBER_ME_KEY,
-      rememberMe ? "true" : "false"
+      "true"
     );
 
     const emailKey = getRememberEmailKey(accountType);
 
-    if (rememberMe) {
-      await AsyncStorage.setItem(emailKey, trimmedEmail);
-      return;
-    }
-
-    await AsyncStorage.removeItem(emailKey);
+    await AsyncStorage.setItem(emailKey, trimmedEmail);
   }
 
   async function handleLogin() {
@@ -344,7 +339,7 @@ export default function LoginScreen() {
                 alignItems: "center",
                 gap: 8,
               }}
-              onPress={() => setRememberMe((currentValue) => !currentValue)}
+              onPress={() => setRememberMe(true)}
               disabled={isLoading}
               hitSlop={8}
             >

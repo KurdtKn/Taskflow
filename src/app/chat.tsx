@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -100,6 +100,79 @@ function getProfilePhotoUrl(profileData: any, fallback = "") {
   ).trim();
 }
 
+function getLoggedUserType(loggedUser: any): "empresa" | "freelancer" {
+  const value = String(
+    loggedUser?.tipoUsuario ??
+      loggedUser?.tipo_usuario ??
+      loggedUser?.tipo ??
+      loggedUser?.userType ??
+      loggedUser?.perfil ??
+      ""
+  )
+    .toLowerCase()
+    .trim();
+
+  if (value.includes("freelancer")) {
+    return "freelancer";
+  }
+
+  return "empresa";
+}
+
+function getLoggedUserId(loggedUser: any) {
+  return String(
+    loggedUser?.id ??
+      loggedUser?.idUsuario ??
+      loggedUser?.usuarioId ??
+      loggedUser?.userId ??
+      loggedUser?.id_usuario ??
+      ""
+  ).trim();
+}
+
+function getLoggedUserName(loggedUser: any) {
+  return String(
+    loggedUser?.nome ?? loggedUser?.name ?? loggedUser?.razaoSocial ?? "Usuário"
+  ).trim();
+}
+
+function uniqueValues(values: string[]) {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function sortMessagesByDate(messages: Message[]) {
+  return [...messages].sort((messageA, messageB) => {
+    const dateA = new Date(messageA.createdAt).getTime();
+    const dateB = new Date(messageB.createdAt).getTime();
+
+    if (Number.isNaN(dateA) || Number.isNaN(dateB)) {
+      return messageA.id.localeCompare(messageB.id);
+    }
+
+    return dateA - dateB;
+  });
+}
+
+function mergeMessageLists(currentMessages: Message[], incomingMessages: Message[]) {
+  const messagesById = new Map<string, Message>();
+
+  [...currentMessages, ...incomingMessages].forEach((message) => {
+    if (!message?.id) {
+      return;
+    }
+
+    messagesById.set(message.id, message);
+  });
+
+  return sortMessagesByDate([...messagesById.values()]);
+}
+
+function getMessagesHash(messages: Message[]) {
+  return messages
+    .map((message) => `${message.id}:${message.createdAt}:${message.text}`)
+    .join("|");
+}
+
 export default function ChatScreen() {
   const params = useLocalSearchParams<{
     contratoId?: string | string[];
@@ -135,6 +208,7 @@ export default function ChatScreen() {
   }>();
 
   const scrollRef = useRef<ScrollView>(null);
+  const lastMessagesHashRef = useRef("");
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState("");
@@ -196,8 +270,22 @@ export default function ChatScreen() {
   const totalValue = getParamValue(params.totalValue);
   const paymentMethod = getParamValue(params.paymentMethod);
 
-  const chatId = contratoId || jobId || "sem-chamado";
-  const chatKey = `${CHAT_STORAGE_KEY}:${chatId}`;
+  const chatId = contratoId || jobId || candidaturaId || "sem-chamado";
+
+  const chatStorageKeys = useMemo(
+    () =>
+      uniqueValues([
+        contratoId ? `${CHAT_STORAGE_KEY}:contrato:${contratoId}` : "",
+        contratoId ? `${CHAT_STORAGE_KEY}:${contratoId}` : "",
+        jobId ? `${CHAT_STORAGE_KEY}:job:${jobId}` : "",
+        jobId ? `${CHAT_STORAGE_KEY}:${jobId}` : "",
+        candidaturaId ? `${CHAT_STORAGE_KEY}:candidatura:${candidaturaId}` : "",
+        `${CHAT_STORAGE_KEY}:${chatId}`,
+      ]),
+    [contratoId, jobId, candidaturaId, chatId]
+  );
+
+  const mainChatKey = chatStorageKeys[0] ?? `${CHAT_STORAGE_KEY}:${chatId}`;
 
   const chatHeaderTitle =
     currentUserType === "freelancer" ? companyName : "Grupo do chamado";
@@ -222,7 +310,37 @@ export default function ChatScreen() {
 
   useEffect(() => {
     loadChat();
-  }, [chatKey]);
+  }, [mainChatKey]);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      syncStoredMessages({ scrollToEnd: false });
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [isLoading, mainChatKey]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") {
+      return;
+    }
+
+    const handleStorageChange = (event: any) => {
+      if (!event.key || !chatStorageKeys.includes(event.key)) {
+        return;
+      }
+
+      syncStoredMessages({ scrollToEnd: true });
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [mainChatKey]);
 
   async function loadChat() {
     try {
@@ -235,9 +353,9 @@ export default function ChatScreen() {
         return;
       }
 
-      const tipoUsuario = loggedUser.tipoUsuario?.toLowerCase().trim();
-      const userId = loggedUser.id;
-      const userName = loggedUser.nome || "Usuário";
+      const tipoUsuario = getLoggedUserType(loggedUser);
+      const userId = getLoggedUserId(loggedUser);
+      const userName = getLoggedUserName(loggedUser);
 
       setCurrentUserId(userId);
       setCurrentUserName(userName);
@@ -266,22 +384,8 @@ export default function ChatScreen() {
         setCurrentUserPhotoUrl(companyPhoto || undefined);
       }
 
-      const storedMessages = await AsyncStorage.getItem(chatKey);
-
-      if (!storedMessages) {
-        setMessages([]);
-        return;
-      }
-
-      const parsedMessages = JSON.parse(storedMessages) as Array<
-        Message | LegacyMessage
-      >;
-
-      const normalizedMessages = parsedMessages.map((message) =>
-        normalizeStoredMessage(message)
-      );
-
-      setMessages(normalizedMessages);
+      const normalizedMessages = await readMessagesFromStorage();
+      updateMessagesState(normalizedMessages, false);
     } catch (error) {
       console.log("Erro ao carregar mensagens do chat:", error);
       setMessages([]);
@@ -318,9 +422,73 @@ export default function ChatScreen() {
     };
   }
 
+  function updateMessagesState(updatedMessages: Message[], shouldScrollToEnd: boolean) {
+    const sortedMessages = sortMessagesByDate(updatedMessages);
+    const nextHash = getMessagesHash(sortedMessages);
+
+    if (nextHash === lastMessagesHashRef.current) {
+      return;
+    }
+
+    lastMessagesHashRef.current = nextHash;
+    setMessages(sortedMessages);
+
+    if (shouldScrollToEnd) {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }
+
+  async function readMessagesFromStorage() {
+    let mergedMessages: Message[] = [];
+
+    for (const storageKey of chatStorageKeys) {
+      const storedMessages = await AsyncStorage.getItem(storageKey);
+
+      if (!storedMessages) {
+        continue;
+      }
+
+      try {
+        const parsedMessages = JSON.parse(storedMessages) as Array<
+          Message | LegacyMessage
+        >;
+
+        const normalizedMessages = parsedMessages.map((message) =>
+          normalizeStoredMessage(message)
+        );
+
+        mergedMessages = mergeMessageLists(mergedMessages, normalizedMessages);
+      } catch (error) {
+        console.log("Erro ao ler mensagens do chat:", error);
+      }
+    }
+
+    return mergedMessages;
+  }
+
+  async function syncStoredMessages(options?: { scrollToEnd?: boolean }) {
+    try {
+      const storedMessages = await readMessagesFromStorage();
+      updateMessagesState(storedMessages, Boolean(options?.scrollToEnd));
+    } catch (error) {
+      console.log("Erro ao sincronizar mensagens do chat:", error);
+    }
+  }
+
   async function saveMessages(updatedMessages: Message[]) {
     try {
-      await AsyncStorage.setItem(chatKey, JSON.stringify(updatedMessages));
+      const storedMessages = await readMessagesFromStorage();
+      const mergedMessages = mergeMessageLists(storedMessages, updatedMessages);
+
+      await Promise.all(
+        chatStorageKeys.map((storageKey) =>
+          AsyncStorage.setItem(storageKey, JSON.stringify(mergedMessages))
+        )
+      );
+
+      updateMessagesState(mergedMessages, true);
     } catch (error) {
       console.log("Erro ao salvar mensagens do chat:", error);
     }
@@ -349,16 +517,9 @@ export default function ChatScreen() {
       createdAt: new Date().toISOString(),
     };
 
-    const updatedMessages = [...messages, newMessage];
-
-    setMessages(updatedMessages);
     setMessageText("");
 
-    await saveMessages(updatedMessages);
-
-    setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    await saveMessages([...messages, newMessage]);
   }
 
   async function handleFinishService() {
