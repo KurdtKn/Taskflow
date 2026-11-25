@@ -107,7 +107,7 @@ O frontend encontra-se na raiz do repositório. O backend está separado em `bac
 
 ## Interface
 
-As imagens abaixo são **protótipos de interface extraídos da documentação acadêmica** e ilustram o fluxo concebido para o TaskFlow. Alguns elementos visuais podem diferir da implementação disponível no repositório.
+As imagens abaixo são **capturas da interface da aplicação** e apresentam alguns dos principais fluxos implementados no TaskFlow.
 
 <div align="center">
 <table>
@@ -161,7 +161,7 @@ CREATE DATABASE IF NOT EXISTS taskflow_db
 
 Importe a estrutura SQL correspondente à versão final do projeto (tabelas, relacionamentos e dados de referência necessários). Um banco vazio, sem as tabelas, não permite executar os fluxos da aplicação.
 
-**Pendente de documentação:** a disponibilidade de um script SQL de instalação no repositório ainda precisa ser confirmada. Enquanto isso, utilize uma exportação da estrutura do banco original, sem dados pessoais ou registros de testes.
+A estrutura do banco deve ser preparada localmente antes da execução da aplicação. Caso seja utilizada uma exportação do ambiente acadêmico original, recomenda-se manter apenas a estrutura e dados de referência necessários, sem dados pessoais ou registros de testes.
 
 ### 3. Backend (API)
 
@@ -253,6 +253,14 @@ Mantenha o celular e o computador na mesma rede Wi-Fi, verifique se a porta 5275
 - Não publique senhas do MySQL, chaves da TomTom, arquivos de configuração privados ou dados pessoais de usuários.
 - O pagamento é simulado; não há processamento de dinheiro real neste projeto acadêmico.
 - Uma implantação comercial exigiria revisão de autenticação, autorização, segurança, privacidade e infraestrutura, além de uma integração real de pagamentos.
+
+## Documentação acadêmica
+
+A documentação escrita do TCC pode ser disponibilizada na pasta `docs/academico/`, preservando o README como uma visão rápida e técnica do projeto.
+
+Caso o relatório final seja publicado, recomenda-se utilizar uma versão revisada para portfólio, removendo dados pessoais, assinaturas, informações sensíveis e outros conteúdos que não precisem ficar públicos.
+
+> O documento acadêmico completo deve ser publicado apenas se todos os autores envolvidos estiverem de acordo e se não houver restrições institucionais à divulgação.
 
 ## Contexto acadêmico e contribuição
 
